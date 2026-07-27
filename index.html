@@ -1,0 +1,66 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Negative-Split Explorer</title>
+<link rel="stylesheet" href="css/style.css">
+</head><body>
+<script src="js/common.js"></script>
+<main>
+<h1>Negative-Split Explorer</h1>
+<p class="sub" id="stats">loading…</p>
+
+<div class="idxgroup">
+<h2>Built — explorations</h2>
+<ul>
+  <li><a href="scatter.html"><span class="t">Scatter — Split vs Performance</span></a>
+      <div class="d">Seed #1. Split % vs final distance (24h) / finish time (100mi). Tabs per discipline; color by class or sex; distance filter.</div></li>
+  <li><a href="foresight.html"><span class="t">2 · Foresight</span></a>
+      <div class="d">Seed #2. Projecting from your average pace <i>so far</i> (start→point). Even/neg rich-lap races — overlay, single, small-multiples; 100mi &amp; 24h; above the line = ahead of your average.</div></li>
+  <li><a href="hindsight.html"><span class="t">3 · Hindsight / Green Line</span></a>
+      <div class="d">The mirror: average pace from each point <i>to the end</i>. A negative split starts on the line and climbs above it as the fast close accumulates.</div></li>
+  <li><a href="shapes-adv.html"><span class="t">Shape Metrics</span></a>
+      <div class="d">Full rich cohort (n≈705): first-vs-second-half, late surge, steadiness, quarter-by-quarter signature curves, even/neg quarter heatmap.</div></li>
+  <li><a href="aggregate.html"><span class="t">Aggregate</span></a>
+      <div class="d">Distribution, place-band (core question), split-vs-place, sex, tier, over-time, in-race-100mi green line.</div></li>
+  <li><a href="relative.html"><span class="t">Relative Performance</span></a>
+      <div class="d">Gap-to-winner vs split, within-field percentile vs split, and an "even = your best?" optimality view.</div></li>
+  <li><a href="cohorts.html"><span class="t">Cohorts</span></a>
+      <div class="d">Rarity by tier/decade/sex, mean split by country, field-quality vs evenness, split vs age.</div></li>
+  <li><a href="athletes.html"><span class="t">Athletes</span></a>
+      <div class="d">Repeat even/negative splitters and a per-athlete career history (24h + in-race 100mi).</div></li>
+  <li><a href="gallery.html"><span class="t">Gallery</span></a>
+      <div class="d">Sortable/filterable table of every even &amp; negative performance; ◆ marks ones with a race shape.</div></li>
+  <li><a href="facets.html"><span class="t">10 · Facets &amp; distributions</span></a>
+      <div class="d">Seed scatter faceted by tier &amp; decade (small multiples); final-distance distribution by split class; split by venue type.</div></li>
+  <li><a href="fielddyn.html"><span class="t">11 · Field dynamics</span></a>
+      <div class="d">Fade-point distribution, survival curve (fraction still on even pace, by tier), and places gained from halfway to finish vs split. Rich cohort.</div></li>
+  <li><a href="archetypes.html"><span class="t">12 · Pacing archetypes &amp; replay</span></a>
+      <div class="d">2-D archetype quadrants (go-out-hard-fade … held-back-kick), mean shape men vs women, and an animated single-race replay vs the even-pace ghost.</div></li>
+  <li><a href="records.html"><span class="t">13 · Record-attempt pacing</span></a>
+      <div class="d">Caliber (% of dataset best) vs split, with a spotlight slider — do the near-record efforts pace more evenly?</div></li>
+  <li><a href="spotlight.html"><span class="t">14 · Nick Coury spotlight</span></a>
+      <div class="d">Every Coury performance annotated + his in-race pace shapes, anchored on the 2021 Desert Solstice AR.</div></li>
+  <li><a href="builder.html"><span class="t">15 · Build-a-cohort</span></a>
+      <div class="d">Pick filters (discipline, sex, tier, years, distance) and watch the split distribution + finishing-band gradient update live.</div></li>
+</ul>
+</div>
+
+<div class="idxgroup">
+<h2>Idea backlog — say the word and I'll build any of these</h2>
+<p class="todo">The 12 seeded ideas are now built above. A couple of deeper angles remain, some needing data we don't yet capture:</p>
+<ul>
+  <li><span class="t">Weather / heat-affected editions</span><div class="d">Split vs conditions. Needs a per-edition weather tag (temperature/heat) that isn't in the dataset yet — venue type is covered on the Facets page as the surface-only proxy.</div></li>
+  <li><span class="t">Official-record proximity</span><div class="d">Records page uses a within-dataset best as the record proxy; hard-coding official national/world records per era+sex would sharpen "record-chase" identification.</div></li>
+  <li><span class="t">Field-wide survival &amp; places-gained beyond the rich cohort</span><div class="d">Field dynamics is limited to the ~22 events with rich lap data. Ingesting more lap-level fields would widen it.</div></li>
+</ul>
+</div>
+
+<script>
+nav('index.html');
+fetch('data/meta.json').then(r=>r.json()).then(m=>{
+  document.getElementById('stats').textContent =
+    `${m.n_events} events · ${m.n_results.toLocaleString()} performances · ${m.n_class.toLocaleString()} split classifications · `+
+    `${m.n_shapes} rich-lap shapes (${m.n_shapes_100mi} × 100-mile, ${m.n_shapes_24h} × 24-hour). `+
+    `Bands: ${m.n_negative} negative (< −${m.even_pct}%) · ${m.n_even} even (±${m.even_pct}%) · ${m.n_near_even} near-even (to +${m.near_even_pct}%).`;
+});
+</script>
+</main></body></html>

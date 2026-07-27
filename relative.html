@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Relative Performance</title><link rel="stylesheet" href="css/style.css">
+<script src="lib/plotly.min.js"></script></head><body>
+<script src="js/common.js"></script>
+<main>
+<h1>Exploration 6 · Relative performance &amp; "optimality"</h1>
+<p class="sub">Does pacing evenly correlate with doing <i>better relative to the field</i>? Computed within each event (24-hour halves).</p>
+
+<div class="card"><h3>1 · Gap to winner vs split</h3>
+  <div class="note">X = how far behind the event winner (% of winner's distance). Y = split. Does the front of the field pace more evenly?</div>
+  <div id="gap" class="chart tall"></div></div>
+
+<div class="card"><h3>2 · Within-field percentile vs split</h3>
+  <div class="note">Percentile 100 = event winner. Binned mean split by percentile band.</div>
+  <div id="pct" class="chart"></div></div>
+
+<div class="card"><h3>3 · "Even = your best?" — per athlete</h3>
+  <div class="note">For athletes with ≥3 performances: is their most-even race also their farthest? Each point = an athlete; X = split-rank-of-their-best-distance (1 = their most even race was their best).</div>
+  <div id="opt" class="chart"></div></div>
+
+<script>
+nav('relative.html');
+loadData().then(({results})=>{
+  const h=results.filter(r=>r.method==='halves'&&r.disc==='24_hour'&&r.final_km);
+  // group by event
+  const ev={}; h.forEach(r=>{(ev[r.eid]=ev[r.eid]||[]).push(r);});
+  const pts=[];
+  Object.values(ev).forEach(list=>{
+    if(list.length<3) return;
+    const win=Math.max(...list.map(r=>r.final_km));
+    const sorted=[...list].sort((a,b)=>b.final_km-a.final_km);
+    sorted.forEach((r,i)=>{
+      r._gap=(win-r.final_km)/win*100;
+      r._pctile=100*(1-i/(list.length-1));
+      pts.push(r);
+    });
+  });
+  const col=r=>CLS_COLOR[r.cls];
+  Plotly.newPlot('gap',[{x:pts.map(r=>r._gap),y:pts.map(r=>r.split),mode:'markers',type:'scattergl',
+    marker:{size:5,color:pts.map(col),opacity:.6},text:pts.map(r=>`${r.name} ${r.year}<br>gap ${r._gap.toFixed(1)}% · split ${r.split}%`),hoverinfo:'text'}],
+    layout({xaxis:{title:'gap to winner (%)'},yaxis:{title:'split %',zeroline:true}}),CFG);
+
+  // percentile bands
+  const bands=[[90,100,'top 10%'],[75,90,'75-90'],[50,75,'50-75'],[25,50,'25-50'],[0,25,'bottom 25%']];
+  const bx=bands.map(b=>b[2]), by=bands.map(([lo,hi])=>{const v=pts.filter(r=>r._pctile>=lo&&r._pctile<=hi).map(r=>r.split);return v.length?mean(v):null;});
+  Plotly.newPlot('pct',[{x:bx,y:by,type:'bar',marker:{color:'#5aa9e6'},text:by.map(v=>v?.toFixed(1)+'%'),textposition:'outside'}],
+    layout({yaxis:{title:'mean split %'}}),CFG);
+
+  // optimality
+  const ath={}; h.forEach(r=>{(ath[r.name]=ath[r.name]||[]).push(r);});
+  const ox=[];
+  Object.values(ath).forEach(list=>{
+    if(list.length<3) return;
+    const byDist=[...list].sort((a,b)=>b.final_km-a.final_km); // best distance first
+    const byEven=[...list].sort((a,b)=>a.split-b.split);        // most even first
+    const bestDistRace=byDist[0];
+    const rankOfBestInEven=byEven.indexOf(bestDistRace)+1;      // 1 = their best race was their most even
+    ox.push(rankOfBestInEven/list.length);
+  });
+  Plotly.newPlot('opt',[{x:ox,type:'histogram',marker:{color:'#2ec4b6'},xbins:{size:0.1}}],
+    layout({xaxis:{title:'evenness-rank of their best-distance race (0=most even, 1=least even)'},yaxis:{title:'# athletes'}}),CFG);
+});
+</script>
+</main></body></html>

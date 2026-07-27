@@ -1,0 +1,140 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3 · Hindsight</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="lib/plotly.min.js"></script>
+</head><body>
+<script src="js/common.js"></script>
+<main>
+<h1>Exploration 3 · Hindsight / Green Line — projecting from your pace <em>to the end</em></h1>
+<p class="sub">
+<b>Hindsight</b> (the "green line") = your average pace from <b>each point to the end</b>, projected to a finish — what your <i>remaining</i> pace was worth. Its mirror, pace from the start, is <a href="foresight.html">Foresight</a>.<br>
+Read the intuitive way: the dotted gold line is <b>your average pace</b> (your actual result); <b>above it = the rest of your race was faster than that average; below = slower.</b> A negative split <b>starts on the line and climbs above it</b> toward the finish (you closed faster than your average) — e.g. Coury's DS American Record rises from 173.0 toward a ~188 mi/24h closing rate. Chart 3.2 shows the real projected value (24-hour: projected distance in miles; 100-mile: projected finish time, axis reversed so up = faster). The overlay (3.1) instead plots every race <i>relative to its own</i> average (dotted line at 0 = average). X: 24-hour = elapsed hours, 100-mile = miles covered. Hindsight is noisy near the very end (tiny remaining sample) — the mirror of Foresight's noisy start. On mobile: pinch to zoom, or use <b>↔ Wide mode</b>.
+</p>
+
+<div class="controls">
+  <label>Discipline:
+    <select id="kind"><option value="100mi">100-mile efforts</option>
+      <option value="24h">24-hour efforts</option></select></label>
+  <label>Show:
+    <select id="band">
+      <option value="core">negative + even + top-5 marks</option>
+      <option value="near">…plus near-even (to +3%)</option>
+      <option value="all">everything profiled</option>
+    </select></label>
+  <span id="count" class="todo"></span>
+</div>
+
+<div class="card">
+  <h3>Chart 3.1 — All shapes overlaid (projected − actual; better = up)</h3>
+  <div class="note">Every even/negative race of this type; 0 = on final pace, below = projecting worse-than-final (conservative). Bold white = group mean.</div>
+  <div id="overlay" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 3.2 — Single race (absolute projection vs your actual result)</h3>
+  <div class="controls"><label>Race: <select id="pick"></select></label><span id="pickmeta" class="todo"></span></div>
+  <div id="single" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 3.3 — All shapes, small multiples</h3>
+  <div class="note">Remaining-pace projection for every race, ordered <b>most negative → most positive split</b>; click one to load it into Chart 3.2.</div>
+  <div id="grid" class="grid"></div>
+</div>
+
+<script>
+nav('hindsight.html');
+let SH=[], KIND='100mi', BANDF='core';
+// Which profiles to show. ALL negative splits are always included regardless of
+// magnitude, as are the top-5 all-time marks (the benchmark set). 'near-even'
+// (just outside the even band) is opt-in, so the default view isn't padded with
+// positive splits that aren't part of the even/negative story.
+function inBand(s){
+  if(s.band==='negative'||s.band==='even'||s.bench) return true;
+  if(BANDF==='core') return false;
+  if(BANDF==='near') return s.band==='near-even';
+  return true;
+}
+const visible=()=>SH.filter(s=>s.kind===KIND&&inBand(s));
+const label = s => `${s.name} — ${s.year} ${s.series.replace('IAU 24H World Championship','IAU Worlds')} (${s.split>0?'+':''}${s.split}% ${s.band})`;
+// oriented deviation: better(=more distance / less time) is positive/up; converges to 0
+const devY = s => KIND==='24h' ? s.hind_y.map(v=>+(v - s.proj_actual).toFixed(3))
+                               : s.hind_y.map(v=>+((s.proj_actual - v)*60).toFixed(2));
+const devUnit = () => KIND==='24h' ? 'projected − actual 24h distance (mi)' : 'actual − projected finish time (min, up = faster)';
+const actualStr = s => KIND==='24h' ? `${s.proj_actual} mi` : fmtHMS(s.proj_actual);
+
+const singleUnit = () => KIND==='24h' ? 'distance vs your average pace (mi;  + = ahead / faster)'
+                                      : 'time vs your average pace (min;  + = ahead / faster)';
+function drawOverlay(){
+  const set = visible();
+  const traces = set.map(s=>({x:s.hind_x,y:devY(s),mode:'lines',type:'scatter',
+    line:{color:BAND_COLOR[s.band],width:1},opacity:.5,name:s.name,text:label(s),hoverinfo:'text',showlegend:false}));
+  if(set.length){
+    const n=Math.min(...set.map(s=>s.hind_x.length));
+    const mx=set[0].hind_x.slice(0,n);
+    const my=[...Array(n)].map((_,i)=>mean(set.map(s=>devY(s)[i]??0)));
+    traces.push({x:mx,y:my,mode:'lines',line:{color:'#fff',width:3},name:'group mean',hoverinfo:'name',showlegend:false});
+  }
+  Plotly.react('overlay',traces,layout({showlegend:false,
+    xaxis:{title:KIND==='24h'?'elapsed hours':'miles covered'},
+    yaxis:{title:devUnit(),zeroline:true,zerolinecolor:'#5a6b7d'},
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:0,y1:0,line:{color:'#5a6b7d',dash:'dot',width:1}}]}),CFG);
+  document.getElementById('count').textContent=`${set.length} ${KIND==='100mi'?'100-mile':'24-hour'} shapes · bold white = group mean · hover a line for the athlete`;
+}
+function drawSingle(rid){
+  const s=SH.find(x=>x.rid==rid); if(!s) return;
+  // ABSOLUTE projected value (the real green line), with a dotted line at your
+  // average pace = your actual result. 24h: projected distance (mi), up = farther
+  // = faster remaining. 100mi: projected finish time (h) on a REVERSED axis so up
+  // = less time = faster remaining. A negative split starts on the line and climbs.
+  const is24 = KIND==='24h';
+  const avg = s.proj_actual;
+  Plotly.react('single',[{x:s.hind_x,y:s.hind_y,mode:'lines',type:'scatter',
+    line:{color:BAND_COLOR[s.band],width:2.5},
+    hovertemplate:(is24?'%{x:.1f} h · remaining pace projects to <b>%{y:.2f} mi</b>'
+                       :'%{x:.0f} mi · remaining pace projects to <b>%{y:.3f} h</b>')+'<extra></extra>'}],
+    layout({xaxis:{title:is24?'elapsed hours':'miles covered'},
+      yaxis:{title:is24?'projected 24-hour distance (mi)':'projected 100-mile finish time (h)',
+        autorange:is24?true:'reversed'},
+      shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:avg,y1:avg,
+        line:{color:'#f4c430',dash:'dot',width:1.5}}],
+      annotations:[{xref:'paper',x:0.99,y:avg,yref:'y',xanchor:'right',yanchor:'bottom',
+        text:'average pace → '+actualStr(s)+'   (above = closing faster than average)',
+        showarrow:false,font:{color:'#f4c430',size:11},bgcolor:'#0f1419cc'}]}),CFG);
+  document.getElementById('pickmeta').textContent=`${s.band} · split ${s.split>0?'+':''}${s.split}% · actual ${actualStr(s)}${s.place?' · place '+s.place:''}`;
+}
+function buildGrid(){
+  // Ordered most-negative -> most-positive so the grid reads as a gradient
+  // from true negative splits through even to near-even. (Sorting the
+  // dropdown's copy in refresh() doesn't reach here - this re-filters SH.)
+  const set=visible().slice().sort((a,b)=>a.split-b.split);
+  const g=document.getElementById('grid'); g.innerHTML='';
+  set.forEach(s=>{
+    const wrap=document.createElement('div'); wrap.className='mini';
+    const cap=document.createElement('div'); cap.className='cap';
+    cap.innerHTML=`<span class="pill ${s.band==='negative'?'neg':'even'}">${s.split>0?'+':''}${s.split}%</span> `+
+      `${s.bench?'<span title="top-'+s.bench+' all-time, '+s.bench_group+'" style="color:#e8c56a">★</span> ':''}`+
+      `${s.name} · <b>${actualStr(s)}</b> · ${s.year}`;
+    const div=document.createElement('div'); div.style.height='150px'; wrap.append(cap,div); g.append(wrap);
+    Plotly.newPlot(div,[{x:s.hind_x,y:devY(s),mode:'lines',type:'scatter',line:{color:BAND_COLOR[s.band],width:1.5},hoverinfo:'skip'}],
+      layout({xaxis:{visible:false},yaxis:{visible:false},margin:{l:4,r:4,t:4,b:4},
+        shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:0,y1:0,line:{color:'#5a6b7d',dash:'dot',width:1}}]}),{staticPlot:true,responsive:true});
+    wrap.onclick=()=>{document.getElementById('pick').value=s.rid;drawSingle(s.rid);document.getElementById('single').scrollIntoView({behavior:'smooth',block:'center'});};
+  });
+}
+function refresh(){
+  const set=visible();
+  document.getElementById('pick').innerHTML=set.sort((a,b)=>a.split-b.split).map(s=>`<option value="${s.rid}">${label(s)}</option>`).join('');
+  drawOverlay(); buildGrid(); if(set.length) drawSingle(set[0].rid);
+}
+loadData().then(({shapes})=>{
+  SH=shapes;
+  document.getElementById('kind').onchange=e=>{KIND=e.target.value;refresh();};
+  document.getElementById('pick').onchange=e=>drawSingle(e.target.value);
+  document.getElementById('band').onchange=e=>{BANDF=e.target.value;refresh();};
+  refresh();
+  attachWide('overlay', 1300);   // "↔ Wide mode" button: drag across a big version; pinch to zoom
+});
+</script>
+</main></body></html>

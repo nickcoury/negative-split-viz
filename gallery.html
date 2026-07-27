@@ -1,0 +1,64 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gallery</title><link rel="stylesheet" href="css/style.css">
+<script src="lib/plotly.min.js"></script></head><body>
+<script src="js/common.js"></script>
+<main>
+<h1>Exploration 9 · Even &amp; negative performances</h1>
+<p class="sub">Every performance classified <b>negative</b> (&lt;&nbsp;&minus;0.5%) or <b>even</b> (&plusmn;1%, the project definition) &mdash; plus the <b>near-even</b> band (up to +3%), and the <b>top-5 all-time performances per sex</b> (&#9733;, any split &mdash; the benchmark comparison set) for context, which is far more populated and shows how thin the truly even tier is. 24h halves and in-race 100-mile. Click a column header to sort; type to filter. &#9670; = has a Race Shape (rich lap data).</p>
+<div class="controls">
+  <label>Filter: <input type="text" id="q" size="24" placeholder="name / event / country"></label>
+  <label>Metric: <select id="m"><option value="">all</option><option value="halves">24h halves</option><option value="100mi_within_24h">in-race 100mi</option></select></label>
+  <label>Band: <select id="b">
+    <option value="core">negative + even (project definition)</option>
+    <option value="all">negative + even + near-even</option>
+    <option value="negative">negative only</option>
+    <option value="even">even only (&plusmn;1%)</option>
+    <option value="near-even">near-even only (1&ndash;3%)</option>
+    <option value="bench">top-5 world performances (any split)</option>
+  </select></label>
+  <span id="n" class="todo"></span>
+  <span id="tally" class="todo"></span>
+</div>
+<div class="card" style="overflow:auto"><div id="tbl"></div></div>
+
+<script>
+nav('gallery.html');
+let ROWS=[], SHRIDS=new Set(), sortKey='split', sortAsc=true;
+const cols=[['name','Athlete'],['country','Ctry'],['sex','Sex'],['year','Year'],['series','Event'],
+  ['metric','Metric'],['split','Split %'],['band','Band'],['place','Place']];
+function metricLabel(m){return m==='100mi_within_24h'?'100mi-in-24h':'24h';}
+function render(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const mf=document.getElementById('m').value;
+  const bf=document.getElementById('b').value;
+  const bandOk=r=>bf==='all'?true:bf==='bench'?!!r.bench
+    :bf==='core'?(r.band==='negative'||r.band==='even'):r.band===bf;
+  let d=ROWS.filter(r=>(!mf||r.method===mf)&&bandOk(r)&&
+    (!q||`${r.name} ${r.series} ${r.country}`.toLowerCase().includes(q)));
+  d.sort((a,b)=>{let x=a[sortKey],y=b[sortKey];if(x==null)x=sortKey==='split'?1e9:'';if(y==null)y=sortKey==='split'?1e9:'';
+    return (x<y?-1:x>y?1:0)*(sortAsc?1:-1);});
+  document.getElementById('n').textContent=`${d.length} performances`;
+  const head=`<tr style="color:#93a1b0;text-align:left;position:sticky;top:56px;background:#171d26">`+
+    cols.map(([k,l])=>`<th data-k="${k}" style="cursor:pointer;padding:6px 10px">${l}${sortKey===k?(sortAsc?' ▲':' ▼'):''}</th>`).join('')+`</tr>`;
+  const body=d.map(r=>`<tr style="border-top:1px solid #263140">
+    <td style="padding:5px 10px">${SHRIDS.has(r.rid+':'+r.method)?'◆ ':''}${r.bench?`<span title="top-${r.bench} all-time, ${r.bench_group}" style="color:#e8c56a">★</span> `:''}${r.name}</td><td>${r.country||''}</td><td>${r.sex||''}</td>
+    <td>${r.year}</td><td style="max-width:280px">${r.series}</td><td>${metricLabel(r.method)}</td>
+    <td style="color:${BAND_COLOR[r.band]};font-weight:600">${r.split>0?'+':''}${r.split}</td>
+    <td><span class="pill ${r.band==='negative'?'neg':'even'}" style="border-color:${BAND_COLOR[r.band]};color:${BAND_COLOR[r.band]}">${r.band}</span></td><td>${r.place??''}</td></tr>`).join('');
+  document.getElementById('tbl').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">${head}${body}</table>`;
+  document.querySelectorAll('#tbl th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k===sortKey)sortAsc=!sortAsc;else{sortKey=k;sortAsc=k==='name';}render();});
+}
+loadData().then(({results,shapes})=>{
+  shapes.forEach(s=>SHRIDS.add(s.rid+':'+s.method));
+  ROWS=results.filter(r=>(r.method==='halves'||r.method==='100mi_within_24h')&&(r.band!=='positive'||r.bench));
+  const cnt=b=>ROWS.filter(r=>r.band===b).length;
+  document.getElementById('tally').textContent=
+    `${cnt('negative')} negative · ${cnt('even')} even · ${cnt('near-even')} near-even · ${ROWS.filter(r=>r.bench).length} ★ top-5 marks`;
+  document.getElementById('q').oninput=render;
+  document.getElementById('m').onchange=render;
+  document.getElementById('b').onchange=render;
+  render();
+});
+</script>
+</main></body></html>
