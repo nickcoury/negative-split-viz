@@ -20,7 +20,7 @@ Read the intuitive way: the dotted gold line is <b>your average pace</b> (your a
     <select id="band">
       <option value="core">negative + even + top-5 marks</option>
       <option value="near">…plus near-even (to +3%)</option>
-      <option value="all">everything profiled</option>
+      <option value="all">everything profiled (incl. 18h+ &ldquo;100-mile&rdquo; splits)</option>
     </select></label>
   <span id="count" class="todo"></span>
 </div>
@@ -51,6 +51,11 @@ let SH=[], KIND='100mi', BANDF='core';
 // (just outside the even band) is opt-in, so the default view isn't padded with
 // positive splits that aren't part of the even/negative story.
 function inBand(s){
+  // A "100-mile split" that took 18h+ isn't a 100-mile performance - it's a
+  // long slow day that happens to pass 100 miles, and a near-constant slow
+  // pace looks even for trivial reasons. Keep it out of the default cohort
+  // (still reachable via "everything profiled").
+  if(s.slow100 && BANDF!=='all') return false;
   if(s.band==='negative'||s.band==='even'||s.bench) return true;
   if(BANDF==='core') return false;
   if(BANDF==='near') return s.band==='near-even';
@@ -62,6 +67,20 @@ const label = s => `${s.name} — ${s.year} ${s.series.replace('IAU 24H World Ch
 const devY = s => KIND==='24h' ? s.hind_y.map(v=>+(v - s.proj_actual).toFixed(3))
                                : s.hind_y.map(v=>+((s.proj_actual - v)*60).toFixed(2));
 const devUnit = () => KIND==='24h' ? 'projected − actual 24h distance (mi)' : 'actual − projected finish time (min, up = faster)';
+// For a 100mi-within-24h profile, say what the 100 miles WAS: a target the
+// runner stopped at, or a waypoint inside a full 24-hour effort. Without this
+// the two look identical on the chart but mean opposite things.
+const HUNDRED_KM = 160.9344;
+function ctx100(s){
+  if(s.kind!=='100mi' || s.total_km==null) return '';
+  const stopped = s.last_h!=null && s.last_h < 23 && s.total_km < HUNDRED_KM*1.05;
+  const slow = s.slow100
+    ? ` · <span style="color:#c96a6a" title="took ${s.dur_h}h to reach 100 miles — a long slow day, not a 100-mile effort">slow (${s.dur_h}h to 100mi)</span>`
+    : '';
+  return (stopped
+    ? ` · <span style="color:#e08b4c" title="last timing data at ${s.last_h}h — treated as an early stopper">stopped at 100mi (${s.total_km.toFixed(1)} km)</span>`
+    : ` · <span style="color:#9fb3c8" title="100 miles was a waypoint; kept racing to 24h">ran on to ${s.total_km.toFixed(1)} km in 24h</span>`) + slow;
+}
 const actualStr = s => KIND==='24h' ? `${s.proj_actual} mi` : fmtHMS(s.proj_actual);
 
 const singleUnit = () => KIND==='24h' ? 'distance vs your average pace (mi;  + = ahead / faster)'
@@ -102,7 +121,7 @@ function drawSingle(rid){
       annotations:[{xref:'paper',x:0.99,y:avg,yref:'y',xanchor:'right',yanchor:'bottom',
         text:'average pace → '+actualStr(s)+'   (above = closing faster than average)',
         showarrow:false,font:{color:'#f4c430',size:11},bgcolor:'#0f1419cc'}]}),CFG);
-  document.getElementById('pickmeta').textContent=`${s.band} · split ${s.split>0?'+':''}${s.split}% · actual ${actualStr(s)}${s.place?' · place '+s.place:''}`;
+  document.getElementById('pickmeta').innerHTML=`${s.band} · split ${s.split>0?'+':''}${s.split}% · actual ${actualStr(s)}${ctx100(s)}${s.place?' · place '+s.place:''}`;
 }
 function buildGrid(){
   // Ordered most-negative -> most-positive so the grid reads as a gradient
@@ -115,7 +134,7 @@ function buildGrid(){
     const cap=document.createElement('div'); cap.className='cap';
     cap.innerHTML=`<span class="pill ${s.band==='negative'?'neg':'even'}">${s.split>0?'+':''}${s.split}%</span> `+
       `${s.bench?'<span title="top-'+s.bench+' all-time, '+s.bench_group+'" style="color:#e8c56a">★</span> ':''}`+
-      `${s.name} · <b>${actualStr(s)}</b> · ${s.year}`;
+      `${s.name} · <b>${actualStr(s)}</b>${ctx100(s)} · ${s.year}`;
     const div=document.createElement('div'); div.style.height='150px'; wrap.append(cap,div); g.append(wrap);
     Plotly.newPlot(div,[{x:s.hind_x,y:devY(s),mode:'lines',type:'scatter',line:{color:BAND_COLOR[s.band],width:1.5},hoverinfo:'skip'}],
       layout({xaxis:{visible:false},yaxis:{visible:false},margin:{l:4,r:4,t:4,b:4},

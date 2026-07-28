@@ -1,1 +1,1 @@
-{"n_events": 253, "n_results": 8263, "n_class": 7642, "n_shapes": 191, "n_shapes_24h": 48, "n_shapes_100mi": 143, "n_rich_summary": 1362, "n_negative": 22, "n_even": 82, "n_near_even": 242, "even_pct": 1.0, "near_even_pct": 3.0, "n_bench": 20, "bench_n": 5}
+{"n_events": 253, "n_results": 8263, "n_class": 7642, "n_shapes": 191, "n_shapes_24h": 48, "n_shapes_100mi": 143, "n_rich_summary": 1362, "n_negative": 59, "n_even": 45, "n_near_even": 242, "even_pct": 1.0, "near_even_pct": 3.0, "n_bench": 20, "bench_n": 5}
