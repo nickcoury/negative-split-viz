@@ -1,10 +1,16 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>3 · Hindsight</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
 <script src="lib/plotly.min.js"></script>
 </head><body>
-<script src="js/common.js"></script>
+<script src="js/common.js?v=74c2ddc8"></script>
+<!-- If a cached older common.js is served against this page, the missing
+     function throws and every chart silently fails to draw. Say so instead. -->
+<script>if(typeof fillCohortSelect!=='function'){addEventListener('DOMContentLoaded',()=>{
+  const d=document.createElement('p');d.style.cssText='background:#7a2226;color:#fff;padding:10px 14px;margin:0;font:14px system-ui';
+  d.textContent='Stale cached script detected \u2014 hard-refresh this page (Ctrl/Cmd+Shift+R) to load the current version.';
+  document.body.prepend(d);});}</script>
 <main>
 <h1>Exploration 3 · Hindsight / Green Line — projecting from your pace <em>to the end</em></h1>
 <p class="sub">
@@ -13,9 +19,7 @@ Read the intuitive way: the dotted gold line is <b>your average pace</b> (your a
 </p>
 
 <div class="controls">
-  <label>Discipline:
-    <select id="kind"><option value="100mi">100-mile efforts</option>
-      <option value="24h">24-hour efforts</option></select></label>
+  <label>Effort: <select id="kind"></select></label>
   <label>Show:
     <select id="band">
       <option value="core">negative + even + top-5 marks</option>
@@ -45,7 +49,7 @@ Read the intuitive way: the dotted gold line is <b>your average pace</b> (your a
 
 <script>
 nav('hindsight.html');
-let SH=[], KIND='100mi', BANDF='core';
+let SH=[], KIND='100in24_full', BANDF='core';
 // Which profiles to show. ALL negative splits are always included regardless of
 // magnitude, as are the top-5 all-time marks (the benchmark set). 'near-even'
 // (just outside the even band) is opt-in, so the default view isn't padded with
@@ -61,12 +65,12 @@ function inBand(s){
   if(BANDF==='near') return s.band==='near-even';
   return true;
 }
-const visible=()=>SH.filter(s=>s.kind===KIND&&inBand(s));
+const visible=()=>SH.filter(s=>s.cohort===KIND&&inBand(s));
 const label = s => `${s.name} — ${s.year} ${s.series.replace('IAU 24H World Championship','IAU Worlds')} (${s.split>0?'+':''}${s.split}% ${s.band})`;
 // oriented deviation: better(=more distance / less time) is positive/up; converges to 0
-const devY = s => KIND==='24h' ? s.hind_y.map(v=>+(v - s.proj_actual).toFixed(3))
+const devY = s => cohort_kind(KIND)==='24h' ? s.hind_y.map(v=>+(v - s.proj_actual).toFixed(3))
                                : s.hind_y.map(v=>+((s.proj_actual - v)*60).toFixed(2));
-const devUnit = () => KIND==='24h' ? 'projected − actual 24h distance (mi)' : 'actual − projected finish time (min, up = faster)';
+const devUnit = () => cohort_kind(KIND)==='24h' ? 'projected − actual 24h distance (mi)' : 'actual − projected finish time (min, up = faster)';
 // For a 100mi-within-24h profile, say what the 100 miles WAS: a target the
 // runner stopped at, or a waypoint inside a full 24-hour effort. Without this
 // the two look identical on the chart but mean opposite things.
@@ -81,9 +85,9 @@ function ctx100(s){
     ? ` · <span style="color:#e08b4c" title="last timing data at ${s.last_h}h — treated as an early stopper">stopped at 100mi (${s.total_km.toFixed(1)} km)</span>`
     : ` · <span style="color:#9fb3c8" title="100 miles was a waypoint; kept racing to 24h">ran on to ${s.total_km.toFixed(1)} km in 24h</span>`) + slow;
 }
-const actualStr = s => KIND==='24h' ? `${s.proj_actual} mi` : fmtHMS(s.proj_actual);
+const actualStr = s => cohort_kind(KIND)==='24h' ? `${s.proj_actual} mi` : fmtHMS(s.proj_actual);
 
-const singleUnit = () => KIND==='24h' ? 'distance vs your average pace (mi;  + = ahead / faster)'
+const singleUnit = () => cohort_kind(KIND)==='24h' ? 'distance vs your average pace (mi;  + = ahead / faster)'
                                       : 'time vs your average pace (min;  + = ahead / faster)';
 function drawOverlay(){
   const set = visible();
@@ -96,10 +100,10 @@ function drawOverlay(){
     traces.push({x:mx,y:my,mode:'lines',line:{color:'#fff',width:3},name:'group mean',hoverinfo:'name',showlegend:false});
   }
   Plotly.react('overlay',traces,layout({showlegend:false,
-    xaxis:{title:KIND==='24h'?'elapsed hours':'miles covered'},
+    xaxis:{title:cohort_kind(KIND)==='24h'?'elapsed hours':'miles covered'},
     yaxis:{title:devUnit(),zeroline:true,zerolinecolor:'#5a6b7d'},
     shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:0,y1:0,line:{color:'#5a6b7d',dash:'dot',width:1}}]}),CFG);
-  document.getElementById('count').textContent=`${set.length} ${KIND==='100mi'?'100-mile':'24-hour'} shapes · bold white = group mean · hover a line for the athlete`;
+  document.getElementById('count').textContent=`${set.length} shapes · ${cohort_label(KIND)} · bold white = group mean · hover a line for the athlete`;
 }
 function drawSingle(rid){
   const s=SH.find(x=>x.rid==rid); if(!s) return;
@@ -107,7 +111,7 @@ function drawSingle(rid){
   // average pace = your actual result. 24h: projected distance (mi), up = farther
   // = faster remaining. 100mi: projected finish time (h) on a REVERSED axis so up
   // = less time = faster remaining. A negative split starts on the line and climbs.
-  const is24 = KIND==='24h';
+  const is24 = cohort_kind(KIND)==='24h';
   const avg = s.proj_actual;
   Plotly.react('single',[{x:s.hind_x,y:s.hind_y,mode:'lines',type:'scatter',
     line:{color:BAND_COLOR[s.band],width:2.5},
@@ -147,8 +151,10 @@ function refresh(){
   document.getElementById('pick').innerHTML=set.sort((a,b)=>a.split-b.split).map(s=>`<option value="${s.rid}">${label(s)}</option>`).join('');
   drawOverlay(); buildGrid(); if(set.length) drawSingle(set[0].rid);
 }
-loadData().then(({shapes})=>{
+loadData().then(({shapes,meta})=>{
   SH=shapes;
+  initCohorts(meta);
+  KIND=fillCohortSelect(document.getElementById('kind'),meta,'100in24_full');
   document.getElementById('kind').onchange=e=>{KIND=e.target.value;refresh();};
   document.getElementById('pick').onchange=e=>drawSingle(e.target.value);
   document.getElementById('band').onchange=e=>{BANDF=e.target.value;refresh();};

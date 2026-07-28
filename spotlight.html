@@ -1,8 +1,14 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nick Coury spotlight</title><link rel="stylesheet" href="css/style.css">
+<title>Nick Coury spotlight</title><link rel="stylesheet" href="css/style.css?v=26c4ebe0">
 <script src="lib/plotly.min.js"></script></head><body>
-<script src="js/common.js"></script>
+<script src="js/common.js?v=74c2ddc8"></script>
+<!-- If a cached older common.js is served against this page, the missing
+     function throws and every chart silently fails to draw. Say so instead. -->
+<script>if(typeof fillCohortSelect!=='function'){addEventListener('DOMContentLoaded',()=>{
+  const d=document.createElement('p');d.style.cssText='background:#7a2226;color:#fff;padding:10px 14px;margin:0;font:14px system-ui';
+  d.textContent='Stale cached script detected \u2014 hard-refresh this page (Ctrl/Cmd+Shift+R) to load the current version.';
+  document.body.prepend(d);});}</script>
 <main>
 <h1>Exploration 14 · Nick Coury spotlight</h1>
 <p class="sub">The dataset's owner and the performance that motivated the question: the 2021 Desert Solstice American 24-hour record — <b>278.44 km / 173.015 mi</b>, a <b>−1.02% negative split</b>. Every Coury performance in the dataset, annotated, plus his in-race pace shapes.</p>
@@ -21,7 +27,8 @@
 <script>
 nav('spotlight.html');
 const isCoury=r=>/coury/i.test(r.name||'');
-loadData().then(({results,shapes})=>{
+loadData().then(({results,shapes,meta})=>{
+  initCohorts(meta);
   const R=results.filter(r=>isCoury(r)&&(r.method==='halves'||r.method==='100mi_within_24h'))
     .sort((a,b)=>a.year-b.year||a.method.localeCompare(b.method));
   // 14.1 scatter
@@ -46,7 +53,7 @@ loadData().then(({results,shapes})=>{
   const S=shapes.filter(s=>isCoury(s));
   Plotly.newPlot('shape',S.map((s,i)=>({
     x:s.pace_x,y:s.pace_y,mode:'lines',type:'scatter',
-    name:`${s.series} ${s.year} (${s.kind}, ${s.split>0?'+':''}${s.split}%)`,
+    name:`${s.series} ${s.year} (${cohort_label(s.cohort)}, ${s.split>0?'+':''}${s.split}%)`,
     line:{width:2.5}
   })).concat([{x:[0,100],y:[0,0],mode:'lines',line:{color:'#3a4655',dash:'dot',width:1},showlegend:false,hoverinfo:'skip'}]),
     layout({xaxis:{title:'race %'},yaxis:{title:'cumulative pace vs average (sec/mi; below = faster so far)',autorange:'reversed'},

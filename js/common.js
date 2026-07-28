@@ -25,6 +25,35 @@ const PAGES = [
   ['builder.html', 'Build-a-cohort'],
 ];
 
+// --- the four efforts ------------------------------------------------------
+// Replaces the old two-way 24h/100mi toggle. "100 miles" was never one thing:
+// reaching the mark and stopping is a 100-mile race, reaching it and running
+// another twelve hours is a 24-hour race passing through. Definitions and
+// counts come from meta.json so the pages, build_viz.py and
+// analysis/intent_cohorts.py can never disagree. `cohort_kind()` gives the
+// unit system (24h projects distance, 100mi projects time) - never infer units
+// from the cohort name.
+let COHORT_META = null;
+function initCohorts(meta) { COHORT_META = meta; }
+function cohort_kind(c) { return (COHORT_META.cohort_kind || {})[c] || '100mi'; }
+function cohort_label(c) { return (COHORT_META.cohort_label || {})[c] || c; }
+
+/** Fill a <select> with the cohorts that actually have shapes, newest counts
+ *  inline. Empty cohorts are shown disabled rather than hidden, so a gap in
+ *  the data (e.g. no lap-resolved standalone 100s) stays visible instead of
+ *  looking like it was never considered. Returns the chosen value. */
+function fillCohortSelect(el, meta, preferred) {
+  const counts = meta.n_shapes_cohort || {};
+  const order = meta.cohorts || Object.keys(counts);
+  el.innerHTML = order.map(c => {
+    const n = counts[c] || 0;
+    return `<option value="${c}"${n ? '' : ' disabled'}>${cohort_label(c)} (${n})</option>`;
+  }).join('');
+  const pick = (counts[preferred] ? preferred : order.find(c => counts[c])) || order[0];
+  el.value = pick;
+  return pick;
+}
+
 function nav(active) {
   // Minimal: just a link back to the index (use the browser Back button to navigate).
   if (active === 'index.html') return;

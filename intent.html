@@ -1,10 +1,16 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>16 · Intentional vs accidental</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
 <script src="lib/plotly.min.js"></script>
 </head><body>
-<script src="js/common.js"></script>
+<script src="js/common.js?v=74c2ddc8"></script>
+<!-- If a cached older common.js is served against this page, the missing
+     function throws and every chart silently fails to draw. Say so instead. -->
+<script>if(typeof fillCohortSelect!=='function'){addEventListener('DOMContentLoaded',()=>{
+  const d=document.createElement('p');d.style.cssText='background:#7a2226;color:#fff;padding:10px 14px;margin:0;font:14px system-ui';
+  d.textContent='Stale cached script detected \u2014 hard-refresh this page (Ctrl/Cmd+Shift+R) to load the current version.';
+  document.body.prepend(d);});}</script>
 <main>
 <h1>Exploration 16 · Intentional vs accidental negative splits</h1>
 <p class="sub">
@@ -25,9 +31,7 @@ independent verdict.
 </p>
 
 <div class="controls">
-  <label>Discipline: <select id="kind">
-    <option value="24h">24-hour efforts</option>
-    <option value="100mi">100-mile efforts</option></select></label>
+  <label>Effort: <select id="kind"></select></label>
   <label>Show: <select id="band">
     <option value="neg">negative splits only</option>
     <option value="negeven">negative + even</option>
@@ -69,7 +73,7 @@ let SH=[], KIND='24h', BANDF='neg';
 const C={fore:'#2ec4b6', hind:'#c98bdb', inst:'#8a97a8'};
 
 function inSet(s){
-  if(s.kind!==KIND) return false;
+  if(s.cohort!==KIND) return false;
   if(s.slow100) return false;              // 18h+ "100-mile" splits aren't performances
   if(BANDF==='neg') return s.split<0;
   if(BANDF==='negeven') return s.band==='negative'||s.band==='even';
@@ -154,8 +158,10 @@ function refresh(){
   drawScatter(); drawCompare(); drawTable();
   if(set.length) drawSingle(set[0].rid);
 }
-loadData().then(({shapes})=>{
+loadData().then(({shapes,meta})=>{
   SH=shapes.filter(s=>s.auc);
+  initCohorts(meta);
+  KIND=fillCohortSelect(document.getElementById('kind'),meta,'24h');
   document.getElementById('kind').onchange=e=>{KIND=e.target.value;refresh();};
   document.getElementById('band').onchange=e=>{BANDF=e.target.value;refresh();};
   document.getElementById('pick').onchange=e=>drawSingle(e.target.value);
