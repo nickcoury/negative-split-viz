@@ -16,6 +16,7 @@ const PAGES = [
   ['cohorts.html', 'Cohorts'],
   ['athletes.html', 'Athletes'],
   ['gallery.html', 'Gallery'],
+  ['intent.html', 'Intent'],
   ['facets.html', 'Facets'],
   ['fielddyn.html', 'Field Dynamics'],
   ['archetypes.html', 'Archetypes'],

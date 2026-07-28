@@ -1,0 +1,165 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>16 · Intentional vs accidental</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="lib/plotly.min.js"></script>
+</head><body>
+<script src="js/common.js"></script>
+<main>
+<h1>Exploration 16 · Intentional vs accidental negative splits</h1>
+<p class="sub">
+A negative split can happen two very different ways. <b>Intentional:</b> hold back on purpose — the
+<b>foresight</b> line (what you're on pace for) sits <b>below</b> your eventual average for most of the race and
+only rises to meet it late. <b>Accidental:</b> go out ahead of final pace, something goes wrong, and the
+recovery happens to make the second half faster. Identical sign of <code>split_pct</code>, different class of
+performance.<br>
+All three lines are put on one scale: <b>x = % of race completed</b>, <b>y = % ahead of your own final average
+pace</b> (+ = on pace for a better result than you got, − = conservative). The metric is the area between each
+line and zero, split above/below:
+<code>score = (area&nbsp;below − area&nbsp;above) / total</code>, in [−1, +1].
+It is computed for all three lines so they can be compared (chart 16.3), but
+<b>only the foresight score is used to call a performance intentional or accidental</b>:
+<b>foresight score &gt; 0 = mostly conservative → looks intentional; &lt; 0 = mostly ahead → looks accidental.</b>
+Hindsight is close to a mirror of foresight and instantaneous pace barely varies, so neither carries an
+independent verdict.
+</p>
+
+<div class="controls">
+  <label>Discipline: <select id="kind">
+    <option value="24h">24-hour efforts</option>
+    <option value="100mi">100-mile efforts</option></select></label>
+  <label>Show: <select id="band">
+    <option value="neg">negative splits only</option>
+    <option value="negeven">negative + even</option>
+    <option value="all">everything profiled</option>
+  </select></label>
+  <span id="count" class="todo"></span>
+</div>
+
+<div class="card">
+  <h3>Chart 16.1 — One race, all three lines</h3>
+  <div class="controls"><label>Race: <select id="pick"></select></label></div>
+  <div id="single" class="chart tall"></div>
+  <div id="metrics" class="note"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 16.2 — Does the score separate the classes?</h3>
+  <div class="note">Each point is one performance: <b>x = foresight score</b> (right = conservative/intentional),
+  <b>y = split %</b> (below 0 = negative split). If the hypothesis holds, negative splits should spread across
+  x rather than cluster — the ones on the right held back on purpose, the ones on the left didn't.</div>
+  <div id="scatter" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 16.3 — Which line is the better discriminator?</h3>
+  <div class="note">The same score computed from each of the three lines. A useful discriminator should
+  <b>spread out</b>; one that hugs zero carries no signal.</div>
+  <div id="compare" class="chart"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>Table — ranked most intentional → most accidental (by foresight)</h3>
+  <div id="tbl"></div>
+</div>
+
+<script>
+nav('intent.html');
+let SH=[], KIND='24h', BANDF='neg';
+const C={fore:'#2ec4b6', hind:'#c98bdb', inst:'#8a97a8'};
+
+function inSet(s){
+  if(s.kind!==KIND) return false;
+  if(s.slow100) return false;              // 18h+ "100-mile" splits aren't performances
+  if(BANDF==='neg') return s.split<0;
+  if(BANDF==='negeven') return s.band==='negative'||s.band==='even';
+  return true;
+}
+const visible=()=>SH.filter(inSet);
+const verdict=v=> v>0.15?'looks INTENTIONAL':v<-0.15?'looks ACCIDENTAL':'ambiguous';
+
+function drawSingle(rid){
+  const s=SH.find(x=>String(x.rid)===String(rid)); if(!s) return;
+  const line=(x,y,name,col,dash)=>({x,y,mode:'lines',type:'scatter',name,
+    line:{color:col,width:name==='foresight'?2.6:1.8,dash:dash||'solid'},
+    hovertemplate:`${name}: %{y:+.2f}% at %{x:.0f}%<extra></extra>`});
+  const traces=[
+    line(s.fore_x,s.fore_y,'foresight',C.fore),
+    line(s.hind_dx,s.hind_dy,'hindsight',C.hind,'dot'),
+    line(s.inst_x,s.inst_y,'actual (instantaneous)',C.inst,'dashdot'),
+  ];
+  Plotly.react('single',traces,layout({showlegend:true,
+    legend:{orientation:'h',y:1.12},
+    xaxis:{title:'% of race completed',range:[0,100]},
+    yaxis:{title:'% ahead of your own final average pace  (− = conservative)',zeroline:true,zerolinecolor:'#8fa3b8'},
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:0,y1:0,line:{color:'#8fa3b8',dash:'dot',width:1.5}}]}),CFG);
+  // Foresight only. Hindsight is close to a mirror of foresight and
+  // instantaneous pace barely varies, so scoring them here invited a reading
+  // of "three metrics that disagree" when the classification is a foresight
+  // claim. Their scores still appear in chart 16.3, which exists to show why.
+  const a=s.auc.fore;
+  document.getElementById('metrics').innerHTML=
+    `<b>${s.name}</b> · ${s.year} ${s.series} · split ${s.split>0?'+':''}${s.split}%`+
+    `<table style="margin-top:6px;font-size:13px"><tr>`+
+    `<td style="color:${C.fore};padding:3px 12px 3px 0">foresight</td>`+
+    `<td style="padding-right:12px">below ${a.below.toFixed(2)}</td>`+
+    `<td style="padding-right:12px">above ${a.above.toFixed(2)}</td>`+
+    `<td style="padding-right:12px"><b>score ${a.score>0?'+':''}${a.score.toFixed(2)}</b></td>`+
+    `<td>${verdict(a.score)}</td></tr></table>`;
+}
+
+function drawScatter(){
+  const set=visible();
+  Plotly.react('scatter',[{
+    x:set.map(s=>s.auc.fore.score), y:set.map(s=>s.split),
+    mode:'markers',type:'scatter',
+    marker:{size:10,color:set.map(s=>BAND_COLOR[s.band]),line:{color:'#0f1419',width:1}},
+    text:set.map(s=>`${s.name} — ${s.year} ${s.series}<br>split ${s.split>0?'+':''}${s.split}%<br>foresight score ${s.auc.fore.score>0?'+':''}${s.auc.fore.score}<br>${verdict(s.auc.fore.score)}`),
+    hoverinfo:'text'}],
+    layout({xaxis:{title:'foresight score  (→ conservative / intentional)',range:[-1.05,1.05],zeroline:true},
+      yaxis:{title:'split %  (below 0 = negative split)',zeroline:true},
+      shapes:[{type:'line',x0:0,x1:0,yref:'paper',y0:0,y1:1,line:{color:'#8fa3b8',dash:'dot',width:1}}]}),CFG);
+  document.getElementById('count').textContent=`${set.length} performances`;
+}
+
+function drawCompare(){
+  const set=visible();
+  const box=(k,lbl)=>({y:set.map(s=>s.auc[k].score),name:lbl,type:'box',boxpoints:'all',jitter:0.5,
+    pointpos:0,marker:{color:C[k],size:5},line:{color:C[k]},
+    hovertext:set.map(s=>s.name),hoverinfo:'y+text'});
+  Plotly.react('compare',[box('fore','foresight'),box('hind','hindsight'),box('inst','actual')],
+    layout({showlegend:false,yaxis:{title:'score',zeroline:true,range:[-1.1,1.1]}}),CFG);
+}
+
+function drawTable(){
+  const set=visible().slice().sort((a,b)=>b.auc.fore.score-a.auc.fore.score);
+  const head=`<tr style="color:#93a1b0;text-align:left"><th style="padding:5px 10px">Athlete</th><th>Year</th>`+
+    `<th>Event</th><th>Split %</th><th>foresight</th><th>hindsight</th><th>actual</th>`+
+    `<th>Verdict <span style="font-weight:400">(foresight)</span></th></tr>`;
+  document.getElementById('tbl').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">${head}`+
+    set.map(s=>`<tr style="border-top:1px solid #263140">
+      <td style="padding:4px 10px">${s.name}</td><td>${s.year}</td>
+      <td style="max-width:230px">${s.series}</td>
+      <td style="color:${BAND_COLOR[s.band]}">${s.split>0?'+':''}${s.split}</td>
+      <td><b>${s.auc.fore.score>0?'+':''}${s.auc.fore.score.toFixed(2)}</b></td>
+      <td>${s.auc.hind.score>0?'+':''}${s.auc.hind.score.toFixed(2)}</td>
+      <td>${s.auc.inst.score>0?'+':''}${s.auc.inst.score.toFixed(2)}</td>
+      <td>${verdict(s.auc.fore.score)}</td></tr>`).join('')+`</table>`;
+}
+
+function refresh(){
+  const set=visible().slice().sort((a,b)=>b.auc.fore.score-a.auc.fore.score);
+  document.getElementById('pick').innerHTML=set.map(s=>
+    `<option value="${s.rid}">${s.name} — ${s.year} (${s.split>0?'+':''}${s.split}%, score ${s.auc.fore.score>0?'+':''}${s.auc.fore.score})</option>`).join('');
+  drawScatter(); drawCompare(); drawTable();
+  if(set.length) drawSingle(set[0].rid);
+}
+loadData().then(({shapes})=>{
+  SH=shapes.filter(s=>s.auc);
+  document.getElementById('kind').onchange=e=>{KIND=e.target.value;refresh();};
+  document.getElementById('band').onchange=e=>{BANDF=e.target.value;refresh();};
+  document.getElementById('pick').onchange=e=>drawSingle(e.target.value);
+  refresh();
+});
+</script>
+</main></body></html>

@@ -1,0 +1,79 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Build-a-cohort</title><link rel="stylesheet" href="css/style.css">
+<script src="lib/plotly.min.js"></script></head><body>
+<script src="js/common.js"></script>
+<main>
+<h1>Exploration 15 · Build-a-cohort</h1>
+<p class="sub">Pick your own filters and watch the split distribution and the finishing-band gradient update live. This is the interactive version of the whole project's core question, in your hands.</p>
+
+<div class="card">
+  <div class="controls">
+    <label>Discipline: <select id="disc"><option value="24_hour">24-hour</option><option value="100_mile">100-mile (dedicated)</option></select></label>
+    <label>Split metric: <select id="method">
+      <option value="halves">halves (full race)</option>
+      <option value="100mi_within_24h">in-race 100-mile</option></select></label>
+    <label>Sex: <select id="sex"><option value="">all</option><option value="M">men</option><option value="F">women</option></select></label>
+  </div>
+  <div class="controls">
+    <label>Tiers:
+      <span id="tiers">
+        <label><input type="checkbox" class="tier" value="world" checked> world</label>
+        <label><input type="checkbox" class="tier" value="continental" checked> continental</label>
+        <label><input type="checkbox" class="tier" value="national" checked> national</label>
+        <label><input type="checkbox" class="tier" value="open" checked> open</label>
+      </span></label>
+  </div>
+  <div class="controls">
+    <label>Years: <input type="text" id="y0" size="4" value="1980"> – <input type="text" id="y1" size="4" value="2026"></label>
+    <label id="distwrap">Min 24h distance (km): <input type="text" id="dmin" size="4" value="100"></label>
+  </div>
+  <div id="cohortstat" class="note" style="font-size:14px"></div>
+</div>
+
+<div class="card"><h3>15.1 — Split distribution for your cohort</h3>
+  <div id="hist" class="chart"></div></div>
+
+<div class="card"><h3>15.2 — Mean split by finishing band</h3>
+  <div class="note">The project's headline gradient, recomputed on your cohort. Do the top finishers still pace more evenly?</div>
+  <div id="band" class="chart"></div></div>
+
+<script>
+nav('builder.html');
+loadData().then(({results})=>{
+  function apply(){
+    const disc=document.getElementById('disc').value;
+    const method=document.getElementById('method').value;
+    const sex=document.getElementById('sex').value;
+    const tiers=[...document.querySelectorAll('.tier:checked')].map(c=>c.value);
+    const y0=+document.getElementById('y0').value||0, y1=+document.getElementById('y1').value||9999;
+    const dmin=+document.getElementById('dmin').value||0;
+    document.getElementById('distwrap').style.display=disc==='24_hour'?'':'none';
+    let d=results.filter(r=>r.disc===disc&&r.method===method&&r.year>=y0&&r.year<=y1&&tiers.includes(r.tier));
+    if(sex) d=d.filter(r=>r.sex===sex);
+    if(disc==='24_hour') d=d.filter(r=>r.final_km&&r.final_km>=dmin);
+    const neg=d.filter(r=>r.cls==='negative').length, ev=d.filter(r=>r.cls==='even').length;
+    document.getElementById('cohortstat').innerHTML= d.length?
+      `<b>${d.length}</b> performances · mean split <b>${mean(d.map(r=>r.split)).toFixed(2)}%</b> · `+
+      `<span style="color:#2ec4b6">${neg} negative</span> + <span style="color:#f4c430">${ev} even</span> = `+
+      `<b>${(100*(neg+ev)/d.length).toFixed(1)}%</b> even-or-negative`
+      : 'no performances match — loosen the filters.';
+    Plotly.react('hist',[{x:d.map(r=>r.split),type:'histogram',marker:{color:'#5aa9e6'},
+      xbins:{size:1}}],
+      layout({xaxis:{title:'split % (− = negative)',zeroline:true},yaxis:{title:'performances'},
+        shapes:[{type:'rect',x0:-0.5,x1:0.5,yref:'paper',y0:0,y1:1,fillcolor:'#f4c43022',line:{width:0}}]}),CFG);
+    // finishing band gradient
+    const band=r=>!r.place?'unranked':r.place<=3?'top-3':r.place<=10?'top-10':r.place<=25?'top-25':'26+';
+    const order=['top-3','top-10','top-25','26+'];
+    const bx=[],by=[],bt=[];
+    order.forEach(b=>{const v=d.filter(r=>band(r)===b).map(r=>r.split);
+      bx.push(b); by.push(v.length?mean(v):null); bt.push(`n=${v.length}`);});
+    Plotly.react('band',[{x:bx,y:by,type:'bar',text:bt,textposition:'outside',
+      marker:{color:by.map(v=>v===null?'#333':(v<0.5?'#2ec4b6':v<8?'#f4c430':'#8a97a8'))}}],
+      layout({xaxis:{title:'finishing band'},yaxis:{title:'mean split %',zeroline:true}}),CFG);
+  }
+  document.querySelectorAll('select,input').forEach(el=>{el.oninput=apply;el.onchange=apply;});
+  apply();
+});
+</script>
+</main></body></html>
