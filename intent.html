@@ -131,8 +131,10 @@ const secVerdict=v=> v==null?'—':v<-SEC_T?'looks INTENTIONAL':v>SEC_T?'looks A
 const secColor=v=> v==null?'#8a97a8':v<-SEC_T?'#2ec4b6':v>SEC_T?'#c96a6a':'#f4c430';
 const secStr=v=> v==null?'—':`${v>0?'+':''}${v.toFixed(1)}`;
 
-function drawSingle(rid){
-  const s=SH.find(x=>String(x.rid)===String(rid)); if(!s) return;
+function drawSingle(key){
+  // `rid` is not unique: one result can yield both a `halves` shape and a
+  // `100mi_within_24h` shape, drawn on different axes. Resolve on `key`.
+  const s=SH.find(x=>String(x.key)===String(key)); if(!s) return;
   const line=(x,y,name,col,dash)=>({x,y,mode:'lines',type:'scatter',name,
     line:{color:col,width:name==='foresight'?2.6:1.8,dash:dash||'solid'},
     hovertemplate:`${name}: %{y:+.2f}% at %{x:.0f}%<extra></extra>`});
@@ -257,9 +259,9 @@ function drawTable(){
 function refresh(){
   const set=visible().slice().sort(byIntent);
   document.getElementById('pick').innerHTML=set.map(s=>
-    `<option value="${s.rid}">${s.name} — ${s.year} (${s.split>0?'+':''}${s.split}%, ${secStr(s.intent_s)} s/mi)</option>`).join('');
+    `<option value="${s.key}">${s.name} — ${s.year} (${s.split>0?'+':''}${s.split}%, ${secStr(s.intent_s)} s/mi)</option>`).join('');
   drawScatter(); drawHist(); drawCompare(); drawTable();
-  if(set.length) drawSingle(set[0].rid);
+  if(set.length) drawSingle(set[0].key);
 }
 loadData().then(({shapes,meta})=>{
   SH=shapes.filter(s=>s.auc);

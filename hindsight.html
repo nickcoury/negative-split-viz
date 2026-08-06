@@ -105,8 +105,10 @@ function drawOverlay(){
     shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:0,y1:0,line:{color:'#5a6b7d',dash:'dot',width:1}}]}),CFG);
   document.getElementById('count').textContent=`${set.length} shapes · ${cohort_label(KIND)} · bold white = group mean · hover a line for the athlete`;
 }
-function drawSingle(rid){
-  const s=SH.find(x=>x.rid==rid); if(!s) return;
+function drawSingle(key){
+  // `rid` is not unique: one result can yield both a `halves` shape and a
+  // `100mi_within_24h` shape, drawn on different axes. Resolve on `key`.
+  const s=SH.find(x=>String(x.key)===String(key)); if(!s) return;
   // ABSOLUTE projected value (the real green line), with a dotted line at your
   // average pace = your actual result. 24h: projected distance (mi), up = farther
   // = faster remaining. 100mi: projected finish time (h) on a REVERSED axis so up
@@ -143,13 +145,13 @@ function buildGrid(){
     Plotly.newPlot(div,[{x:s.hind_x,y:devY(s),mode:'lines',type:'scatter',line:{color:BAND_COLOR[s.band],width:1.5},hoverinfo:'skip'}],
       layout({xaxis:{visible:false},yaxis:{visible:false},margin:{l:4,r:4,t:4,b:4},
         shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:0,y1:0,line:{color:'#5a6b7d',dash:'dot',width:1}}]}),{staticPlot:true,responsive:true});
-    wrap.onclick=()=>{document.getElementById('pick').value=s.rid;drawSingle(s.rid);document.getElementById('single').scrollIntoView({behavior:'smooth',block:'center'});};
+    wrap.onclick=()=>{document.getElementById('pick').value=s.key;drawSingle(s.key);document.getElementById('single').scrollIntoView({behavior:'smooth',block:'center'});};
   });
 }
 function refresh(){
   const set=visible();
-  document.getElementById('pick').innerHTML=set.sort((a,b)=>a.split-b.split).map(s=>`<option value="${s.rid}">${label(s)}</option>`).join('');
-  drawOverlay(); buildGrid(); if(set.length) drawSingle(set[0].rid);
+  document.getElementById('pick').innerHTML=set.sort((a,b)=>a.split-b.split).map(s=>`<option value="${s.key}">${label(s)}</option>`).join('');
+  drawOverlay(); buildGrid(); if(set.length) drawSingle(set[0].key);
 }
 loadData().then(({shapes,meta})=>{
   SH=shapes;
