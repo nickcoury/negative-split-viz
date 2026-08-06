@@ -87,6 +87,17 @@ function ctx100(s){
     : ` · <span style="color:#9fb3c8" title="100 miles was a waypoint; kept racing to 24h">ran on to ${s.total_km.toFixed(1)} km in 24h</span>`) + slow;
 }
 const actualStr = s => cohort_kind(KIND)==='24h' ? `${s.proj_actual} mi` : fmtHMS(s.proj_actual);
+// Seconds of intentionality — the area between THIS line and the average-pace
+// line, per mile. Computed in build_viz (see _sec_series); shown here because
+// this page draws the very curve it integrates. Negative = held back early.
+// Full explanation and the breakdown live on Exploration 16.
+const secStr = v => v==null ? '—' : `${v>0?'+':''}${v.toFixed(1)} s/mi`;
+const secColor = v => v==null ? '#8a97a8' : v<-1 ? '#2ec4b6' : v>1 ? '#c96a6a' : '#f4c430';
+const secTag = s => s.intent_s==null ? '' :
+  ` · <a href="intent.html" style="color:${secColor(s.intent_s)};text-decoration:none"`+
+  ` title="seconds of intentionality: mean gap between this line and your final average pace.`+
+  ` negative = held back early (intentional), positive = went out ahead (accidental)">`+
+  `${secStr(s.intent_s)}</a>`;
 
 const singleUnit = () => cohort_kind(KIND)==='24h' ? 'distance vs your average pace (mi;  + = ahead / faster)'
                                       : 'time vs your average pace (min;  + = ahead / faster)';
@@ -126,7 +137,7 @@ function drawSingle(rid){
       annotations:[{xref:'paper',x:0.99,y:avg,yref:'y',xanchor:'right',yanchor:'bottom',
         text:'average pace → '+actualStr(s)+'   (above = ahead of average)',
         showarrow:false,font:{color:'#f4c430',size:11},bgcolor:'#0f1419cc'}]}),CFG);
-  document.getElementById('pickmeta').innerHTML=`${s.band} · split ${s.split>0?'+':''}${s.split}% · actual ${actualStr(s)}${ctx100(s)}${s.place?' · place '+s.place:''}`;
+  document.getElementById('pickmeta').innerHTML=`${s.band} · split ${s.split>0?'+':''}${s.split}% · actual ${actualStr(s)}${secTag(s)}${ctx100(s)}${s.place?' · place '+s.place:''}`;
 }
 function buildGrid(){
   // Ordered most-negative -> most-positive so the grid reads as a gradient
@@ -139,7 +150,7 @@ function buildGrid(){
     const cap=document.createElement('div'); cap.className='cap';
     cap.innerHTML=`<span class="pill ${s.band==='negative'?'neg':'even'}">${s.split>0?'+':''}${s.split}%</span> `+
       `${s.bench?'<span title="top-'+s.bench+' all-time, '+s.bench_group+'" style="color:#e8c56a">★</span> ':''}`+
-      `${s.name} · <b>${actualStr(s)}</b>${ctx100(s)} · ${s.year}`;
+      `${s.name} · <b>${actualStr(s)}</b>${secTag(s)}${ctx100(s)} · ${s.year}`;
     const div=document.createElement('div'); div.style.height='150px'; wrap.append(cap,div); g.append(wrap);
     Plotly.newPlot(div,[{x:s.proj_x,y:devY(s),mode:'lines',type:'scatter',line:{color:BAND_COLOR[s.band],width:1.5},hoverinfo:'skip'}],
       layout({xaxis:{visible:false},yaxis:{visible:false},margin:{l:4,r:4,t:4,b:4},

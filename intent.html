@@ -23,11 +23,27 @@ All three lines are put on one scale: <b>x = % of race completed</b>, <b>y = % a
 pace</b> (+ = on pace for a better result than you got, − = conservative). The metric is the area between each
 line and zero, split above/below:
 <code>score = (area&nbsp;below − area&nbsp;above) / total</code>, in [−1, +1].
-It is computed for all three lines so they can be compared (chart 16.3), but
-<b>only the foresight score is used to call a performance intentional or accidental</b>:
-<b>foresight score &gt; 0 = mostly conservative → looks intentional; &lt; 0 = mostly ahead → looks accidental.</b>
+It is computed for all three lines so they can be compared (chart 16.5), but
+<b>only the foresight line is used to call a performance intentional or accidental</b>:
 Hindsight is close to a mirror of foresight and instantaneous pace barely varies, so neither carries an
 independent verdict.
+</p>
+<p class="sub" style="border-left:3px solid #2ec4b6;padding-left:12px">
+<b>Seconds of intentionality</b> — the headline number on this page. The normalised score above has the right
+shape but throws away magnitude and saturates hard (most 24-hour races sit at exactly −1.00), so a runner who
+went out 4&nbsp;s/mi hot scores the same as one who went out 280. This is the same integral with a unit on it:
+take the foresight line, measure its distance from your own final average pace in <b>seconds per mile</b>, and
+average that over the race with x normalised to [0,&nbsp;1] — so race length drops out and a 24-hour effort and a
+100-mile effort are measured the same way.
+<code>intentionality = ∫₀¹ (final&nbsp;average&nbsp;pace − pace&nbsp;so&nbsp;far) dx</code>
+<br>
+<b style="color:#2ec4b6">Negative = you ran conservative of the pace you ended up averaging</b> — held back early,
+<b>looks intentional</b>.
+<b style="color:#c96a6a">Positive = you ran ahead of it</b> — went out at a pace you couldn't hold,
+<b>looks accidental</b>.
+Open ten seconds per mile down on your eventual average and close the gap steadily and you read about
+<b>−5 s/mi</b>: half the peak, because that is the area under a line falling from 10 to 0. Real races aren't
+linear, which is the point of integrating rather than just reading the start.
 </p>
 
 <div class="controls">
@@ -48,22 +64,42 @@ independent verdict.
 </div>
 
 <div class="card">
-  <h3>Chart 16.2 — Does the score separate the classes?</h3>
-  <div class="note">Each point is one performance: <b>x = foresight score</b> (right = conservative/intentional),
-  <b>y = split %</b> (below 0 = negative split). If the hypothesis holds, negative splits should spread across
-  x rather than cluster — the ones on the right held back on purpose, the ones on the left didn't.</div>
+  <h3>Chart 16.2 — The same race, in seconds of intentionality</h3>
+  <div class="note">The foresight line again, now as <b>seconds per mile against your own final average pace</b>.
+  The shaded areas are the two halves of the integral; the number is their net, per mile of racing.
+  <b style="color:#2ec4b6">Below the line = conservative</b> · <b style="color:#c96a6a">above = ahead of
+  final pace</b>. The early spike is real and it counts: at one hour in, every 24-hour runner is on pace for
+  far more than they will get.</div>
+  <div id="secs" class="chart tall"></div>
+  <div id="secmetrics" class="note"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 16.3 — Does intentionality separate the classes?</h3>
+  <div class="note">Each point is one performance: <b>x = seconds of intentionality</b>
+  (left = held back / intentional, right = went out ahead / accidental), <b>y = split %</b>
+  (below 0 = negative split). If the hypothesis holds, negative splits should spread across x rather than
+  cluster — the ones on the left held back on purpose, the ones on the right didn't.</div>
   <div id="scatter" class="chart"></div>
 </div>
 
 <div class="card">
-  <h3>Chart 16.3 — Which line is the better discriminator?</h3>
-  <div class="note">The same score computed from each of the three lines. A useful discriminator should
-  <b>spread out</b>; one that hugs zero carries no signal.</div>
+  <h3>Chart 16.4 — Distribution of intentionality</h3>
+  <div class="note">Where this cohort actually sits. Unlike the normalised score, this metric doesn't
+  saturate, so the tail of runners who went out enormously hot stays visible instead of piling up at −1.</div>
+  <div id="hist" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 16.5 — Which line is the better discriminator?</h3>
+  <div class="note">The normalised [−1, +1] score computed from each of the three lines. A useful discriminator
+  should <b>spread out</b>; one that hugs zero carries no signal. Note this score's sign is the OPPOSITE of the
+  seconds metric's: here <b>+ = conservative</b>.</div>
   <div id="compare" class="chart"></div>
 </div>
 
 <div class="card" style="overflow:auto">
-  <h3>Table — ranked most intentional → most accidental (by foresight)</h3>
+  <h3>Table — ranked most intentional → most accidental (by seconds of intentionality)</h3>
   <div id="tbl"></div>
 </div>
 
@@ -81,6 +117,14 @@ function inSet(s){
 }
 const visible=()=>SH.filter(inSet);
 const verdict=v=> v>0.15?'looks INTENTIONAL':v<-0.15?'looks ACCIDENTAL':'ambiguous';
+// Seconds of intentionality. NEGATIVE = conservative = intentional, which is
+// the opposite sign to the normalised score above - keep the two apart.
+// The threshold is in seconds per mile, not in a unitless score: under a
+// second either way is a runner who held their average pace, not a plan.
+const SEC_T=1.0;
+const secVerdict=v=> v==null?'—':v<-SEC_T?'looks INTENTIONAL':v>SEC_T?'looks ACCIDENTAL':'ambiguous';
+const secColor=v=> v==null?'#8a97a8':v<-SEC_T?'#2ec4b6':v>SEC_T?'#c96a6a':'#f4c430';
+const secStr=v=> v==null?'—':`${v>0?'+':''}${v.toFixed(1)}`;
 
 function drawSingle(rid){
   const s=SH.find(x=>String(x.rid)===String(rid)); if(!s) return;
@@ -110,20 +154,63 @@ function drawSingle(rid){
     `<td style="padding-right:12px">above ${a.above.toFixed(2)}</td>`+
     `<td style="padding-right:12px"><b>score ${a.score>0?'+':''}${a.score.toFixed(2)}</b></td>`+
     `<td>${verdict(a.score)}</td></tr></table>`;
+  drawSecs(s);
+}
+
+// Chart 16.2 — the same foresight line in seconds per mile, with the two
+// halves of the integral shaded. This is the picture the headline number is
+// literally the average height of.
+function drawSecs(s){
+  const el=document.getElementById('secs');
+  if(!s.sec_x||!s.sec_x.length){Plotly.purge(el);
+    document.getElementById('secmetrics').textContent='No pace curve for this performance.';return;}
+  const zeros=s.sec_x.map(()=>0);
+  const pos=s.sec_y.map(v=>v>0?v:0), neg=s.sec_y.map(v=>v<0?v:0);
+  const band=(y,col)=>({x:s.sec_x,y,mode:'lines',type:'scatter',fill:'tozeroy',
+    fillcolor:col,line:{width:0},hoverinfo:'skip',showlegend:false});
+  Plotly.react(el,[
+    band(pos,'rgba(201,106,106,0.28)'),
+    band(neg,'rgba(46,196,182,0.28)'),
+    {x:s.sec_x,y:s.sec_y,mode:'lines',type:'scatter',line:{color:C.fore,width:2.6},
+     name:'foresight',showlegend:false,
+     hovertemplate:'%{y:+.1f} s/mi at %{x:.0f}% of race<extra></extra>'},
+    {x:s.sec_x,y:zeros,mode:'lines',type:'scatter',line:{color:'#8fa3b8',dash:'dot',width:1.5},
+     hoverinfo:'skip',showlegend:false},
+  ],layout({xaxis:{title:'% of race completed',range:[0,100]},
+    yaxis:{title:'seconds per mile vs your own final average pace  (− = conservative)',
+           zeroline:true,zerolinecolor:'#8fa3b8'}}),CFG);
+  const p=s.intent_parts||{behind:0,ahead:0};
+  document.getElementById('secmetrics').innerHTML=
+    `<table style="font-size:13px"><tr>`+
+    `<td style="color:#2ec4b6;padding:3px 12px 3px 0">conservative area ${p.behind.toFixed(1)}</td>`+
+    `<td style="color:#c96a6a;padding-right:14px">ahead-of-pace area ${p.ahead.toFixed(1)}</td>`+
+    `<td style="padding-right:14px;font-size:15px"><b style="color:${secColor(s.intent_s)}">`+
+    `${secStr(s.intent_s)} s/mi</b></td>`+
+    `<td style="color:${secColor(s.intent_s)}">${secVerdict(s.intent_s)}</td></tr></table>`;
 }
 
 function drawScatter(){
-  const set=visible();
+  const set=visible().filter(s=>s.intent_s!=null);
   Plotly.react('scatter',[{
-    x:set.map(s=>s.auc.fore.score), y:set.map(s=>s.split),
+    x:set.map(s=>s.intent_s), y:set.map(s=>s.split),
     mode:'markers',type:'scatter',
     marker:{size:10,color:set.map(s=>BAND_COLOR[s.band]),line:{color:'#0f1419',width:1}},
-    text:set.map(s=>`${s.name} — ${s.year} ${s.series}<br>split ${s.split>0?'+':''}${s.split}%<br>foresight score ${s.auc.fore.score>0?'+':''}${s.auc.fore.score}<br>${verdict(s.auc.fore.score)}`),
+    text:set.map(s=>`${s.name} — ${s.year} ${s.series}<br>split ${s.split>0?'+':''}${s.split}%<br>`+
+      `intentionality ${secStr(s.intent_s)} s/mi<br>${secVerdict(s.intent_s)}`),
     hoverinfo:'text'}],
-    layout({xaxis:{title:'foresight score  (→ conservative / intentional)',range:[-1.05,1.05],zeroline:true},
+    layout({xaxis:{title:'seconds of intentionality (s/mi)   ← held back · went out ahead →',zeroline:true},
       yaxis:{title:'split %  (below 0 = negative split)',zeroline:true},
       shapes:[{type:'line',x0:0,x1:0,yref:'paper',y0:0,y1:1,line:{color:'#8fa3b8',dash:'dot',width:1}}]}),CFG);
-  document.getElementById('count').textContent=`${set.length} performances`;
+  document.getElementById('count').textContent=`${visible().length} performances`;
+}
+
+function drawHist(){
+  const v=visible().map(s=>s.intent_s).filter(x=>x!=null);
+  Plotly.react('hist',[{x:v,type:'histogram',marker:{color:'#2ec4b6',
+    line:{color:'#0f1419',width:1}},nbinsx:40,hovertemplate:'%{y} performances near %{x:+.0f} s/mi<extra></extra>'}],
+    layout({xaxis:{title:'seconds of intentionality (s/mi)   ← held back · went out ahead →',zeroline:true},
+      yaxis:{title:'performances'},
+      shapes:[{type:'line',x0:0,x1:0,yref:'paper',y0:0,y1:1,line:{color:'#8fa3b8',dash:'dot',width:1.5}}]}),CFG);
 }
 
 function drawCompare(){
@@ -135,27 +222,38 @@ function drawCompare(){
     layout({showlegend:false,yaxis:{title:'score',zeroline:true,range:[-1.1,1.1]}}),CFG);
 }
 
+// Most intentional first = most NEGATIVE seconds first. Shapes with no pace
+// curve sort last rather than pretending to be 0 (which would read as "even").
+const byIntent=(a,b)=>(a.intent_s==null?1e9:a.intent_s)-(b.intent_s==null?1e9:b.intent_s);
+
 function drawTable(){
-  const set=visible().slice().sort((a,b)=>b.auc.fore.score-a.auc.fore.score);
+  const set=visible().slice().sort(byIntent);
   const head=`<tr style="color:#93a1b0;text-align:left"><th style="padding:5px 10px">Athlete</th><th>Year</th>`+
-    `<th>Event</th><th>Split %</th><th>foresight</th><th>hindsight</th><th>actual</th>`+
-    `<th>Verdict <span style="font-weight:400">(foresight)</span></th></tr>`;
+    `<th>Event</th><th>Split %</th>`+
+    `<th title="mean seconds per mile vs your own final average pace; negative = held back">`+
+    `Intentionality<br><span style="font-weight:400">s/mi</span></th>`+
+    `<th title="the conservative and ahead-of-pace halves of the same integral">`+
+    `below / above</th>`+
+    `<th>foresight</th><th>hindsight</th><th>actual</th>`+
+    `<th>Verdict <span style="font-weight:400">(seconds)</span></th></tr>`;
   document.getElementById('tbl').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">${head}`+
-    set.map(s=>`<tr style="border-top:1px solid #263140">
+    set.map(s=>{const p=s.intent_parts||{behind:0,ahead:0};return `<tr style="border-top:1px solid #263140">
       <td style="padding:4px 10px">${s.name}</td><td>${s.year}</td>
       <td style="max-width:230px">${s.series}</td>
       <td style="color:${BAND_COLOR[s.band]}">${s.split>0?'+':''}${s.split}</td>
-      <td><b>${s.auc.fore.score>0?'+':''}${s.auc.fore.score.toFixed(2)}</b></td>
+      <td style="color:${secColor(s.intent_s)};font-size:14px"><b>${secStr(s.intent_s)}</b></td>
+      <td style="color:#93a1b0">${p.behind.toFixed(1)} / ${p.ahead.toFixed(1)}</td>
+      <td>${s.auc.fore.score>0?'+':''}${s.auc.fore.score.toFixed(2)}</td>
       <td>${s.auc.hind.score>0?'+':''}${s.auc.hind.score.toFixed(2)}</td>
       <td>${s.auc.inst.score>0?'+':''}${s.auc.inst.score.toFixed(2)}</td>
-      <td>${verdict(s.auc.fore.score)}</td></tr>`).join('')+`</table>`;
+      <td style="color:${secColor(s.intent_s)}">${secVerdict(s.intent_s)}</td></tr>`}).join('')+`</table>`;
 }
 
 function refresh(){
-  const set=visible().slice().sort((a,b)=>b.auc.fore.score-a.auc.fore.score);
+  const set=visible().slice().sort(byIntent);
   document.getElementById('pick').innerHTML=set.map(s=>
-    `<option value="${s.rid}">${s.name} — ${s.year} (${s.split>0?'+':''}${s.split}%, score ${s.auc.fore.score>0?'+':''}${s.auc.fore.score})</option>`).join('');
-  drawScatter(); drawCompare(); drawTable();
+    `<option value="${s.rid}">${s.name} — ${s.year} (${s.split>0?'+':''}${s.split}%, ${secStr(s.intent_s)} s/mi)</option>`).join('');
+  drawScatter(); drawHist(); drawCompare(); drawTable();
   if(set.length) drawSingle(set[0].rid);
 }
 loadData().then(({shapes,meta})=>{
