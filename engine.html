@@ -1,0 +1,138 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>24 · The engine room — even pace, even effort?</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid var(--neg)}
+.tile .n{font-size:30px;font-weight:700;line-height:1.15;color:var(--neg)}
+.tile .d{color:var(--muted);font-size:12.5px;margin-top:4px}
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+</style>
+</head><body>
+<script src="js/common.js?v=16165381"></script>
+<main>
+<h1>24 · The engine room — even pace, even effort?</h1>
+<p class="sub">
+A fair objection to everything on this site: pace is the <i>output</i>. An even pace could still be a
+desperate, ever-costlier grind — in which case the "held-back" races are just suffering arranged
+differently, and there is nothing to learn. Heart rate is the only effort signal we have at 24-hour
+scale, and it exists for exactly two of the held-back exhibits: per-mile HR from the athlete's own
+recording of the <b>2021 American Record</b> (173.015 mi, −1.03%) and the <b>2021 Dome 100-mile</b>
+(13:21, −3.12%). The standard endurance metric here is <b>Pa:HR decoupling</b> — how much the
+pace-per-heartbeat ratio degrades from the first half to the second. Under +5% over a <i>few</i> hours
+is textbook "well-executed aerobic effort." These two runs post <b>−1.6% over 24 hours</b> and
+<b>−14.8% over 100 miles</b>: the engine got <i>more</i> efficient as the race went on.</p>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="card">
+  <h3>Chart 24.1 — The American Record, mile by mile: pace up, heart rate flat</h3>
+  <div class="note">Both series indexed to their own race mean (100 = this run's average), one axis, no
+  tricks. Moving pace (teal, above 100 = faster than race average) climbs steadily through the day; heart
+  rate (purple) rises barely 2% half-to-half (174 → 178 bpm). A fading runner shows the opposite geometry — pace sagging
+  under a flat-or-rising HR. Faint lines are raw miles; bold lines are 5-mile rolling means.</div>
+  <div id="ds" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 24.2 — The Dome 100: negative-splitting at falling heart rate</h3>
+  <div class="note">The stranger exhibit. The last quarter was the fastest of the race (7:31/mi vs 8:16
+  opening) at a heart rate <b>17 bpm lower</b> than the opening quarter's. That is what genuine reserve
+  looks like: the early restraint was so deep that the fast close cost less than the easy start. Same
+  athlete, same year as the AR.</div>
+  <div id="dome" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 24.3 — Stopped time: 8.8 minutes in 24 hours</h3>
+  <div class="note">Cumulative stopped time through the AR run (from the same recording; the official
+  timing feed independently agrees — its longest gap between crossings is 2.9 minutes). Recall from
+  <a href="anatomy.html">Exploration 22</a> that the median elite fade is 62% bad patches: this run
+  simply never entered that regime. Total non-moving time across a full day: less than one lap of a
+  track takes most runners.</div>
+  <div id="stops" class="chart" style="height:360px"></div>
+</div>
+
+<h2>Reading it honestly</h2>
+<div class="finding"><b>The held-back races were not evenly-distributed suffering — they were
+physiologically comfortable until the end.</b> Negative decoupling over these durations means the
+second half was run at a <i>better</i> pace-per-heartbeat than the first: the "cost" of the early
+restraint was repaid with interest, exactly as the strategy intends. This is the mechanism the aggregate
+charts can't see: the plan works (when it works) by keeping the engine below its breaking point through
+the hours where everyone else buys their later collapse.</div>
+<div class="caveat"><b>Caveats — this is the N=1 page's little sibling, and inherits every one of its
+warnings.</b> Two runs, one athlete, self-recorded on a consumer device (HR strap quality, caffeine,
+indoor temperature, and circadian effects all move HR independent of effort — though most of those push
+HR <i>up</i> late, which would mask, not fake, the effect shown). HR is a proxy for cardiovascular
+strain, not glycogen or muscle damage. What this page establishes is existence, not expectation: at
+least one athlete has run a 24-hour American Record with essentially zero aerobic decoupling — so
+"even pace over a day is physiologically impossible without a hidden grind" is falsified as a
+universal. Whether it is reproducible is the <a href="agenda.html">research question</a>.</div>
+
+<script>
+nav('engine.html');
+fetch('data/n1.json').then(r=>r.json()).then(n1=>{
+  const HR = n1.hr;
+  const fmtPace = s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
+  document.getElementById('tiles').innerHTML = [
+    [HR.ds2021.decoupling_pct+'%', 'Pa:HR decoupling across the 24h American Record (under +5% over a few hours is "excellent"; this is a full day, and negative)'],
+    [HR.dome2021.decoupling_pct+'%', 'decoupling across the Dome 100 — the engine ran cheaper as the race sped up'],
+    [HR.ds2021.stop_total_min+' min', 'total stopped time in the 24h AR (official timing feed agrees: longest gap 2.9 min)'],
+    [`${HR.dome2021.hr_h1} → ${HR.dome2021.hr_h2}`, 'Dome 100 mean HR, first half → second half, while pace rose '+fmtPace(HR.dome2021.pace_h1)+' → '+fmtPace(HR.dome2021.pace_h2)+'/mi'],
+  ].map(([n,d])=>`<div class="tile"><div class="n">${n}</div><div class="d">${d}</div></div>`).join('');
+
+  const roll = (v, w)=>v.map((_,i)=>{
+    const s = v.slice(Math.max(0,i-w+1), i+1).filter(x=>x!=null);
+    return s.length ? s.reduce((a,b)=>a+b,0)/s.length : null;
+  });
+  const draw = (el, run, yrange)=>{
+    const m = run.miles;
+    const meanPace = m.reduce((s,x)=>s+x.mov_s,0)/m.length;
+    const hrs = m.filter(x=>x.hr);
+    const meanHr = hrs.reduce((s,x)=>s+x.hr,0)/hrs.length;
+    // pace indexed so faster = higher (speed relative to mean)
+    const paceIdx = m.map(x=>100*meanPace/x.mov_s);
+    const hrIdx = m.map(x=>x.hr?100*x.hr/meanHr:null);
+    const X = m.map(x=>x.mi);
+    Plotly.newPlot(el, [
+      {x:X, y:paceIdx, mode:'lines', line:{color:'rgba(46,196,182,0.25)', width:1},
+       hoverinfo:'skip', showlegend:false},
+      {x:X, y:hrIdx, mode:'lines', line:{color:'rgba(201,139,219,0.25)', width:1},
+       hoverinfo:'skip', showlegend:false},
+      {x:X, y:roll(paceIdx,5), mode:'lines', name:'moving speed (5-mi mean)',
+       line:{color:'#2ec4b6', width:2.6},
+       customdata:m.map(x=>fmtPace(x.mov_s)),
+       hovertemplate:'mile %{x}: speed index %{y:.1f} (%{customdata}/mi)<extra></extra>'},
+      {x:X, y:roll(hrIdx,5), mode:'lines', name:'heart rate (5-mi mean)',
+       line:{color:'#c98bdb', width:2.6},
+       customdata:m.map(x=>x.hr??'—'),
+       hovertemplate:'mile %{x}: HR index %{y:.1f} (%{customdata} bpm)<extra></extra>'},
+    ], layout({showlegend:true, legend:{orientation:'h', y:1.08},
+      xaxis:{title:'mile'},
+      yaxis:{title:'index (100 = this run’s own average; higher = faster / higher HR)',
+             range:yrange},
+      shapes:[{type:'line', xref:'paper', x0:0, x1:1, y0:100, y1:100,
+               line:{color:'#8fa3b8', dash:'dot', width:1}}]}), CFG);
+  };
+  // display ranges clamp two raw one-mile artifacts (an HR dropout during the
+  // AR's longest stop, and the final partial mile) without hiding the story
+  draw('ds', HR.ds2021, [82, 118]);
+  draw('dome', HR.dome2021, [85, 125]);
+
+  // cumulative stops for the AR
+  const m = HR.ds2021.miles;
+  let acc = 0;
+  const cum = m.map(x=>((acc += x.stop_s), +(acc/60).toFixed(2)));
+  Plotly.newPlot('stops', [{
+    x:m.map(x=>x.mi), y:cum, mode:'lines', fill:'tozeroy',
+    line:{color:'#5aa9e6', width:2}, fillcolor:'rgba(90,169,230,0.15)',
+    hovertemplate:'through mile %{x}: %{y:.1f} min stopped<extra></extra>',
+  }], layout({showlegend:false, xaxis:{title:'mile'},
+    yaxis:{title:'cumulative stopped time (min)'}}), CFG);
+});
+</script>
+</main></body></html>

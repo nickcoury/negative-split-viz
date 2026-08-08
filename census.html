@@ -15,7 +15,7 @@
 .caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
 </style>
 </head><body>
-<script src="js/common.js?v=76ca57d2"></script>
+<script src="js/common.js?v=16165381"></script>
 <main>
 <h1>17 · The Census — how negative splits actually happen</h1>
 <p class="sub">
@@ -86,6 +86,38 @@ mid-race?). Definitions are computed in <code>build_viz.py</code>, next to the m
   <div id="decade" class="chart" style="height:360px"></div>
 </div>
 
+<h2>The embedded hundred — where holding back already exists</h2>
+<p class="sub">Run the same census on the <b>100-mile efforts inside 24-hour races</b> (first 50 miles vs
+second 50; genuine 100-mile performances only — the ≥18h "slow shuffle" rows are excluded) and the
+picture changes character. The negative/even rate is ~2.5× the 24-hour rate, and the verdict mix flips:
+<b>held-back is one in five here, not one in nine</b> — and there are no stop-artefacts at all once the
+census is clipped to the effort itself.</p>
+<div class="tiles" id="vtiles100"></div>
+<div class="card">
+  <h3>Chart 17.5 — Verdict mix: whole day vs embedded hundred</h3>
+  <div class="note">Share of each verdict among lap-resolved negative/even splits. The held-back hundred
+  is not exotic — Sorokin ran −0.45% through 100 miles <i>during his world-record 24-hour</i>, and
+  Herron, Bereznowska and Ishikawa all appear. <b>The skill exists in the sport and is already exercised
+  over the first hundred miles of great 24-hour runs; what is missing is carrying it to the finish.</b>
+  That reframes the research question from "can anyone do this?" to "why does it stop at mile 100?"</div>
+  <div id="vmix" class="chart" style="height:360px"></div>
+</div>
+
+<h2>Who shows up — the championship effect, tested and dissolved</h2>
+<div class="card">
+  <h3>Chart 17.6 — At fixed performance, tier doesn't matter</h3>
+  <div class="note">Chart 17.3 shows world championships carry ~2× the near-even share of open races. Is
+  that athletes <i>pacing differently</i> at championships, or just <i>who shows up</i>? Two controls
+  say composition: <b>the same athlete</b> at a championship vs an open race within two years
+  (<span id="pn">…</span> pairs) paces essentially identically (median difference
+  <span id="pmed">…</span>pp; more even at the championship only <span id="ppct">…</span>% of the time)
+  — and among 200km+ finishers, the mean split is ~+10–11% in <i>every</i> tier. The near-even excess at
+  Worlds is the concentration of good athletes, not a championship pacing effect. (This dissolves an
+  earlier working hypothesis of this project — the six French domestic fields with zero negative splits
+  are simply small fields of the relevant caliber, not evidence of a cultural difference.)</div>
+  <div id="depth" class="chart" style="height:360px"></div>
+</div>
+
 <h2>What this says</h2>
 <div class="finding"><b>Negative splits are not a strategy in 24-hour racing today — they are mostly
 debris.</b> Of <span id="f-lap">46</span> lap-resolved negative/even splits, <span id="f-acc">29</span>
@@ -122,7 +154,8 @@ const VDESC = {
 const VORDER = ['held_back','metronome','overcooked','stop_recover'];
 const chip = v=>`<span class="vchip" style="background:${VBG[v]};color:${VC[v]}">${VLABEL[v]}</span>`;
 
-loadData().then(({results, shapes, meta})=>{
+Promise.all([loadData(), fetch('data/deep.json').then(r=>r.json())])
+.then(([{results, shapes, meta}, deep])=>{
   const cz = meta.census;
   const cens = shapes.filter(s=>s.kind==='24h' && s.method==='halves' &&
                                (s.band==='negative'||s.band==='even'));
@@ -220,6 +253,49 @@ loadData().then(({results, shapes, meta})=>{
       <td style="text-align:right;color:#93a1b0">${s.stop_at_h??'—'}</td>
       <td style="text-align:right">${s.final_km?.toFixed(1)??'—'}</td>
       <td style="text-align:right;color:#93a1b0">${s.place??'—'}</td></tr>`).join('')+`</table>`;
+
+  // ---- the embedded-100mi census ------------------------------------------
+  const cz100 = meta.census100;
+  const n100all = results.filter(r=>r.method==='100mi_within_24h').length;
+  const r100 = (100*cz100.n_negeven/n100all).toFixed(2);
+  const r24 = (100*cz.n_negeven_24h/cz.n_24h_halves).toFixed(2);
+  document.getElementById('vtiles100').innerHTML =
+    `<div class="tile"><div class="n">${cz100.n_negeven}</div><div class="t">negative/even embedded 100s</div>
+       <div class="d">of ${n100all.toLocaleString()} classified — a ${r100}% rate vs the 24-hour census's ${r24}%</div></div>`+
+    VORDER.map(v=>
+    `<div class="tile" style="border-top-color:${VC[v]}">
+       <div class="n" style="color:${VC[v]}">${cz100.verdicts[v]||0}</div>
+       <div class="t">${VLABEL[v]}</div>
+       <div class="d">of the ${cz100.n_lap_resolved} lap-resolved genuine 100-mile efforts</div></div>`).join('');
+  const mix = (vz, n)=>VORDER.map(v=>100*(vz[v]||0)/n);
+  Plotly.newPlot('vmix', [
+    {x:VORDER.map(v=>VLABEL[v].replace('&amp;','&')), y:mix(cz.verdicts, cz.n_lap_resolved),
+     name:'24-hour census (46)', type:'bar', marker:{color:'#8a97a8'},
+     text:mix(cz.verdicts, cz.n_lap_resolved).map(x=>x.toFixed(0)+'%'), textposition:'outside',
+     textfont:{color:'#93a1b0'}, cliponaxis:false,
+     hovertemplate:'%{x}: %{y:.0f}% of the 24h census<extra></extra>'},
+    {x:VORDER.map(v=>VLABEL[v].replace('&amp;','&')), y:mix(cz100.verdicts, cz100.n_lap_resolved),
+     name:`embedded 100mi census (${cz100.n_lap_resolved})`, type:'bar', marker:{color:'#2ec4b6'},
+     text:mix(cz100.verdicts, cz100.n_lap_resolved).map(x=>x.toFixed(0)+'%'), textposition:'outside',
+     textfont:{color:'#e6edf3'}, cliponaxis:false,
+     hovertemplate:'%{x}: %{y:.0f}% of the embedded-100 census<extra></extra>'},
+  ], layout({barmode:'group', bargap:0.25, showlegend:true, legend:{orientation:'h', y:1.1},
+    xaxis:{title:'verdict'}, yaxis:{title:'share of that census (%)',
+    range:[0, 70]}}), CFG);
+
+  // ---- composition, not behavior ------------------------------------------
+  const ctx = deep.context;
+  document.getElementById('pn').textContent = ctx.paired.n;
+  document.getElementById('pmed').textContent = (ctx.paired.median>0?'+':'')+ctx.paired.median;
+  document.getElementById('ppct').textContent = ctx.paired.pct_more_even_at_champs;
+  Plotly.newPlot('depth', [{
+    x:ctx.depth.map(d=>d.tier), y:ctx.depth.map(d=>d.mean), type:'bar',
+    marker:{color:'#5aa9e6'}, cliponaxis:false,
+    text:ctx.depth.map(d=>'+'+d.mean.toFixed(1)+'%'), textposition:'outside', textfont:{color:'#e6edf3'},
+    customdata:ctx.depth.map(d=>d.n),
+    hovertemplate:'%{x}: mean split %{y:.2f}% among %{customdata:,} finishers ≥200km<extra></extra>',
+  }], layout({showlegend:false, xaxis:{title:'championship tier — 200km+ finishers only'},
+    yaxis:{title:'mean split (%)', range:[0, 14]}}), CFG);
 
   // ---- tier + decade charts (from ALL classified halves) ------------------
   const halves = results.filter(r=>r.method==='halves' && r.disc==='24_hour');

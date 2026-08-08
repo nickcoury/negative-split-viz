@@ -24,6 +24,8 @@ const PAGES = [
   ['lenses.html', 'Lenses'],
   ['anatomy.html', 'Anatomy'],
   ['n1.html', 'N=1'],
+  ['engine.html', 'Engine'],
+  ['agenda.html', 'Agenda'],
   ['facets.html', 'Facets'],
   ['fielddyn.html', 'Field Dynamics'],
   ['archetypes.html', 'Archetypes'],
