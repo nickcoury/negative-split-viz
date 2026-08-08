@@ -1,0 +1,114 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>20 · Nobody is shooting threes</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid var(--neg)}
+.tile .n{font-size:30px;font-weight:700;line-height:1.15;color:var(--neg)}
+.tile .d{color:var(--muted);font-size:12.5px;margin-top:4px}
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+</style>
+</head><body>
+<script src="js/common.js?v=76ca57d2"></script>
+<main>
+<h1>20 · Nobody is shooting threes</h1>
+<p class="sub">
+Before the three-point revolution, basketball's data "showed" the long shot didn't pay — because the
+players taking it hadn't spent years practicing it. An outcome statistic says nothing about a strategy
+<b>nobody attempts</b>. So this page measures attempts, not outcomes: across every full-day, lap-resolved
+elite 24-hour effort in the dataset, <b>who ever opened their first six hours at or below the pace they
+would finally average?</b> That is the minimum entry ticket to a planned negative split — and almost
+nobody has ever bought one.</p>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="card">
+  <h3>Chart 20.1 — The opening-surplus distribution, and its empty left tail</h3>
+  <div class="note">Each full-day effort's first-6-hour pace, as % above the pace the athlete finally
+  averaged over 24 hours. The field lives at <b>+15 to +35%</b> — everyone banks. At-or-below zero — the
+  shaded region — there are <b>nine runs, ever</b>. This is what "the strategy is untested" looks like as
+  a histogram.</div>
+  <div id="hist" class="chart"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>The nine attempts on record — and what they cost</h3>
+  <div class="note">Every one of them, with outcome. Six of nine landed a negative or even split (five
+  negative outright). And the
+  failures are not cautionary tales: the <i>worst</i> outcome among the nine is a +6.5% split —
+  <b>half the fade of the median elite effort</b> (+14%). On this evidence, attempting costs little;
+  it just isn't attempted.</div>
+  <div id="tbl"></div>
+</div>
+
+<h2>Reading it honestly</h2>
+<div class="finding"><b>0.3% attempt rate is the finding that reframes every other chart.</b> "Negative
+splits don't win 24-hour races" is a claim about nine data points, six of which landed negative or even —
+including an American record and a top-ten Worlds run. The other 3,255 elite efforts tell you nothing about the
+strategy, because they never tried it. Rarity of the <i>outcome</i> (page 17) turns out to be mostly
+rarity of the <i>attempt</i>.</div>
+<div class="finding"><b>What evidence would actually settle this?</b> Not more observational data — more
+attempts. The dataset can motivate but not adjudicate. A real test looks like: athletes who pre-declare a
+pacing plan (so intent isn't inferred after the fact), tracked across seasons as they practice it —
+exactly the kind of longitudinal attempt log that today exists for <a href="n1.html">a single athlete</a>
+(65 self-recorded attempts, 62% success, ~15 years). The paper's ask is that more athletes and coaches
+generate this data.</div>
+<div class="caveat"><b>Caveats.</b> "Opened at/below final average" is a conservative attempt-detector: it
+misses a planned negative split abandoned in hour 2, and it is computed against the athlete's own final
+result, so a catastrophic collapse could technically qualify (none of the nine is one — see their splits).
+Detection requires lap data, so events with only a halfway checkpoint can't contribute attempts. The
+denominator is full-day efforts only; early stoppers are excluded by the same rule used across this
+site.</div>
+
+<script>
+nav('attempts.html');
+fetch('data/deep.json').then(r=>r.json()).then(({attempts})=>{
+  const A = attempts;
+  const achieved = A.list.filter(a=>a.band==='negative'||a.band==='even').length;
+  document.getElementById('tiles').innerHTML = [
+    [A.n_full_day.toLocaleString(), 'full-day, lap-resolved elite 24-hour efforts'],
+    [A.n_attempts, `ever opened 6h at/below their own final average — ${(100*A.n_attempts/A.n_full_day).toFixed(1)}% of efforts`],
+    ['+'+A.median_open_surplus+'%', 'the median opening surplus. The typical elite spends the first quarter far ahead of what they will average'],
+    [`${achieved} of ${A.n_attempts}`, 'attempts that landed a negative or even split — plus zero catastrophic failures among the rest'],
+  ].map(([n,d])=>`<div class="tile"><div class="n">${n}</div><div class="d">${d}</div></div>`).join('');
+
+  const xs = A.surplus_hist.map(b=>b.lo+1.25), ys = A.surplus_hist.map(b=>b.n);
+  Plotly.newPlot('hist', [{
+    x:xs, y:ys, type:'bar', width:2.3,
+    marker:{color:xs.map(x=>x<=0?'#2ec4b6':'#3a4655'), line:{color:'#0f1419', width:0.5}},
+    hovertemplate:'%{y} efforts opened %{x:.1f}% vs final avg<extra></extra>',
+  }], layout({bargap:0.05, showlegend:false,
+    xaxis:{title:'first-6h pace vs own final 24h average (%)   ← conservative · banked hard →', zeroline:true},
+    yaxis:{title:'efforts'},
+    shapes:[
+      {type:'rect', x0:-5.5, x1:0, yref:'paper', y0:0, y1:1, fillcolor:'rgba(46,196,182,0.08)', line:{width:0}},
+      {type:'line', x0:0, x1:0, yref:'paper', y0:0, y1:1, line:{color:'#2ec4b6', dash:'dot', width:1.5}},
+    ],
+    annotations:[{x:-2.5, yref:'paper', y:0.95, text:`the ${A.n_attempts} attempts`, showarrow:false,
+      font:{color:'#2ec4b6', size:12}},
+      {x:A.median_open_surplus, yref:'paper', y:0.98, text:'median +'+A.median_open_surplus+'%',
+       showarrow:false, font:{color:'#93a1b0', size:11}}]}), CFG);
+
+  const head = `<tr style="color:#93a1b0;text-align:left"><th style="padding:5px 10px">Athlete</th>
+    <th>Year</th><th>Event</th><th style="text-align:right" title="first-6h pace vs own final average">Opened</th>
+    <th style="text-align:right">Final split</th><th style="text-align:right">km</th><th>Outcome</th></tr>`;
+  document.getElementById('tbl').innerHTML =
+    `<table style="width:100%;border-collapse:collapse;font-size:13px">${head}`+
+    A.list.map(a=>{
+      const ok = a.band==='negative'||a.band==='even';
+      return `<tr style="border-top:1px solid #263140">
+      <td style="padding:4px 10px">${a.name}</td><td>${a.year}</td>
+      <td style="max-width:260px">${a.series}</td>
+      <td style="text-align:right;color:#2ec4b6">${a.open_pct}%</td>
+      <td style="text-align:right;color:${BAND_COLOR[a.band]||'#8a97a8'}">${a.split>0?'+':''}${a.split}%</td>
+      <td style="text-align:right">${a.final_km.toFixed(1)}</td>
+      <td>${ok?`<span class="pill neg">${a.band} split achieved</span>`
+             :`<span class="pill pos">faded ${a.split>0?'+':''}${a.split}% — still ½ the field's median</span>`}</td></tr>`;
+    }).join('')+`</table>`;
+});
+</script>
+</main></body></html>

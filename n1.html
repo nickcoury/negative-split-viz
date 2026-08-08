@@ -1,0 +1,194 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>23 · N = 1 — the attempt log</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid var(--accent)}
+.tile .n{font-size:30px;font-weight:700;line-height:1.15;color:var(--accent)}
+.tile .d{color:var(--muted);font-size:12.5px;margin-top:4px}
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+.notecell{color:#93a1b0;font-size:12px;max-width:340px}
+</style>
+</head><body>
+<script src="js/common.js?v=76ca57d2"></script>
+<main>
+<h1>23 · N = 1 — the attempt log</h1>
+<p class="sub">
+Exploration 20 established that the negative split is essentially <a href="attempts.html">untested</a>
+in elite 24-hour racing. Essentially — because one athlete has been running the experiment on himself
+since 2011 and writing it down. This is Nick Coury's self-reported log of <b>every race he started
+intending to negative split</b>: 65 scored entries over 15 years, most on trail, many far below 24 hours
+in duration. It is everything a clinical dataset is not — self-scored, uncontrolled, terrain-confounded,
+N=1 — and it is also <b>the only multi-year record of deliberate negative-split practice known to exist
+in ultrarunning</b>. It is presented here as exactly that: not proof, but the shape of what practicing
+the skill looks like, and the template for the data the field should want from many athletes.</p>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="card">
+  <h3>Chart 23.1 — Fifteen years of attempts</h3>
+  <div class="note">Every logged attempt: date vs achieved split, colored by race class. The green band is
+  a negative split; note how the points tighten around zero as the practice accumulates — and where the
+  three catastrophic outliers come from (a blown Achilles at two World 24s bracketing the American
+  Record, and the 2024 Western States collapse). ◆ marks the fixed-time (24h/6h) attempts — the
+  discipline where the skill lands last.</div>
+  <div id="timeline" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 23.2 — The skill transfers up-distance last</h3>
+  <div class="note">Success rate (achieved split &lt; 0) by race class. Below 100 miles the practiced
+  skill succeeds at roughly a two-thirds rate — at 24 hours it has succeeded twice in six attempts,
+  and both successes (Desert Solstice 2018 and the 2021 American Record) came a decade into the
+  practice. "24 hours are hard" appears three times in the log's notes.</div>
+  <div id="byclass" class="chart" style="height:380px"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 23.3 — What failure looks like when you were trying</h3>
+  <div class="note">The distribution of his 25 <i>failed</i> attempts (positive splits) against the elite
+  24-hour field's split distribution from this dataset. Even the failures cluster a few percent above
+  even — intent alone compresses the fade by an order of magnitude, with three injury/blow-up
+  exceptions. This is the log's most transferable observation, and it matches the census: among the
+  nine elite attempts on record, the worst outcome was +6.5%.</div>
+  <div id="faildist" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 23.4 — The DB-verified spine: his 24-hour arc</h3>
+  <div class="note">The subset of his career this project's database independently verifies from official
+  timing (lap-resolved where available): 24-hour halves splits and distances, 2011 → 2023. Split falls
+  +49% → −1.03% as distance climbs 101 → 173 miles; the 2023 Worlds spike is the Achilles, not the
+  pacing. Hover for distances. (2021 Six Days in the Dome is excluded: the database classifies it as a
+  deliberate 100-mile effort inside the 24-hour window, not a 24-hour race.)</div>
+  <div id="arc" class="chart"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>The log itself</h3>
+  <div class="note">Verbatim from the <a href="https://docs.google.com/spreadsheets/d/1MyFyTUzO7lviKZ5mbF60yFgFSHGT6Jzp0atTSRjAmLc/edit">source sheet</a>
+  (self-reported). Rows marked ⊂ are splits inside another row's race and are included in the owner's own
+  tallies. The notes column is the point: terrain asymmetries, injuries, and "went out too fast" are
+  recorded against the failures — the raw material of an attempt log.</div>
+  <div id="tbl"></div>
+</div>
+
+<h2>Reading it honestly</h2>
+<div class="finding"><b>This is what the 3-point analogy predicts practice should look like.</b> A
+contrived first attempt (2011), a long gap, then deliberate volume from 2017 on: success arrives first at
+50k, then 50 miles, then 100k, reaches 100 miles by 2020–21, and lands at 24 hours exactly twice — with
+the American Record among them. The log neither proves the strategy is optimal nor that it generalizes
+beyond one athlete. It proves the skill is <i>trainable</i>, that its failure mode under intent is mild,
+and that its acquisition follows the years-long trajectory Nick's hypothesis predicts. One athlete's
+N=65 is an anecdote; forty athletes keeping this log would be a literature.</div>
+<div class="caveat"><b>Caveats, all of them.</b> Self-reported and self-scored; halves on trail courses
+are affected by terrain asymmetry (several notes say "second half harder/easier" — both directions
+appear); distances range 40k–100mi plus fixed-time; successes and failures are the athlete's own
+accounting (40/25, reproduced independently by this page's build from the sheet's rows); and the author
+of the log owns this research project. None of that is hidden — it is the reason this page exists
+separately from the database, which contains none of these rows except the officially-timed 24-hour
+races in chart 23.4.</div>
+
+<script>
+nav('n1.html');
+const CLS_C = { short:'#5aa9e6', mid:'#e08b4c', hundred:'#c98bdb', day:'#2ec4b6', fixed_time:'#2ec4b6' };
+const CLS_L = { short:'≤60k', mid:'50mi–100k', hundred:'100 miles', day:'24 hours', fixed_time:'6 hours' };
+Promise.all([fetch('data/n1.json').then(r=>r.json()), loadData()])
+.then(([n1, {results}])=>{
+  const A = n1.attempts, own = n1._meta.owner_summary;
+  const day = A.filter(a=>a.class==='day' && a.kind==='attempt');
+  const daySucc = day.filter(a=>a.pct<0).length;
+  document.getElementById('tiles').innerHTML = [
+    [A.length, 'scored attempt rows, 2011–2024 (owner’s tally: '+own.negative+' negative / '+own.positive+' positive)'],
+    [own.ratio_pct.toFixed(0)+'%', 'success rate across all attempts — the skill, once practiced, mostly works'],
+    [`${daySucc} of ${day.length}`, '24-hour attempts that succeeded — the frontier where the skill lands last'],
+    [own['roughly_even_-2_to_2'], 'of 65 finished within ±2% of even — attempting keeps you near even even when you miss'],
+  ].map(([n,d])=>`<div class="tile"><div class="n">${n}</div><div class="d">${d}</div></div>`).join('');
+
+  // 23.1 timeline
+  const ycap = p=>Math.max(-14, Math.min(38, p));
+  const byCls = {};
+  A.forEach(a=>{(byCls[a.class]=byCls[a.class]||[]).push(a);});
+  const traces = Object.entries(byCls).map(([cls, list])=>({
+    x:list.map(a=>a.date), y:list.map(a=>ycap(a.pct)), mode:'markers', name:CLS_L[cls],
+    marker:{size:list.map(a=>a.kind==='sub_split'?7:10), color:CLS_C[cls],
+      symbol:list.map(a=>(cls==='day'||cls==='fixed_time')?'diamond':'circle'),
+      line:{color:'#0f1419', width:1}},
+    text:list.map(a=>`${a.race} (${a.dist})<br>${a.date} — ${a.pct>0?'+':''}${a.pct}%`+
+      (a.notes?`<br><i>${a.notes}</i>`:'')),
+    hoverinfo:'text',
+  }));
+  Plotly.newPlot('timeline', traces, layout({showlegend:true, legend:{orientation:'h', y:1.09},
+    xaxis:{title:'date'}, yaxis:{title:'achieved split %  (clipped at +38 for display)', zeroline:true,
+      zerolinecolor:'#8fa3b8'},
+    shapes:[{type:'rect', xref:'paper', x0:0, x1:1, y0:-14, y1:0,
+             fillcolor:'rgba(46,196,182,0.07)', line:{width:0}}],
+    annotations:[
+      {x:'2021-12-11', y:-1.04, text:'American Record −1.04%', showarrow:true, arrowcolor:'#2ec4b6',
+       ax:0, ay:35, font:{color:'#2ec4b6', size:11}},
+      {x:'2024-06-29', y:ycap(34.79), text:'WS blow-up', showarrow:true, arrowcolor:'#c96a6a', ax:0, ay:-22,
+       font:{color:'#c96a6a', size:11}}]}), CFG);
+
+  // 23.2 by class
+  const order = ['short','mid','hundred','day'];
+  const cs = order.map(cls=>{
+    const v = A.filter(a=>a.class===cls && a.kind==='attempt');
+    return {cls, n:v.length, succ:v.filter(a=>a.pct<0).length};
+  });
+  Plotly.newPlot('byclass', [{
+    x:cs.map(s=>CLS_L[s.cls]), y:cs.map(s=>100*s.succ/s.n), type:'bar',
+    marker:{color:cs.map(s=>CLS_C[s.cls])},
+    text:cs.map(s=>`${s.succ}/${s.n}`), textposition:'outside', textfont:{color:'#e6edf3'},
+    cliponaxis:false,
+    hovertemplate:'%{x}: %{text} attempts succeeded (%{y:.0f}%)<extra></extra>',
+  }], layout({showlegend:false, xaxis:{title:'race class'},
+    yaxis:{title:'negative-split success rate (%)', range:[0,90]}}), CFG);
+
+  // 23.3 failed attempts vs elite field
+  const fails = A.filter(a=>a.pct>=0).map(a=>Math.min(38, a.pct));
+  const field = results.filter(r=>r.method==='halves' && r.disc==='24_hour' && r.split>0)
+                       .map(r=>Math.min(38, r.split));
+  Plotly.newPlot('faildist', [
+    {x:field, type:'histogram', histnorm:'percent', name:'elite 24h field (positive splits)', nbinsx:40,
+     marker:{color:'rgba(138,151,168,0.5)', line:{color:'#0f1419', width:0.5}},
+     hovertemplate:'%{y:.1f}% of field near +%{x:.0f}%<extra></extra>'},
+    {x:fails, type:'histogram', histnorm:'percent', name:'his failed attempts', nbinsx:40,
+     marker:{color:'rgba(90,169,230,0.65)', line:{color:'#0f1419', width:0.5}},
+     hovertemplate:'%{y:.1f}% of failed attempts near +%{x:.0f}%<extra></extra>'},
+  ], layout({barmode:'overlay', showlegend:true, legend:{orientation:'h', y:1.08},
+    xaxis:{title:'split %  (clipped at +38)', zeroline:true}, yaxis:{title:'% of group'}}), CFG);
+
+  // 23.4 DB-verified arc
+  const mine = results.filter(r=>r.method==='halves' && r.disc==='24_hour' &&
+    /coury/i.test(r.name) && !/Dome/.test(r.series)).sort((a,b)=>a.year-b.year);
+  Plotly.newPlot('arc', [{
+    x:mine.map(r=>r.year), y:mine.map(r=>r.split), mode:'lines+markers+text',
+    line:{color:'#2ec4b6', width:2}, marker:{size:11, color:mine.map(r=>BAND_COLOR[r.band]),
+      line:{color:'#0f1419', width:1}},
+    text:mine.map(r=>(r.final_km/1.609344).toFixed(0)+' mi'), textposition:'top center',
+    textfont:{color:'#93a1b0', size:11},
+    customdata:mine.map(r=>[r.series, r.final_km]),
+    hovertemplate:'%{x} %{customdata[0]}<br>split %{y:+.1f}% · %{customdata[1]:.1f} km<extra></extra>',
+  }], layout({showlegend:false, xaxis:{title:'year', dtick:2},
+    yaxis:{title:'24h halves split %', zeroline:true, zerolinecolor:'#8fa3b8'}}), CFG);
+
+  // table
+  const head = `<tr style="color:#93a1b0;text-align:left"><th style="padding:5px 10px">Date</th>
+    <th>Race</th><th>Dist</th><th style="text-align:right">Halves</th>
+    <th style="text-align:right">Split</th><th>Notes</th></tr>`;
+  document.getElementById('tbl').innerHTML =
+    `<table style="width:100%;border-collapse:collapse;font-size:13px">${head}`+
+    A.map(a=>`<tr style="border-top:1px solid #263140">
+      <td style="padding:3px 10px;white-space:nowrap">${a.date}</td>
+      <td>${a.kind==='sub_split'?'⊂ ':''}${a.race}</td><td>${a.dist}</td>
+      <td style="text-align:right;color:#93a1b0;white-space:nowrap">${a.h1} / ${a.h2}</td>
+      <td style="text-align:right;color:${a.pct<0?'#2ec4b6':a.pct<=2?'#f4c430':'#c96a6a'}">
+        <b>${a.pct>0?'+':''}${a.pct.toFixed(2)}</b></td>
+      <td class="notecell">${a.notes||''}</td></tr>`).join('')+`</table>`;
+});
+</script>
+</main></body></html>

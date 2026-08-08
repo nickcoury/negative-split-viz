@@ -1,0 +1,148 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>21 · Three lenses, and two of them lie</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+.lens{display:inline-block;padding:1px 10px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.4px}
+</style>
+</head><body>
+<script src="js/common.js?v=76ca57d2"></script>
+<main>
+<h1>21 · Three lenses, and two of them lie</h1>
+<p class="sub">
+Any claim that pacing <i>causes</i> outcomes in observational race data has to survive one objection:
+<b>split % and final distance are mechanically coupled</b>. A collapse produces a huge positive split AND
+a short race, whatever the plan was — so "even pacing goes with big days" is partly a restatement of "not
+collapsing goes with big days." This page takes the objection seriously. It shows the two analyses a
+motivated reader could produce — one "proving" even pacing wins, one "proving" banking early wins — shows
+why <b>each is confounded in the opposite direction</b>, and then builds the cleaner comparison both sides
+should accept: <b>matched pairs inside the same race</b>.</p>
+
+<div class="card">
+  <h3><span class="lens" style="background:#0c342f;color:#2ec4b6">LENS A</span> Split vs outcome — flattering, and coupled</h3>
+  <div class="note">Mean final distance by split band, all classified 24h halves. Reads as "pace even, run
+  far." The catch: a blow-up lands you in the right-hand bins <i>and</i> shortens your race — the x-axis
+  partly contains the y-axis. This lens overstates the case FOR even pacing.</div>
+  <div id="lensA" class="chart" style="height:380px"></div>
+</div>
+
+<div class="card">
+  <h3><span class="lens" style="background:#3a2020;color:#c96a6a">LENS B</span> Opening pace vs outcome — the skeptic's chart, equally coupled</h3>
+  <div class="note">Outcome relative to the athlete's <i>other</i> career best, against how fast they
+  opened relative to that same reference (predictor uses no data from this race's outcome — looks clean!).
+  It reads as "the harder you open, the better": the 1.3×+ openers beat their old best 76% of the time.
+  The catch runs the other way: careers span years, and <b>an athlete opens fast on the days they've
+  gotten fitter</b> — opening pace is a fitness thermometer, not a strategy dial. This lens overstates the
+  case AGAINST holding back. Anyone quoting a curve like this at you (in either direction) hasn't solved
+  the problem, just picked a side of it.</div>
+  <div id="lensB" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3><span class="lens" style="background:#0d2a3a;color:#5aa9e6">LENS C</span> Matched at halfway — same race, same fitness, different shape</h3>
+  <div class="note">Take two athletes in the <b>same event</b> who reach 12 hours within 1% of the same
+  distance — same day, same course, same weather, and (by the halfway evidence) closely matched
+  day-fitness. One arrived <i>evenly</i>; the other was already slowing between hour 6 and 12. Then watch
+  the second half. Across <b><span id="npairs">…</span> such pairs</b>, the evener arrival ran the bigger
+  second half <b><span id="wrate">…</span>%</b> of the time, by <b><span id="mdelta">…</span> km</b> on
+  average. Below: the distribution of that second-half gap, and the per-event win rates showing it isn't
+  one venue's quirk.</div>
+  <div id="lensC" class="chart"></div>
+  <div id="perevent" class="chart" style="height:420px"></div>
+</div>
+
+<h2>Reading it honestly</h2>
+<div class="finding"><b>The matched comparison is the strongest observational evidence this dataset can
+produce, and it favors the even arrival — but it is still not causation.</b> "Already slowing at
+halfway" can mean "chose to open too fast" (a pacing decision) or "body already failing" (which no pacing
+plan fixes). The design removes day-quality, course and conditions; it cannot remove that last
+ambiguity. What it does establish: <b>two athletes at the same halfway mark are not in the same race</b>
+— the shape of the first half carries ~7 km of information about the second. The halfway split, the
+number every 24-hour broadcast quotes, is not a sufficient statistic.</div>
+<div class="finding"><b>What would settle it is assignment, not observation:</b> athletes pre-committing
+to opening paces (or being assigned them across training races), with the plan recorded before the gun.
+That experiment has effectively <a href="attempts.html">never been run</a> at 24 hours by anyone except
+<a href="n1.html">one athlete logging his own attempts</a>. Until it is run at scale, both "negative
+splits are optimal" and "banking is optimal" are beliefs. The data's honest contribution is narrower and
+still important: the fade is enormous, evenness tracks success everywhere we can measure it, the strategy
+is untested, and the cost of testing it appears low.</div>
+<div class="caveat"><b>Caveats.</b> Pairs share athletes and events, so the 7,340 pairs are not 7,340
+independent observations — which is why the per-event chart is shown: 43 events with ≥10 decided pairs,
+mean win rate 64%, exactly one below 50%. Arrival shape is measured as second-quarter vs first-quarter
+distance (Q2/Q1), which uses no second-half information. Sampled (hourly) feeds are included; their Q2/Q1
+is coarser but unbiased.</div>
+
+<script>
+nav('lenses.html');
+Promise.all([fetch('data/deep.json').then(r=>r.json()), loadData()])
+.then(([deep, {results}])=>{
+  // LENS A — split band vs mean final distance
+  const h24 = results.filter(r=>r.method==='halves' && r.disc==='24_hour' && r.final_km);
+  const bands = [['negative',p=>p<0],['even (0–1%)',p=>p>=0&&p<=1],['1–5%',p=>p>1&&p<=5],
+    ['5–10%',p=>p>5&&p<=10],['10–20%',p=>p>10&&p<=20],['20–35%',p=>p>20&&p<=35],['>35%',p=>p>35]];
+  const stat = bands.map(([lbl,f])=>{
+    const v = h24.filter(r=>f(r.split));
+    return {lbl, n:v.length, mean:v.reduce((s,r)=>s+r.final_km,0)/v.length};
+  });
+  Plotly.newPlot('lensA', [{
+    x:stat.map(s=>s.lbl), y:stat.map(s=>s.mean), type:'bar',
+    marker:{color:['#2ec4b6','#f4c430','#e08b4c','#8a97a8','#8a97a8','#8a97a8','#8a97a8']},
+    text:stat.map(s=>s.mean.toFixed(0)+' km'), textposition:'outside', textfont:{color:'#e6edf3'},
+    cliponaxis:false, customdata:stat.map(s=>s.n),
+    hovertemplate:'%{x}: mean %{y:.1f} km (n=%{customdata:,})<extra></extra>',
+  }], layout({showlegend:false, xaxis:{title:'split band'},
+    yaxis:{title:'mean final distance (km)', range:[0, Math.max(...stat.map(s=>s.mean))*1.18]}}), CFG);
+
+  // LENS B — dose-response bins + faint points
+  const D = deep.dose;
+  Plotly.newPlot('lensB', [
+    {x:D.points.map(p=>p.x), y:D.points.map(p=>p.y), mode:'markers', type:'scattergl',
+     marker:{size:4, color:'rgba(138,151,168,0.30)'}, name:'one effort',
+     text:D.points.map(p=>`${p.name} ${p.year}`),
+     hovertemplate:'%{text}<br>opened %{x:.2f}× other-best avg → finished %{y:.2f}× other-best<extra></extra>'},
+    {x:D.bins.map(b=>(b.lo+b.hi)/2), y:D.bins.map(b=>b.mean), mode:'lines+markers', type:'scatter',
+     line:{color:'#c96a6a', width:2.5}, marker:{size:9, color:'#c96a6a', line:{color:'#0f1419', width:1}},
+     name:'bin mean', customdata:D.bins.map(b=>[b.n, b.p_beat]),
+     hovertemplate:'open %{x:.2f}×: mean outcome %{y:.3f}× other-best<br>n=%{customdata[0]}, beats old best %{customdata[1]}%<extra></extra>'},
+  ], layout({showlegend:true, legend:{orientation:'h', y:1.08},
+    xaxis:{title:'first-6h pace ÷ career-other-best average pace', range:[0.75,1.55]},
+    yaxis:{title:'final distance ÷ career-other-best', range:[0.45,1.35]},
+    shapes:[{type:'line', x0:0.75, x1:1.55, y0:1, y1:1, line:{color:'#8fa3b8', dash:'dot', width:1}},
+            {type:'line', x0:1, x1:1, yref:'paper', y0:0, y1:1, line:{color:'#8fa3b8', dash:'dot', width:1}}],
+    annotations:[{x:1.44, y:1.30, text:'"go out hard!" — or just fitness, measured twice',
+      showarrow:false, font:{color:'#c96a6a', size:12}}]}), CFG);
+
+  // LENS C — delta histogram + per-event rates
+  const P = deep.pairs;
+  document.getElementById('npairs').textContent = P.n.toLocaleString();
+  document.getElementById('wrate').textContent = P.win_rate.toFixed(0);
+  document.getElementById('mdelta').textContent = '+'+P.mean_delta.toFixed(1);
+  Plotly.newPlot('lensC', [{
+    x:P.delta_hist.map(b=>b.lo+2.5), y:P.delta_hist.map(b=>b.n), type:'bar', width:4.6,
+    marker:{color:P.delta_hist.map(b=>b.lo>=0?'#5aa9e6':'#3a4655'), line:{color:'#0f1419', width:0.5}},
+    hovertemplate:'%{y} pairs: evener arrival ran %{x:.0f} km more in half 2<extra></extra>',
+  }], layout({bargap:0.05, showlegend:false,
+    xaxis:{title:'second-half distance gap, evener arrival minus other (km)', zeroline:true},
+    yaxis:{title:'pairs'},
+    shapes:[{type:'line', x0:0, x1:0, yref:'paper', y0:0, y1:1, line:{color:'#8fa3b8', dash:'dot', width:1.5}},
+            {type:'line', x0:P.mean_delta, x1:P.mean_delta, yref:'paper', y0:0, y1:1,
+             line:{color:'#5aa9e6', dash:'dot', width:2}}],
+    annotations:[{x:P.mean_delta, yref:'paper', y:1.03, text:`mean +${P.mean_delta} km`, showarrow:false,
+      font:{color:'#5aa9e6', size:12}}]}), CFG);
+  const pe = P.per_event;
+  Plotly.newPlot('perevent', [{
+    y:pe.map(e=>e.label), x:pe.map(e=>e.rate), type:'bar', orientation:'h',
+    marker:{color:pe.map(e=>e.rate>=50?'#5aa9e6':'#c96a6a')}, customdata:pe.map(e=>e.n),
+    hovertemplate:'%{y}: evener arrival wins %{x}% of %{customdata} pairs<extra></extra>',
+  }], layout({margin:{l:260, r:30, t:10, b:50}, showlegend:false,
+    xaxis:{title:'per-event win rate of the evener arrival (%)', range:[0,100]},
+    yaxis:{tickfont:{size:10}},
+    shapes:[{type:'line', x0:50, x1:50, yref:'paper', y0:0, y1:1,
+             line:{color:'#8fa3b8', dash:'dot', width:1.5}}]}), CFG);
+});
+</script>
+</main></body></html>

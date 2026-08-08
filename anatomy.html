@@ -1,0 +1,118 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>22 · The anatomy of the fade</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid #c96a6a}
+.tile .n{font-size:30px;font-weight:700;line-height:1.15;color:#c96a6a}
+.tile .d{color:var(--muted);font-size:12.5px;margin-top:4px}
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+</style>
+</head><body>
+<script src="js/common.js?v=76ca57d2"></script>
+<main>
+<h1>22 · The anatomy of the fade</h1>
+<p class="sub">
+The strongest argument that 24-hour pacing <i>cannot</i> improve is physiological: "of course the second
+half is slower — fatigue is not optional." This page dissects the fade to test that. If the fade were
+mostly a smooth, obligatory slowdown, holding pace would indeed be fantasy. What the lap data shows
+instead: <b>the elite fade is dominated by discrete collapse — crawl laps and bad patches — and it is
+foreshadowed hours ahead</b>. A collapse is not an obligation; it is the thing the nine
+<a href="attempts.html">attempters</a> conspicuously avoided.</p>
+
+<div class="card">
+  <h3>Chart 22.1 — The shape of everyone's day, and the five who refused it</h3>
+  <div class="note">Hour-by-hour pace vs the athlete's own eventual average, all
+  <span id="nfield">…</span> full-day lap-resolved efforts (gray mean) vs the five deliberate
+  negative splits (teal). The field starts <b>+28%</b> hot and ends <b>−18%</b> under; the held-back five
+  never leave a ±4% band, and in the closing hours — when the field is deepest underwater — they are the
+  only ones running <i>above</i> their average. Same species, different sport.</div>
+  <div id="hours" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 22.2 — What the lost time actually is: crawls, not drift</h3>
+  <div class="note">For every lap-complete positive-split effort, second-half time-loss (vs the athlete's
+  own first-half median lap) is split into <b>mild drift</b> (laps up to 1.5× that median — running
+  slower) and <b>bad patches</b> (laps beyond 1.5× — crawling, walking, stopped). The histogram shows the
+  bad-patch share per athlete: the median fade is <b><span id="fpatch">…</span>% bad patches</b>, and for
+  <b><span id="fmost">…</span>%</b> of athletes the patches are the majority of the loss. The fade is not
+  a slope; it is an event.</div>
+  <div id="patch" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 22.3 — The collapse is foreshadowed before halfway</h3>
+  <div class="note">Using only first-half information: how much did the athlete slow from their first
+  quarter (0–6h) to their second (6–12h)? Then measure how much of their <i>second half</i> was spent in
+  the crawl regime (laps >1.5× their first-half median). Athletes who held their opening pace through
+  halfway spent <b>~16%</b> of the second half crawling; athletes already 15%+ slower by halfway spent
+  <b>~45%</b>. The blow-up announces itself six hours early — which is precisely the window a pacing plan
+  controls.</div>
+  <div id="fore" class="chart"></div>
+</div>
+
+<h2>Reading it honestly</h2>
+<div class="finding"><b>The fade is behavioral enough to be worth attacking.</b> Some slowdown over 24
+hours is surely physiologic. But a median fade that is <span id="fpatch2">…</span>% discrete bad patches,
+foreshadowed by first-half behavior, is not a law of nature — it is the signature of pace mismanagement
+interacting with fatigue. That is exactly the component training and strategy can address, and exactly
+what the marathon world spent decades learning to engineer out (see <a href="mirror.html">the
+mirror</a>).</div>
+<div class="caveat"><b>Caveats.</b> Lap-complete feeds only for 22.2/22.3 (a sampled hourly feed can't
+see a crawl lap); the 1.5× threshold is a definition, not a discovery — shift it and the shares move,
+but the ordering in 22.3 does not. "Crawl" time includes planned stops (aid, kit, night gear): the data
+cannot distinguish a strategic stop from a collapse, which cuts both ways. Hour curves use each athlete's
+own average as the reference, so the chart shows pacing <i>shape</i>, not speed.</div>
+
+<script>
+nav('anatomy.html');
+fetch('data/deep.json').then(r=>r.json()).then(({hours, fade})=>{
+  document.getElementById('nfield').textContent = hours.n_field.toLocaleString();
+  document.getElementById('fpatch').textContent = fade.median_patch_share;
+  document.getElementById('fpatch2').textContent = fade.median_patch_share;
+  document.getElementById('fmost').textContent = fade.pct_mostly_patch;
+
+  const hx = [...Array(24).keys()].map(h=>h+0.5);
+  const traces = [
+    {x:hx, y:hours.field_mean, mode:'lines+markers', name:`field mean (n=${hours.n_field.toLocaleString()})`,
+     line:{color:'#8a97a8', width:3}, marker:{size:6},
+     hovertemplate:'hour %{x:.0f}: field %{y:+.1f}% vs own avg<extra></extra>'},
+    ...hours.held.map(h=>({x:hx, y:h.curve, mode:'lines', name:`${h.name} ${h.year}`,
+     line:{color:'#2ec4b6', width:1.6},
+     hovertemplate:`${h.name}: %{y:+.1f}% at hour %{x:.0f}<extra></extra>`})),
+  ];
+  Plotly.newPlot('hours', traces, layout({showlegend:true, legend:{orientation:'h', y:1.12, font:{size:10}},
+    xaxis:{title:'race hour', range:[0,24], dtick:3},
+    yaxis:{title:'pace vs own final average (%)', zeroline:true, zerolinecolor:'#8fa3b8'}}), CFG);
+
+  Plotly.newPlot('patch', [{
+    x:fade.share_hist.map(b=>100*(b.lo+0.05)), y:fade.share_hist.map(b=>b.n), type:'bar', width:9,
+    marker:{color:fade.share_hist.map(b=>b.lo>=0.5?'#c96a6a':'#3a4655'), line:{color:'#0f1419', width:0.5}},
+    hovertemplate:'%{y} athletes: ~%{x:.0f}% of their fade is bad patches<extra></extra>',
+  }], layout({bargap:0.06, showlegend:false,
+    xaxis:{title:'share of second-half time-loss in bad patches (laps >1.5× own median), %'},
+    yaxis:{title:'athletes'},
+    shapes:[{type:'line', x0:50, x1:50, yref:'paper', y0:0, y1:1, line:{color:'#8fa3b8', dash:'dot', width:1.5}}],
+    annotations:[{x:76, yref:'paper', y:0.95, text:'fade is mostly collapse →', showarrow:false,
+      font:{color:'#c96a6a', size:12}}]}), CFG);
+
+  const F = fade.foreshadow;
+  const lbl = F.map(b=>b.lo<=-100?'held / sped up':b.hi>=100?'>15% slower':`${b.lo}–${b.hi}% slower`);
+  Plotly.newPlot('fore', [{
+    x:lbl, y:F.map(b=>b.mean_crawl), type:'bar',
+    marker:{color:['#2ec4b6','#f4c430','#e08b4c','#e08b4c','#c96a6a','#c96a6a']},
+    text:F.map(b=>b.mean_crawl.toFixed(0)+'%'), textposition:'outside', textfont:{color:'#e6edf3'},
+    cliponaxis:false, customdata:F.map(b=>b.n),
+    hovertemplate:'%{x} within the first half → %{y:.1f}% of half 2 in the crawl (n=%{customdata})<extra></extra>',
+  }], layout({showlegend:false,
+    xaxis:{title:'slowdown from first quarter (0–6h) to second quarter (6–12h) — first-half information only'},
+    yaxis:{title:'mean share of second half in crawl regime (%)',
+           range:[0, Math.max(...F.map(b=>b.mean_crawl))*1.2]}}), CFG);
+});
+</script>
+</main></body></html>

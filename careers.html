@@ -13,7 +13,7 @@
 .caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
 </style>
 </head><body>
-<script src="js/common.js?v=fd0a7f39"></script>
+<script src="js/common.js?v=76ca57d2"></script>
 <main>
 <h1>18 · Your best day is your most even</h1>
 <p class="sub">
@@ -30,9 +30,11 @@ classified 24-hour races</b> and asks — when they ran their biggest distance, 
   <div class="note">Every race by every ≥3-race athlete, binned by split. <b>y = where that race ranks in
   the athlete's own career</b> (1.0 = their best distance ever, 0 = their worst). The staircase is the
   finding: races split under +5% land around the <b>75th percentile of that athlete's own career</b>; races
-  split over +30% are their personal worsts. Note the far-left bar — <b>negative splits rank no higher than
-  even ones</b> (small n, but a hint that even is enough; giving distance away chasing a negative sign buys
-  nothing further).</div>
+  split over +30% are their personal worsts. The far-left bar (negative) ranks about level with the even
+  bins — but read it with care: it holds 18 races, and essentially none of them (see
+  <a href="attempts.html">Exploration 20</a>) come from athletes who had practiced negative splitting.
+  The staircase tells you the fade costs; it cannot tell you what a <i>practiced</i> negative split
+  would return.</div>
   <div id="bins" class="chart"></div>
 </div>
 
@@ -68,12 +70,15 @@ classified 24-hour races</b> and asks — when they ran their biggest distance, 
 <span id="f-pct"></span> of ≥3-race athletes show the negative correlation, career-best days are on average
 <span id="f-diff"></span> points more even than the same athlete's other days, and for
 <span id="f-min"></span> of athletes the career-best is also the career-most-even outright.</div>
-<div class="finding"><b>But the optimum is even, not negative.</b> The biggest performances in the dataset
-— Sorokin's 319.6 km included — were run at +2 to +10%, and career percentile flattens once splits drop
-below +5% rather than continuing to rise. Combined with the census (page 17: only five deliberate negative
-splits exist), the honest claim for the paper is not "negative splits win 24-hour races" but
-<b>"the fade is what loses them"</b> — every percentage point surrendered past even costs career-percentile,
-while chasing the negative sign itself buys nothing measurable further.</div>
+<div class="finding"><b>What this can and cannot say about even vs negative.</b> What it says clearly:
+<b>the fade is what loses 24-hour races</b> — every percentage point surrendered past ~+5% costs career
+percentile, monotonically, all the way down the staircase. What it <i>cannot</i> adjudicate is whether a
+negative split beats an even one, because the comparison barely exists in nature: the realized best days
+(Sorokin's 319.6 km included) sit at +2 to +10%, and the negative bin is 18 races, almost none by athletes
+who had <a href="attempts.html">practiced the strategy</a>. Basketball's shot charts once "showed" the
+three-pointer didn't pay — measured on players who never practiced it. Whether a trained negative split
+is a hidden gem or a dead end is precisely the open question this dataset can motivate but not answer;
+<a href="n1.html">Exploration 23</a> holds the only attempt log in existence.</div>
 <div class="caveat"><b>Causation caveat, stated plainly.</b> Split % and final distance are mechanically
 coupled — a mid-race collapse produces both a huge positive split and a short distance, whatever the plan
 was. This chart cannot distinguish "even pacing produced the big day" from "the big day is what not

@@ -1,0 +1,122 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>19 · The marathon mirror</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+.srcs{color:var(--muted);font-size:12.5px;margin-top:8px}
+</style>
+</head><body>
+<script src="js/common.js?v=76ca57d2"></script>
+<main>
+<h1>19 · The marathon mirror</h1>
+<p class="sub">
+The premise of this project is a contrast: <b>in the marathon, the negative split is coached as the ideal;
+in 24-hour racing it is nearly extinct in practice.</b> This page pins down the marathon half of that
+sentence with external, verifiable numbers — world-record splits and the published literature — so the
+contrast the rest of the site measures isn't resting on folklore.</p>
+
+<div class="card">
+  <h3>Chart 19.1 — Every current-era marathon world record was run within ~1% of even</h3>
+  <div class="note">Half-marathon splits of the last three men's and two women's world records. Three of
+  the five are genuine negative splits; the "fast-opening" ones still fade barely 1%. Compare the axis of
+  this chart with any 24-hour chart on this site — it spans <b>±2%</b>, not ±40%.</div>
+  <div id="wr" class="chart" style="height:400px"></div>
+  <div class="srcs">Half splits:
+  <a href="https://en.run-motion.com/eliud-kipchoge-analysis-of-his-marathon-performances/">Kipchoge Berlin 2018</a> ·
+  <a href="https://www.letsrun.com/news/2022/09/eliud-kipchoge-20109-smashes-world-record-tigist-assefa-21537-stuns-world-at-2022-berlin-marathon/">Kipchoge Berlin 2022</a> ·
+  <a href="https://www.olympics.com/en/news/how-fast-was-kelvin-kiptums-world-record-2023-chicago-marathon-split-times">Kiptum Chicago 2023</a> ·
+  <a href="https://www.letsrun.com/news/2023/09/tigist-assefa-obliterates-womens-marathon-world-record-with-21153-in-berlin/">Assefa Berlin 2023</a> ·
+  <a href="https://www.letsrun.com/news/2024/10/ruth-chepgnetich-20957-smashes-world-record-breaks-210-barrier-at-2024-chicago-marathon/">Chepngetich Chicago 2024</a></div>
+</div>
+
+<div class="card">
+  <h3>Chart 19.2 — The fade ladder</h3>
+  <div class="note">Median split, context by context: marathon world records · recreational marathon
+  fields (published large-scale analyses) · the top-50 all-time 24-hour marks in this dataset · every
+  classified elite 24-hour half in this dataset. The provocation in one picture: <b>today's elite
+  24-hour fields fade harder than the recreational marathon public</b> — the group the pacing literature
+  scolds for going out too fast.</div>
+  <div id="ladder" class="chart" style="height:380px"></div>
+</div>
+
+<h2>What the running literature actually says</h2>
+<div class="finding"><b>Negative splitting is doctrine, and almost nobody does it.</b> Large-scale
+analyses of big-city marathons find only <b>1–8% of recreational finishers achieve a true negative
+split</b>, with mean splits around <b>+8%</b>; roughly <b>87% positive-split</b>. Faster runners pace
+more evenly: Boston-qualifying runners slow ~6–8% through late segments vs 11–15% for the rest — the
+same monotonic gradient this dataset shows for 24-hour finishing bands (top-3 ≈ +9.8% → rest ≈ +18.4%).
+A 2025 review argues negative splits reflect superior thermoregulatory and glycogen management — i.e. a
+<i>skill</i>, not a lottery ticket.</div>
+<div class="srcs">Literature:
+<a href="https://doi.org/10.3233/jsa-170205">Smyth 2018 — large-scale recreational pacing analysis</a> ·
+<a href="https://www.sciencedirect.com/science/article/pii/S2405844024127910">systematic review of marathon pacing (2024)</a> ·
+<a href="https://pubmed.ncbi.nlm.nih.gov/40740427/">physiology &amp; psychology of negative splits (2025)</a> ·
+<a href="https://fellrnr.com/wiki/Negative_Splits">fellrnr's split-vs-performance aggregation</a> ·
+<a href="https://www.statisticsviews.com/article/marathon-pacing-strategies-is-negative-splitting-really-the-holy-grail/">Statistics Views overview</a></div>
+
+<div class="finding"><b>The mirror, stated carefully.</b> In the marathon, the ideal is even-to-negative,
+elites <i>achieve</i> within ±1–2%, and the debate is about the last percent. In 24-hour racing, the elite
+<b>median</b> is +14%, the best performances ever run sit at +2 to +10%, and a genuine negative split is
+attempted (see <a href="attempts.html">Exploration 20</a>) by ~0.3% of elite efforts. Either 24-hour
+racing is physiologically exempt from the pacing principles every shorter distance obeys — or there is a
+large, unexplored margin sitting on the table. <b>Nobody currently has the data to say which. That is the
+research gap this project documents.</b></div>
+
+<div class="caveat"><b>Caveats.</b> Marathon records are self-selected showcase performances on paced,
+flat courses; 24-hour racing involves eating, stops, and circadian lows that make some fade physiologic
+rather than tactical (see <a href="anatomy.html">Exploration 22</a> for how much). The comparison
+establishes the <i>assumption gap</i> between the sports, not physiological equivalence. External numbers
+above are quoted from the linked sources as of Aug 2026 and are not part of the research database.</div>
+
+<script>
+nav('mirror.html');
+const WR = [
+  {who:'Kipchoge · Berlin 2018 (M WR 2:01:39)', h1:'61:06', h2:'60:33', s1:3666, s2:3633},
+  {who:'Kipchoge · Berlin 2022 (M WR 2:01:09)', h1:'59:51', h2:'61:18', s1:3591, s2:3678},
+  {who:'Kiptum · Chicago 2023 (M WR 2:00:35)', h1:'60:48', h2:'59:47', s1:3648, s2:3587},
+  {who:'Assefa · Berlin 2023 (W WR 2:11:53)', h1:'66:20', h2:'65:33', s1:3980, s2:3933},
+  {who:'Chepngetich · Chicago 2024 (W WR 2:09:56)', h1:'64:16', h2:'65:40', s1:3856, s2:3940},
+];
+WR.forEach(w=>w.pct = 100*(w.s2-w.s1)/(w.s1+w.s2));
+
+loadData().then(({results, meta})=>{
+  // 19.1 WR splits
+  const cols = WR.map(w=>w.pct<0 ? '#2ec4b6' : '#f4c430');
+  Plotly.newPlot('wr', [{
+    y:WR.map(w=>w.who), x:WR.map(w=>w.pct), type:'bar', orientation:'h',
+    marker:{color:cols}, cliponaxis:false,
+    text:WR.map(w=>`${w.h1} / ${w.h2} → ${w.pct>0?'+':''}${w.pct.toFixed(2)}%`),
+    textposition:'outside', textfont:{color:'#e6edf3', size:12},
+    hovertemplate:'%{y}<br>halves %{text}<extra></extra>',
+  }], layout({margin:{l:290, r:150, t:10, b:50}, showlegend:false,
+    xaxis:{title:'split %  (negative = faster second half)', range:[-2,2], zeroline:true,
+           zerolinecolor:'#8fa3b8'},
+    yaxis:{autorange:'reversed'}}), CFG);
+
+  // 19.2 fade ladder — DB numbers computed live, literature pinned
+  const h24 = results.filter(r=>r.method==='halves' && r.disc==='24_hour');
+  const med = v=>{const s=[...v].sort((a,b)=>a-b); return s[Math.floor(s.length/2)];};
+  const top50 = h24.filter(r=>r.final_km).sort((a,b)=>b.final_km-a.final_km).slice(0,50);
+  const rungs = [
+    ['Marathon world records (last 5)', med(WR.map(w=>w.pct)), '#2ec4b6', 'external, verified above'],
+    ['Recreational marathon fields', 8.25, '#5aa9e6', 'Smyth 2018 & related large-scale analyses'],
+    ['Top-50 all-time 24h marks (this dataset)', med(top50.map(r=>r.split)), '#e08b4c', `n=50, computed live`],
+    [`All elite 24h halves (n=${h24.length.toLocaleString()})`, med(h24.map(r=>r.split)), '#c96a6a', 'computed live'],
+  ];
+  Plotly.newPlot('ladder', [{
+    y:rungs.map(r=>r[0]), x:rungs.map(r=>r[1]), type:'bar', orientation:'h',
+    marker:{color:rungs.map(r=>r[2])}, cliponaxis:false,
+    text:rungs.map(r=>`${r[1]>0?'+':''}${r[1].toFixed(1)}%`), textposition:'outside',
+    textfont:{color:'#e6edf3', size:13},
+    customdata:rungs.map(r=>r[3]),
+    hovertemplate:'%{y}<br>median split %{x:.1f}%<br>%{customdata}<extra></extra>',
+  }], layout({margin:{l:290, r:70, t:10, b:50}, showlegend:false,
+    xaxis:{title:'median split %', zeroline:true, zerolinecolor:'#8fa3b8'},
+    yaxis:{autorange:'reversed'}}), CFG);
+});
+</script>
+</main></body></html>
