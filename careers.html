@@ -1,0 +1,182 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>18 · Your best day is your most even</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid var(--accent)}
+.tile .n{font-size:30px;font-weight:700;line-height:1.15;color:var(--accent)}
+.tile .d{color:var(--muted);font-size:12.5px;margin-top:4px}
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+</style>
+</head><body>
+<script src="js/common.js?v=fd0a7f39"></script>
+<main>
+<h1>18 · Your best day is your most even</h1>
+<p class="sub">
+The strongest evidence in this dataset that even pacing and peak performance travel together comes from
+<b>comparing athletes with themselves</b>. Cross-sectional comparisons (top-3 pace more evenly than the
+rest) can always be waved off as "better runners are different people." A career view can't: same engine,
+same athlete, different day, different pacing. This page looks at every athlete with <b>three or more
+classified 24-hour races</b> and asks — when they ran their biggest distance, how did they split that day?</p>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="card">
+  <h3>Chart 18.1 — Where a race lands in your career, by how you split it</h3>
+  <div class="note">Every race by every ≥3-race athlete, binned by split. <b>y = where that race ranks in
+  the athlete's own career</b> (1.0 = their best distance ever, 0 = their worst). The staircase is the
+  finding: races split under +5% land around the <b>75th percentile of that athlete's own career</b>; races
+  split over +30% are their personal worsts. Note the far-left bar — <b>negative splits rank no higher than
+  even ones</b> (small n, but a hint that even is enough; giving distance away chasing a negative sign buys
+  nothing further).</div>
+  <div id="bins" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 18.2 — 590 careers, one number each</h3>
+  <div class="note">Per-athlete Spearman correlation between final distance and split % across their own
+  races. <b>Negative = their longer races are their more even races.</b> If pacing had nothing to do with
+  outcome this would pile up around zero; instead nearly nine in ten careers sit left of it. (The spikes at
+  −1 and −0.5 are quantization, not artefact: a 3-race career can only produce a handful of ρ values —
+  −1 there means the ordering is <i>perfect</i>: best distance, most even; worst distance, least even.)</div>
+  <div id="rho" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 18.3 — Career-best day vs the rest, athlete by athlete</h3>
+  <div class="note">The 25 biggest careers in the dataset (by best distance). For each: the split on their
+  <b>career-best day</b> (●, colored by band) against the <b>mean split of their other races</b> (○ gray).
+  The arrow almost always points the same way — toward even. Hover for the athlete's races.</div>
+  <div id="dumb" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 18.4 — The two distributions</h3>
+  <div class="note">Split distribution of career-best days vs all other days, same athletes. Best days
+  cluster lower and tighter; other days smear far right. Note that best days are still mostly
+  <i>positive</i> splits — the realized optimum is a controlled fade, and the argument is about its size.
+  Medians marked on the chart.</div>
+  <div id="dist" class="chart"></div>
+</div>
+
+<h2>Reading it honestly</h2>
+<div class="finding"><b>Within a career, evenness and peak performance are almost inseparable.</b>
+<span id="f-pct"></span> of ≥3-race athletes show the negative correlation, career-best days are on average
+<span id="f-diff"></span> points more even than the same athlete's other days, and for
+<span id="f-min"></span> of athletes the career-best is also the career-most-even outright.</div>
+<div class="finding"><b>But the optimum is even, not negative.</b> The biggest performances in the dataset
+— Sorokin's 319.6 km included — were run at +2 to +10%, and career percentile flattens once splits drop
+below +5% rather than continuing to rise. Combined with the census (page 17: only five deliberate negative
+splits exist), the honest claim for the paper is not "negative splits win 24-hour races" but
+<b>"the fade is what loses them"</b> — every percentage point surrendered past even costs career-percentile,
+while chasing the negative sign itself buys nothing measurable further.</div>
+<div class="caveat"><b>Causation caveat, stated plainly.</b> Split % and final distance are mechanically
+coupled — a mid-race collapse produces both a huge positive split and a short distance, whatever the plan
+was. This chart cannot distinguish "even pacing produced the big day" from "the big day is what not
+blowing up looks like." What it does establish is the descriptive frontier: <b>nobody's career best came
+with a big fade</b> — 24-hour bests are run even-ish or not at all. Isolating the causal share would need
+within-athlete natural experiments (e.g., the same athlete's planned-conservative vs planned-aggressive
+starts), which is exactly what the intentionality metric begins to enable.</div>
+
+<script>
+nav('careers.html');
+const BINS=[[-100,0,'negative'],[0,1,'0–1%'],[1,3,'1–3%'],[3,5,'3–5%'],[5,10,'5–10%'],
+            [10,15,'10–15%'],[15,20,'15–20%'],[20,30,'20–30%'],[30,999,'>30%']];
+Promise.all([fetch('data/careers.json').then(r=>r.json()), fetch('data/meta.json').then(r=>r.json())])
+.then(([cs, meta])=>{
+  const withRho = cs.filter(a=>a.rho!=null);
+  const negRho = withRho.filter(a=>a.rho<0).length;
+  const diffs = cs.map(a=>a.split_best-a.split_others_mean);
+  const mean = v=>v.reduce((s,x)=>s+x,0)/v.length;
+  const med = v=>{const s=[...v].sort((a,b)=>a-b);return s[Math.floor(s.length/2)];};
+  const bestIsMin = cs.filter(a=>a.split_best<=Math.min(...a.races.filter(r=>r.rid!==undefined&&!(r.km===a.best_km&&r.split===a.split_best)).map(r=>r.split), Infinity)).length;
+
+  document.getElementById('tiles').innerHTML = [
+    [cs.length.toLocaleString(), 'athletes with ≥3 classified 24-hour races — '+cs.reduce((s,a)=>s+a.n,0).toLocaleString()+' races between them'],
+    [Math.round(100*negRho/withRho.length)+'%', 'of those careers: the longer the race, the more even the split (negative Spearman ρ)'],
+    [mean(diffs).toFixed(1)+' pp', 'more even on the career-best day than the same athlete’s other days, on average'],
+    [Math.round(100*bestIsMin/cs.length)+'%', 'of athletes: the career-best distance is also the career-most-even split outright'],
+  ].map(([n,d])=>`<div class="tile"><div class="n">${n}</div><div class="d">${d}</div></div>`).join('');
+  document.getElementById('f-pct').textContent = Math.round(100*negRho/withRho.length)+'%';
+  document.getElementById('f-diff').textContent = Math.abs(mean(diffs)).toFixed(1);
+  document.getElementById('f-min').textContent = Math.round(100*bestIsMin/cs.length)+'%';
+
+  // ---- 18.1 within-career percentile by split bin -------------------------
+  const acc = BINS.map(()=>[]);
+  cs.forEach(a=>{
+    const ds=[...a.races.map(r=>r.km)].sort((x,y)=>x-y);
+    a.races.forEach(r=>{
+      const pct = ds.indexOf(r.km)/(ds.length-1);
+      const i = BINS.findIndex(([lo,hi])=>r.split>=lo&&r.split<hi);
+      if(i>=0) acc[i].push(pct);
+    });
+  });
+  Plotly.newPlot('bins', [{
+    x:BINS.map(b=>b[2]), y:acc.map(v=>v.length?mean(v):null), type:'bar',
+    marker:{color:BINS.map(b=>b[0]<0?'#2ec4b6':b[1]<=1?'#f4c430':b[1]<=5?'#e08b4c':'#8a97a8')},
+    text:acc.map(v=>v.length?(100*mean(v)).toFixed(0)+'%':''), textposition:'outside', textfont:{color:'#e6edf3'},
+    customdata:acc.map(v=>v.length),
+    hovertemplate:'split %{x}: mean career percentile %{y:.2f}<br>n = %{customdata:,} races<extra></extra>',
+  }], layout({xaxis:{title:'split of that race'},
+    yaxis:{title:'mean rank within the athlete’s own career (1 = career best)', range:[0,0.9]},
+    showlegend:false}), CFG);
+
+  // ---- 18.2 rho histogram -------------------------------------------------
+  Plotly.newPlot('rho', [{
+    x:withRho.map(a=>a.rho), type:'histogram', nbinsx:40,
+    marker:{color:'#5aa9e6', line:{color:'#0f1419', width:1}},
+    hovertemplate:'%{y} athletes with ρ ≈ %{x:.2f}<extra></extra>',
+  }], layout({xaxis:{title:'Spearman ρ (distance vs split)   ← more even when longer · more even when shorter →', zeroline:true},
+    yaxis:{title:'athletes'}, showlegend:false,
+    shapes:[{type:'line', x0:0, x1:0, yref:'paper', y0:0, y1:1, line:{color:'#8fa3b8', dash:'dot', width:1.5}}],
+    annotations:[{x:-0.55, yref:'paper', y:0.95, text:negRho+' of '+withRho.length+' careers', showarrow:false, font:{color:'#5aa9e6'}}]}), CFG);
+
+  // ---- 18.3 dumbbell ------------------------------------------------------
+  const top = cs.slice(0, 25);   // careers.json is sorted by best_km desc
+  const names = top.map(a=>`${a.name} (${a.best_km.toFixed(0)} km)`);
+  const segs = top.map((a,i)=>({type:'line', x0:a.split_best, x1:a.split_others_mean,
+    y0:names[i], y1:names[i], line:{color:'#3a4655', width:2}}));
+  Plotly.newPlot('dumb', [
+    {x:top.map(a=>a.split_others_mean), y:names, mode:'markers', name:'other days (mean)',
+     marker:{size:9, color:'#8a97a8', symbol:'circle-open', line:{width:2, color:'#8a97a8'}},
+     customdata:top.map(a=>a.n-1),
+     hovertemplate:'%{y}<br>other days: %{x:+.1f}% mean split (%{customdata} races)<extra></extra>'},
+    {x:top.map(a=>a.split_best), y:names, mode:'markers', name:'career-best day',
+     marker:{size:11, color:top.map(a=>BAND_COLOR[a.split_best<0?'negative':a.split_best<=1?'even':a.split_best<=3?'near-even':'positive']),
+             line:{color:'#0f1419', width:1}},
+     text:top.map(a=>`${a.best_year} ${a.best_series}`),
+     hovertemplate:'%{y}<br>best day: %{x:+.1f}% split — %{text}<extra></extra>'},
+  ], layout({showlegend:true, legend:{orientation:'h', y:1.06},
+    margin:{l:230, r:30, t:30, b:50}, shapes:segs,
+    xaxis:{title:'split %  (career-best day ● vs mean of other days ○)', zeroline:true},
+    yaxis:{autorange:'reversed', tickfont:{size:11}}}), CFG);
+
+  // ---- 18.4 two distributions --------------------------------------------
+  const bestS = cs.map(a=>a.split_best);
+  const otherS = cs.flatMap(a=>a.races.filter(r=>!(r.km===a.best_km&&r.split===a.split_best)).map(r=>r.split));
+  const clip = v=>v.map(x=>Math.max(-10, Math.min(60, x)));
+  Plotly.newPlot('dist', [
+    {x:clip(otherS), type:'histogram', name:'all other days', histnorm:'percent', nbinsx:56,
+     marker:{color:'rgba(138,151,168,0.55)', line:{color:'#0f1419', width:0.5}},
+     hovertemplate:'%{y:.1f}% of other days near %{x:.0f}%<extra></extra>'},
+    {x:clip(bestS), type:'histogram', name:'career-best days', histnorm:'percent', nbinsx:56,
+     marker:{color:'rgba(46,196,182,0.65)', line:{color:'#0f1419', width:0.5}},
+     hovertemplate:'%{y:.1f}% of best days near %{x:.0f}%<extra></extra>'},
+  ], layout({barmode:'overlay', showlegend:true, legend:{orientation:'h', y:1.08},
+    xaxis:{title:'split %  (clipped to [−10, 60] for display)', zeroline:true},
+    yaxis:{title:'% of group'},
+    shapes:[
+      {type:'line', x0:med(bestS), x1:med(bestS), yref:'paper', y0:0, y1:1, line:{color:'#2ec4b6', dash:'dot', width:2}},
+      {type:'line', x0:med(otherS), x1:med(otherS), yref:'paper', y0:0, y1:1, line:{color:'#8a97a8', dash:'dot', width:2}},
+    ],
+    annotations:[
+      {x:med(bestS), yref:'paper', y:1.02, text:'median best day '+med(bestS).toFixed(1)+'%', showarrow:false, font:{color:'#2ec4b6', size:11}},
+      {x:med(otherS), yref:'paper', y:0.94, text:'median other day '+med(otherS).toFixed(1)+'%', showarrow:false, font:{color:'#8a97a8', size:11}},
+    ]}), CFG);
+});
+</script>
+</main></body></html>

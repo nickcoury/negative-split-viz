@@ -1,0 +1,261 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>17 · The Census — how negative splits actually happen</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid var(--line)}
+.tile .n{font-size:32px;font-weight:700;line-height:1.1}
+.tile .t{font-weight:600;margin-top:2px}
+.tile .d{color:var(--muted);font-size:12.5px;margin-top:4px}
+.vchip{display:inline-block;padding:1px 9px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0;color:var(--ink)}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+</style>
+</head><body>
+<script src="js/common.js?v=fd0a7f39"></script>
+<main>
+<h1>17 · The Census — how negative splits actually happen</h1>
+<p class="sub">
+In the marathon, the negative split is orthodoxy: hold back, finish faster, run your best. In 24-hour
+racing the same idea is nearly extinct in practice. This page is a <b>complete accounting</b> of every
+negative and even 24-hour split in the dataset — not just <i>how many</i> there are, but <i>how each one
+happened</i>. The claim it examines: <b>when a negative split shows up in a 24-hour race, it is usually an
+accident</b> — the residue of a blow-up or a long stop — <b>and the deliberate ones can be counted on one
+hand.</b></p>
+
+<h2>The funnel</h2>
+<p class="sub">Start from every classified 24-hour half-split and keep narrowing: how many split
+negative or even, how many of those we hold full lap data for, and how many of <i>those</i> actually held
+back on purpose (foresight intentionality ≤ −1 s/mi — see <a href="intent.html">Exploration 16</a>).</p>
+<div class="card"><div id="funnel" class="chart" style="height:340px"></div></div>
+
+<h2>The four ways a negative split happens</h2>
+<p class="sub">Every lap-resolved negative/even splitter gets a verdict from two measurements: <b>seconds of
+intentionality</b> (was the athlete ever ahead of the pace they finally averaged?) and the <b>longest gap
+between timing crossings</b> against their own feed's median gap (did a long stop sink the average
+mid-race?). Definitions are computed in <code>build_viz.py</code>, next to the metric itself.</p>
+<div class="tiles" id="vtiles"></div>
+
+<div class="card">
+  <h3>Chart 17.1 — The verdict map</h3>
+  <div class="note">Each point is one lap-resolved negative/even 24-hour split. <b>x = seconds of
+  intentionality</b> (left of zero = never ran ahead of their own final average — the planned ones),
+  <b>y = split %</b>. Marker size tracks final distance; ◆ marks a detected stop. The left edge is nearly
+  empty — that emptiness is the finding.</div>
+  <div id="map" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 17.2 — What a plan looks like vs what an accident looks like</h3>
+  <div class="note">Foresight lines (s/mi vs the athlete's own final average; below zero = conservative).
+  Top row: the <span class="vchip" style="background:#0c342f;color:#2ec4b6">held back</span> five — the line
+  lives under zero all day and rises to meet it. Bottom row: the five most
+  <span class="vchip" style="background:#3a2020;color:#c96a6a">overcooked</span> — ahead of final pace from
+  the gun, and the "negative split" is the recovery after the fade. Y-scales are per-race: read the
+  <i>shape</i> against the zero line, not the amplitude.</div>
+  <div class="grid" id="plansGrid"></div>
+  <div class="grid" id="accGrid" style="margin-top:12px"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>The census — all 46, verdict by verdict</h3>
+  <div class="note">Longest stop is shown with the feed's own median gap beside it — on an hourly-sampled
+  feed (median ≈ 60 min) a sub-hour stop is invisible, so stop verdicts there under-fire, never over-fire.
+  <b>27 more negative/even splitters are still halves-only</b> (no lap data yet) and cannot be given a
+  verdict; several of those are likely artefacts of DUV's snap-to-lap bias (see methodology).</div>
+  <div id="tbl"></div>
+</div>
+
+<h2>Where they happen</h2>
+<div class="card">
+  <h3>Chart 17.3 — Rarity is universal; championships tilt slightly even</h3>
+  <div class="note">Share of 24-hour halves splitting negative-or-even (dark) and near-even, to +3%
+  (light), by championship tier. Every tier lives around 1% — but world championships carry nearly twice
+  the near-even share of open races, consistent with the lap-resolved picture: the same French venue
+  produced seven near-even runs in a Worlds field and none in six domestic fields.</div>
+  <div id="tier" class="chart" style="height:380px"></div>
+</div>
+<div class="card">
+  <h3>Chart 17.4 — And it isn't becoming a technique</h3>
+  <div class="note">Negative+even rate by decade. If the marathon's pacing orthodoxy were migrating into
+  24-hour racing, this line would climb. It doesn't: the rate has wobbled around 0.5–1.3% for forty
+  years. Rates for men (1.06%) and women (1.02%) are indistinguishable.</div>
+  <div id="decade" class="chart" style="height:360px"></div>
+</div>
+
+<h2>What this says</h2>
+<div class="finding"><b>Negative splits are not a strategy in 24-hour racing today — they are mostly
+debris.</b> Of <span id="f-lap">46</span> lap-resolved negative/even splits, <span id="f-acc">29</span>
+(63%) are accidents: 22 athletes went out ahead of the pace they could hold and happened to close, and 7
+had the split handed to them by a multi-hour stop. Twelve more were metronomes — superbly even
+championship runs that drifted under the wire without ever holding back. Just
+<b><span id="f-held">5</span> athletes ran the marathoner's race</b>: conservative of their own final
+average from the start, closing over the day — about <b>1 in 1,400</b> of all classified 24-hour halves.</div>
+<div class="finding"><b>The deliberate five are not a random five.</b> They include the American record
+(Coury, Desert Solstice 2021, −1.03%) and a top-ten women's run at the 2025 Worlds built the same way
+(Frederick, −0.78%), plus three runs at Tapiola on lap-complete feeds. Held-back races and stop-artefacts
+sit at opposite ends of every measurement we have — intentionality, stop length, outcome — which is why the
+census can tell them apart mechanically.</div>
+<div class="caveat"><b>Caveats.</b> Verdicts exist only where laps exist, and lap-resolved events skew
+toward venues whose timing survived — the 27 unresolved splitters could shift the verdict counts, though
+several are probably DUV lap-snap artefacts and will dissolve on resolution. Stop detection on
+hourly-sampled feeds (both Albi championships) misses stops shorter than the sampling interval, so
+<i>stop-recover</i> is a floor there. The marathon contrast in the intro is framing, not measurement — this
+dataset contains no marathons.</div>
+
+<script>
+nav('census.html');
+const VC = { held_back:'#2ec4b6', metronome:'#f4c430', overcooked:'#c96a6a', stop_recover:'#c98bdb' };
+const VBG = { held_back:'#0c342f', metronome:'#3a2f08', overcooked:'#3a2020', stop_recover:'#32243a' };
+const VLABEL = { held_back:'Held back', metronome:'Metronome', overcooked:'Overcooked', stop_recover:'Stop &amp; recover' };
+const VDESC = {
+  held_back:'Ran conservative of their own final average from the start (intentionality ≤ −1 s/mi). The planned negative split — the marathoner’s race.',
+  metronome:'Within +5 s/mi of their eventual average all day, no stop. Deliberate evenness; the negative sign is earned at the margin, not engineered.',
+  overcooked:'Went out ahead of a pace they couldn’t hold; the faster second half is the recovery after the fade. The accidental negative split.',
+  stop_recover:'A stop long enough to sink the mid-race average (≥ max(30 min, 2.5× their median gap)). The split is an artefact of the stop.',
+};
+const VORDER = ['held_back','metronome','overcooked','stop_recover'];
+const chip = v=>`<span class="vchip" style="background:${VBG[v]};color:${VC[v]}">${VLABEL[v]}</span>`;
+
+loadData().then(({results, shapes, meta})=>{
+  const cz = meta.census;
+  const cens = shapes.filter(s=>s.kind==='24h' && s.method==='halves' &&
+                               (s.band==='negative'||s.band==='even'));
+
+  // dynamic prose numbers
+  const acc = (cz.verdicts.overcooked||0)+(cz.verdicts.stop_recover||0);
+  document.getElementById('f-lap').textContent = cz.n_lap_resolved;
+  document.getElementById('f-acc').textContent = acc;
+  document.getElementById('f-held').textContent = cz.verdicts.held_back;
+
+  // ---- funnel -------------------------------------------------------------
+  const stages = [
+    ['Classified 24-hour halves', cz.n_24h_halves],
+    ['Split negative or even', cz.n_negeven_24h],
+    ['Full lap data (verdict possible)', cz.n_lap_resolved],
+    ['Held back on purpose', cz.verdicts.held_back],
+  ];
+  Plotly.newPlot('funnel', [{
+    type:'funnel', y:stages.map(s=>s[0]), x:stages.map(s=>s[1]),
+    text:stages.map(s=>s[1].toLocaleString()), textinfo:'text',
+    textfont:{color:'#e6edf3', size:15},
+    marker:{color:['#24506e','#2f6f8f','#2ea3a0','#2ec4b6']},
+    connector:{fillcolor:'#1c2530'},
+    hovertemplate:'%{y}: %{x:,}<extra></extra>',
+  }], layout({margin:{l:250,r:30,t:10,b:20}}), CFG);
+
+  // ---- verdict tiles ------------------------------------------------------
+  document.getElementById('vtiles').innerHTML = VORDER.map(v=>
+    `<div class="tile" style="border-top-color:${VC[v]}">
+       <div class="n" style="color:${VC[v]}">${cz.verdicts[v]||0}</div>
+       <div class="t">${VLABEL[v]}</div><div class="d">${VDESC[v]}</div></div>`).join('');
+
+  // ---- verdict map --------------------------------------------------------
+  const traces = VORDER.map(v=>{
+    const set = cens.filter(s=>s.verdict===v);
+    return { x:set.map(s=>s.intent_s), y:set.map(s=>s.split),
+      name:VLABEL[v].replace('&amp;','&'), mode:'markers', type:'scatter',
+      marker:{ size:set.map(s=>Math.max(8, (s.final_km-150)/9)),
+        color:VC[v], symbol:set.map(s=>s.stop_flag?'diamond':'circle'),
+        line:{color:'#0f1419',width:1} },
+      text:set.map(s=>`${s.name} — ${s.year} ${s.series}<br>split ${s.split>0?'+':''}${s.split}% · ${s.final_km} km`+
+        `<br>intentionality ${s.intent_s>0?'+':''}${s.intent_s} s/mi`+
+        `<br>longest stop ${s.stop_min} min (feed median ${s.stop_med_min})<br>${VLABEL[v].replace('&amp;','&')}`),
+      hoverinfo:'text' };
+  });
+  Plotly.newPlot('map', traces, layout({showlegend:true, legend:{orientation:'h', y:1.08},
+    xaxis:{title:'seconds of intentionality (s/mi)   ← held back on purpose · went out ahead →', zeroline:true},
+    yaxis:{title:'split %  (below 0 = negative split)', zeroline:true},
+    shapes:[
+      {type:'line', x0:0, x1:0, yref:'paper', y0:0, y1:1, line:{color:'#8fa3b8', dash:'dot', width:1.5}},
+      {type:'rect', x0:-12, x1:-1, yref:'paper', y0:0, y1:1, fillcolor:'rgba(46,196,182,0.06)', line:{width:0}},
+    ],
+    annotations:[{x:-6.2, yref:'paper', y:0.98, text:'the deliberate few', showarrow:false,
+      font:{color:'#2ec4b6', size:12}}] }), CFG);
+
+  // ---- small multiples ----------------------------------------------------
+  const mini=(el,s)=>{
+    const d=document.createElement('div'); d.className='mini';
+    d.innerHTML=`<div class="cap"><b>${s.name}</b> · ${s.year} — split ${s.split>0?'+':''}${s.split}%, `+
+      `${s.intent_s>0?'+':''}${s.intent_s} s/mi</div><div style="height:170px"></div>`;
+    el.appendChild(d);
+    const pos=s.sec_y.map(v=>v>0?v:0), neg=s.sec_y.map(v=>v<0?v:0);
+    Plotly.newPlot(d.children[1], [
+      {x:s.sec_x,y:pos,mode:'lines',fill:'tozeroy',fillcolor:'rgba(201,106,106,0.25)',line:{width:0},hoverinfo:'skip'},
+      {x:s.sec_x,y:neg,mode:'lines',fill:'tozeroy',fillcolor:'rgba(46,196,182,0.25)',line:{width:0},hoverinfo:'skip'},
+      {x:s.sec_x,y:s.sec_y,mode:'lines',line:{color:VC[s.verdict],width:2},
+       hovertemplate:'%{y:+.1f} s/mi at %{x:.0f}%<extra></extra>'},
+    ], layout({showlegend:false, margin:{l:34,r:8,t:6,b:24},
+      xaxis:{title:'',range:[0,100],tickfont:{size:10}},
+      yaxis:{tickfont:{size:10},zeroline:true,zerolinecolor:'#8fa3b8'}}), Object.assign({},CFG,{displayModeBar:false}));
+  };
+  const held = cens.filter(s=>s.verdict==='held_back').sort((a,b)=>a.intent_s-b.intent_s);
+  const oc = cens.filter(s=>s.verdict==='overcooked').sort((a,b)=>b.intent_s-a.intent_s).slice(0,5);
+  held.forEach(s=>mini(document.getElementById('plansGrid'),s));
+  oc.forEach(s=>mini(document.getElementById('accGrid'),s));
+
+  // ---- census table -------------------------------------------------------
+  const rows = cens.slice().sort((a,b)=>VORDER.indexOf(a.verdict)-VORDER.indexOf(b.verdict) ||
+    (a.intent_s??1e9)-(b.intent_s??1e9));
+  const head = `<tr style="color:#93a1b0;text-align:left"><th style="padding:5px 10px">Verdict</th>
+    <th>Athlete</th><th>Year</th><th>Event</th><th style="text-align:right">Split %</th>
+    <th style="text-align:right" title="mean s/mi vs own final average; negative = held back">Intent s/mi</th>
+    <th style="text-align:right" title="longest gap between crossings (feed median gap)">Longest stop</th>
+    <th style="text-align:right">at hour</th><th style="text-align:right">km</th><th style="text-align:right">Place</th></tr>`;
+  document.getElementById('tbl').innerHTML =
+    `<table style="width:100%;border-collapse:collapse;font-size:13px">${head}`+
+    rows.map(s=>`<tr style="border-top:1px solid #263140">
+      <td style="padding:4px 10px">${chip(s.verdict)}</td>
+      <td>${s.name}</td><td>${s.year}</td><td style="max-width:230px">${s.series}</td>
+      <td style="text-align:right;color:${BAND_COLOR[s.band]}">${s.split>0?'+':''}${s.split}</td>
+      <td style="text-align:right;color:${s.intent_s<=-1?'#2ec4b6':s.intent_s>5?'#c96a6a':'#e6edf3'}">
+        <b>${s.intent_s>0?'+':''}${s.intent_s??'—'}</b></td>
+      <td style="text-align:right${s.stop_flag?';color:#c98bdb;font-weight:600':''}">${s.stop_min} min
+        <span style="color:#5b6774">(${s.stop_med_min})</span></td>
+      <td style="text-align:right;color:#93a1b0">${s.stop_at_h??'—'}</td>
+      <td style="text-align:right">${s.final_km?.toFixed(1)??'—'}</td>
+      <td style="text-align:right;color:#93a1b0">${s.place??'—'}</td></tr>`).join('')+`</table>`;
+
+  // ---- tier + decade charts (from ALL classified halves) ------------------
+  const halves = results.filter(r=>r.method==='halves' && r.disc==='24_hour');
+  const tiers = ['world','continental','national','open'];
+  const tstat = tiers.map(t=>{
+    const set = halves.filter(r=>(r.tier||'open')===t);
+    const ne = set.filter(r=>r.split<=meta.even_pct).length;
+    const near = set.filter(r=>r.split>meta.even_pct && r.split<=meta.near_even_pct).length;
+    return {t, n:set.length, ne:100*ne/set.length, near:100*near/set.length};
+  });
+  Plotly.newPlot('tier', [
+    {x:tstat.map(s=>s.t), y:tstat.map(s=>s.ne), name:'negative + even', type:'bar',
+     marker:{color:'#2ec4b6'}, text:tstat.map(s=>s.ne.toFixed(2)+'%'), textposition:'outside',
+     textfont:{color:'#e6edf3'},
+     hovertemplate:'%{x}: %{y:.2f}% of %{customdata:,} halves<extra>neg+even</extra>',
+     customdata:tstat.map(s=>s.n)},
+    {x:tstat.map(s=>s.t), y:tstat.map(s=>s.near), name:'near-even (to +3%)', type:'bar',
+     marker:{color:'rgba(224,139,76,0.75)'}, text:tstat.map(s=>s.near.toFixed(2)+'%'), textposition:'outside',
+     textfont:{color:'#93a1b0'},
+     hovertemplate:'%{x}: %{y:.2f}% of %{customdata:,} halves<extra>near-even</extra>',
+     customdata:tstat.map(s=>s.n)},
+  ], layout({barmode:'group', bargap:0.3, showlegend:true, legend:{orientation:'h', y:1.1},
+    xaxis:{title:'championship tier'}, yaxis:{title:'% of classified halves'}}), CFG);
+
+  const decades = [...new Set(halves.map(r=>Math.floor(r.year/10)*10))].sort();
+  const dstat = decades.map(d=>{
+    const set = halves.filter(r=>Math.floor(r.year/10)*10===d);
+    return {d, n:set.length, ne:100*set.filter(r=>r.split<=meta.even_pct).length/set.length};
+  }).filter(s=>s.n>=100);   // a decade with a handful of results is noise
+  Plotly.newPlot('decade', [{
+    x:dstat.map(s=>s.d+'s'), y:dstat.map(s=>s.ne), type:'bar', marker:{color:'#2ec4b6'},
+    text:dstat.map(s=>s.ne.toFixed(2)+'%'), textposition:'outside', textfont:{color:'#e6edf3'},
+    cliponaxis:false,
+    hovertemplate:'%{x}: %{y:.2f}% of %{customdata:,} halves<extra></extra>',
+    customdata:dstat.map(s=>s.n),
+  }], layout({xaxis:{title:'decade (decades with ≥100 classified halves)'},
+    yaxis:{title:'% splitting negative or even', range:[0, Math.max(...dstat.map(s=>s.ne))*1.25]},
+    showlegend:false}), CFG);
+});
+</script>
+</main></body></html>
