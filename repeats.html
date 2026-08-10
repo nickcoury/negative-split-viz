@@ -18,8 +18,22 @@ table.rt th{text-align:left;color:var(--muted);font-weight:600;border-bottom:1px
 table.rt td{border-bottom:1px solid #1c2530;padding:5px 8px;vertical-align:top}
 table.rt tr.per{cursor:pointer}
 table.rt tr.per:hover td{background:#1c2530}
-table.rt tr.det td{background:#0d1219;font-size:12.5px;color:var(--muted)}
+/* DIRECT children only: a descendant selector here also matches every cell of
+   the nested detail table below, and zeroed its padding. */
+table.rt tr.det > td{background:#0d1219;font-size:12.5px;color:var(--muted);padding:0}
 table.rt tr.det.hide{display:none}
+/* The per-race detail is a table of its own inside one full-width cell, so its
+   columns are sized by its OWN content: nested inside the summary table's
+   columns, a cohort label like "ran past 100mi, then stopped before 24h" wraps
+   to five lines in a cell sized for the word "Races". */
+table.sub{border-collapse:collapse;width:100%;font-size:12.5px}
+table.sub th{text-align:left;font-weight:600;color:#6f7d8c;padding:6px 10px;white-space:nowrap;
+  border-bottom:1px solid var(--line)}
+table.sub td{padding:5px 10px;border-bottom:1px solid #161d26;vertical-align:top;color:var(--muted)}
+table.sub td.num,table.sub th.num{padding-right:18px}
+table.sub td.race{white-space:nowrap}
+table.sub tr:last-child td{border-bottom:none}
+table.sub td.race{color:var(--ink)}
 .num{text-align:right;font-variant-numeric:tabular-nums}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:820px){.two{grid-template-columns:1fr}}
@@ -58,27 +72,52 @@ is kept and shown, never summed.
   <span class="pill pos">positive</span>. The dashed lines are 0% (negative to the left) and the +1% even
   ceiling. These are not people who split evenly and nothing else — most of them have ordinary +10% and
   +30% races too, which is the point: <b>the same person produces both</b>. Races beyond +45% are drawn
-  as ▸ at the edge (a blow-up, usually an early stop). Use the selector to read the whole day, the
-  embedded 100 miles, or whichever of the two was more even.</div>
+  as ▸ at the edge (a blow-up, usually an early stop).
+  <br><br>Three selectors, three questions. <b>x axis</b> swaps how the race <i>came out</i> (split %)
+  for whether it was <i>planned</i> (seconds of intentionality — left of zero means they never ran ahead
+  of the pace they finally averaged); that view can only draw the lap-resolved efforts, and says how many
+  it dropped. <b>Show</b> picks which efforts are drawn, because a 24-hour race and the hundred inside it
+  are different races on different axes. <b>Colour by</b> switches the encoding to the intentionality
+  verdict or to the effort type — a full day, the first hundred of a full day, or a hundred the athlete
+  stopped at.</div>
   <div class="controls">
-    <label>Measure <select id="measure">
-      <option value="best">Most even of the two efforts</option>
-      <option value="h">Whole 24-hour day (halves)</option>
-      <option value="e">Embedded 100 miles</option>
+    <label>x axis <select id="xaxis">
+      <option value="split">Split %</option>
+      <option value="intent">Seconds of intentionality (s/mi)</option>
+    </select></label>
+    <label>Show <select id="measure">
+      <option value="best">Most even effort per race</option>
+      <option value="both">Every effort separately</option>
+      <option value="halves">Whole 24-hour day only</option>
+      <option value="100mi_within_24h">Embedded 100 miles only</option>
+    </select></label>
+    <label>Colour by <select id="colour">
+      <option value="band">Split band</option>
+      <option value="verdict">Intentionality (verdict)</option>
+      <option value="cohort">Effort type</option>
     </select></label>
   </div>
   <div id="roster" class="chart"></div>
+  <div class="sm" id="rosternote" style="margin-top:6px"></div>
 </div>
 
 <div class="card" style="overflow:auto">
   <h3>The roster — click a row for the race-by-race detail</h3>
   <div class="note">Sorted by negative races, then by median split. <b>Whole-day</b> counts only races
   where the <i>full 24 hours</i> ran negative — the strictest reading of the question, and the reason
-  the top of this table is much shorter than the bottom. <b>Career %ile</b> is where the negative/even
-  races sit among that athlete's own 24-hour distances (100 = their best ever). <b>Aliases</b> lists
-  the database rows that had to be merged to see the person at all. Inside a row, verdicts read
-  <i>not profiled</i> where a race has laps but is too far from even to be in the profiled set, and
-  <i>no lap data</i> where the source only ever gave a halfway checkpoint.</div>
+  the top of this table is much shorter than the bottom.
+  <b>Effort type</b> counts the negative/even <i>efforts</i>, not races, so an athlete with one even
+  full day and three even embedded hundreds shows four — those are four different things and one race
+  count hides it. <b>Deliberate</b> is intentionality read as a yes/no (verdict <i>held back</i> or
+  <i>metronome</i>) over the efforts we can judge; <b>Intentionality</b> is the same thing read
+  continuously, in s/mi, as their median and their most conservative single effort — an athlete can be
+  2/2 deliberate at −1.1 s/mi and another at −11.7, and those are not the same act. Both are blank
+  where there is no lap data to judge on, which is <i>not</i> the same as a "no".
+  <b>Career %ile</b> is where the negative/even races sit among that athlete's own 24-hour distances
+  (100 = their best ever). <b>Aliases</b> lists the database rows that had to be merged to see the
+  person at all. Inside an expanded row, verdicts read <i>not profiled</i> where a race has laps but is
+  too far from even to be in the profiled set, and <i>no lap data</i> where the source only ever gave a
+  halfway checkpoint.</div>
   <div id="tbl"></div>
 </div>
 
@@ -134,6 +173,19 @@ lap-resolved effort one of the census's four verdicts. This is available only wh
   Both pairs move the same way: <b>a negative/even split that belongs to a repeat splitter is more
   likely to have been planned</b>, and on the whole day the difference is large.</div>
   <div id="vcmp"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>The same thing again, by effort type</h3>
+  <div class="note">"The embedded 100 miles" is still two different acts, and the split between them is
+  what the athlete did <b>next</b>. <b>100-in-24</b> is the first hundred of a full day, paced on
+  purpose and then carried another twelve hours. <b>100 &amp; stop</b> is a 100-mile race that happened
+  to begin inside a 24-hour event — the athlete stopped at the mark, so holding back over it is the
+  ordinary road-racing skill, not the thing this paper is about. <b>100+ &amp; stop</b> ran past a
+  hundred and then stopped short of the horn. Splitting them apart is the granular view: the
+  <b>24h</b> row is the only one that describes the full-day problem, and it is the row where the
+  roster and the one-timers differ most.</div>
+  <div id="vcohort"></div>
 </div>
 
 <div class="card">
@@ -257,74 +309,177 @@ Promise.all([
      <div class="t">${t}</div><div class="d">${d}</div></div>`).join('');
 
   // ---- 28.1 roster strip --------------------------------------------------
+  // Three independent choices, because they answer three different questions:
+  // WHAT is on the x axis (how the race split, or whether it was planned),
+  // WHICH efforts are drawn (a 24-hour race and the hundred inside it are
+  // different races on different axes - see the header caveat), and WHAT the
+  // colour encodes.
   const names = P.map(p=>p.name);
+  // One point per (race, effort) pair, flattened once and filtered per draw.
+  const pts = [];
+  P.forEach(p=>p.races.forEach(r=>r.perf.forEach(f=>pts.push({
+    p:p.name, r, f, isBest: f.method === r.best_method,
+  }))));
   function drawRoster(){
-    const m = document.getElementById('measure').value;
-    const byBand = {negative:[], even:[], 'near-even':[], positive:[]};
-    P.forEach(p=>p.races.forEach(r=>{
-      const v = m==='best' ? r.best : r[m];
-      if (v===null || v===undefined) return;
-      const band = v<0 ? 'negative' : v<=1 ? 'even' : v<=3 ? 'near-even' : 'positive';
-      byBand[band].push({
-        x: Math.min(v, XCAP), clip: v>XCAP, y: p.name,
-        t: `<b>${p.name}</b><br>${r.year} ${r.series}<br>` +
-           (r.final_km ? `${r.final_km} km` : `${r.final_h ? r.final_h.toFixed(2)+' h' : ''}`) +
-           (r.place ? ` · place ${r.place}` : '') +
-           `<br>whole day ${pc(r.h)} · embedded 100 ${pc(r.e)}`,
+    const xk = document.getElementById('xaxis').value;
+    const m  = document.getElementById('measure').value;
+    const ck = document.getElementById('colour').value;
+    const sel = pts.filter(d => m==='best' ? d.isBest : (m==='both' || d.f.method===m));
+    const groups = new Map();
+    let dropped = 0;
+    sel.forEach(d=>{
+      const v = xk==='split' ? d.f.split : d.f.intent_s;
+      if (v === null || v === undefined) { dropped++; return; }
+      const g = groupOf(d.f, ck);
+      if (!groups.has(g.key)) groups.set(g.key, {...g, pts:[]});
+      groups.get(g.key).pts.push({
+        x: xk==='split' ? Math.min(v, XCAP) : v, clip: xk==='split' && v>XCAP, y: d.p,
+        t: `<b>${d.p}</b><br>${d.r.year} ${d.r.series.replace(/ \[duv:\d+\]/,'')}` +
+           (d.r.place ? ` · place ${d.r.place}` : '') +
+           (d.r.final_km ? `<br>${d.r.final_km} km` : '') +
+           `<br><b>${effortName(d.f)}</b> · split ${pc(d.f.split)}` +
+           `<br>intentionality ${d.f.intent_s===null ? 'no lap data'
+              : (d.f.intent_s>0?'+':'')+d.f.intent_s+' s/mi'}` +
+           (d.f.verdict ? ` — ${d.f.deliberate?'deliberate':'not deliberate'}` +
+                          ` (${VLABEL[d.f.verdict].replace('&amp;','&')})` : ''),
       });
-    }));
-    const traces = ['positive','near-even','even','negative'].map(b=>{
-      const s = byBand[b];
-      return { name: BAND_LABEL[b], x: s.map(d=>d.x), y: s.map(d=>d.y), text: s.map(d=>d.t),
-        mode:'markers', type:'scatter', hovertemplate:'%{text}<extra></extra>',
-        marker:{ size: b==='positive'?8:12, color: BAND_COLOR[b],
-                 symbol: s.map(d=>d.clip?'triangle-right':'circle'),
-                 opacity: b==='positive'?0.55:1, line:{color:'#0f1419',width:1} } };
     });
+    const order = [...groups.values()].sort((a,b)=>a.rank-b.rank);
+    const traces = order.map(g=>({
+      name: g.label, x: g.pts.map(d=>d.x), y: g.pts.map(d=>d.y), text: g.pts.map(d=>d.t),
+      mode:'markers', type:'scatter', hovertemplate:'%{text}<extra></extra>',
+      marker:{ size:g.dim?8:12, color:g.color, opacity:g.dim?0.55:1,
+               symbol:g.pts.map(d=>d.clip?'triangle-right':'circle'),
+               line:{color:'#0f1419',width:1} },
+    }));
+    const xs = order.flatMap(g=>g.pts.map(d=>d.x));
+    const guides = xk==='split'
+      ? [[0,'#2ec4b6',1.5,'dash'], [1,'#f4c430',1,'dot']]
+      : [[0,'#5aa9e6',2,'solid'], [-1,'#2ec4b6',1,'dash']];
     Plotly.react('roster', traces, layout({
       height: Math.max(360, names.length*30+130),
       margin:{l:230,r:24,t:10,b:46},
-      xaxis:{ title:'split % (negative = faster second half)', gridcolor:'#263140',
-              zeroline:false, range:[-13, XCAP+2] },
+      xaxis:{ title: xk==='split'
+                ? 'split % (negative = faster second half)'
+                : 'seconds of intentionality, s/mi (left of 0 = held back on purpose)',
+              gridcolor:'#263140', zeroline:false,
+              range: xk==='split' ? [-13, XCAP+2]
+                : [Math.min(-13, Math.min(...xs)-2), Math.max(...xs)+2] },
       yaxis:{ categoryorder:'array', categoryarray:[...names].reverse(), gridcolor:'#1c2530',
               automargin:true, tickfont:{size:12} },
       legend:{orientation:'h', y:1.06, x:0},
-      shapes:[
-        {type:'line', x0:0, x1:0, yref:'paper', y0:0, y1:1, line:{color:'#2ec4b6', width:1.5, dash:'dash'}},
-        {type:'line', x0:1, x1:1, yref:'paper', y0:0, y1:1, line:{color:'#f4c430', width:1, dash:'dot'}},
-      ],
+      shapes: guides.map(([x,c,w,dash])=>({type:'line', x0:x, x1:x, yref:'paper',
+        y0:0, y1:1, line:{color:c, width:w, dash}})),
     }), CFG);
+    document.getElementById('rosternote').innerHTML = xk==='intent'
+      ? `Intentionality exists only where lap data does, so <b>${dropped} of ${sel.length}</b> efforts
+         in this view have no x value and are not drawn. The dashed line at −1 s/mi is the
+         <i>held back</i> threshold; the solid line at 0 is the athlete's own final average pace.`
+      : `All ${sel.length} efforts in this view are drawn. Switch the x axis to intentionality to see
+         which of them were planned — that view can only show the ${sel.length-
+           sel.filter(d=>d.f.intent_s===null).length} with lap data.`;
   }
-  document.getElementById('measure').onchange = drawRoster;
+  // Colour groupings. `rank` fixes legend order; `dim` shrinks the bucket that
+  // is context rather than subject.
+  const COHORT_COLOR = { '24h':'#5aa9e6', '100in24_full':'#2ec4b6', '100in24_stop':'#f4c430',
+    '100in24_dnf':'#e08b4c', '100mi_solo':'#c98bdb', '24h_partial':'#8a97a8' };
+  const COHORT_SHORT = { '24h':'24h', '100in24_full':'100-in-24', '100in24_stop':'100 &amp; stop',
+    '100in24_dnf':'100+ &amp; stop', '100mi_solo':'100mi race', '24h_partial':'24h partial' };
+  const EFFORT_SHORT = { '24h':'whole 24-hour day', '100in24':'embedded 100 mi',
+    '100mi':'100-mile race' };
+  const effortName = f => f.cohort
+    ? (META.cohort_label[f.cohort] || f.cohort)
+    : `${EFFORT_SHORT[f.effort]} (not lap-resolved)`;
+  function groupOf(f, ck){
+    if (ck === 'band') {
+      const b = f.band;
+      return { key:b, label:BAND_LABEL[b], color:BAND_COLOR[b],
+               rank:['negative','even','near-even','positive'].indexOf(b),
+               dim:b==='positive' };
+    }
+    if (ck === 'verdict') {
+      if (!f.verdict) return { key:'none', label:'no lap data', color:'#4a5666', rank:9, dim:true };
+      return { key:f.verdict, label:VLABEL[f.verdict].replace('&amp;','&'), color:VC[f.verdict],
+               rank:VORDER.indexOf(f.verdict), dim:false };
+    }
+    if (f.cohort) return { key:f.cohort, label:META.cohort_label[f.cohort]||f.cohort,
+                           color:COHORT_COLOR[f.cohort]||'#8a97a8',
+                           rank:(META.cohorts||[]).indexOf(f.cohort), dim:false };
+    return { key:'u-'+f.effort, label:`${EFFORT_SHORT[f.effort]} — not lap-resolved`,
+             color:'#4a5666', rank:9, dim:true };
+  }
+  ['xaxis','measure','colour'].forEach(id=>
+    document.getElementById(id).onchange = drawRoster);
   drawRoster();
 
   // ---- roster table -------------------------------------------------------
   const head = `<tr><th>Athlete</th><th class="num">Neg</th><th class="num">Whole day</th>
-    <th class="num">Neg/even</th><th class="num">Races</th><th class="num">Lap-resolved</th>
+    <th class="num">Neg/even</th><th class="num">Races</th>
+    <th>Effort type of the neg/even efforts</th>
+    <th class="num">Deliberate<br><span class="sm">of judged efforts</span></th>
+    <th class="num">Intentionality s/mi<br><span class="sm">median · lowest</span></th>
     <th class="num">Best</th><th class="num">Career %ile</th><th>Aliases merged</th></tr>`;
+  // Intentionality gets BOTH reads side by side, and they are not redundant:
+  // the binary one says how many of an athlete's negative/even efforts were
+  // judged planned, the seconds say by how much. An athlete can be 2/2
+  // deliberate at −1.1 s/mi (barely) or at −11.7 (a different act entirely).
+  const intentCell = p => p.n_judged
+    ? `<span style="color:${p.intent_med<=-1?'#2ec4b6':p.intent_med<=5?'#f4c430':'#c96a6a'}">${
+        (p.intent_med>0?'+':'')+p.intent_med.toFixed(2)}</span>
+       <span class="sm"> · ${(p.intent_min>0?'+':'')+p.intent_min.toFixed(2)}</span>`
+    : '<span class="sm">—</span>';
+  const delibCell = p => p.n_judged
+    ? `<span style="color:${p.n_deliberate===p.n_judged?'#2ec4b6':p.n_deliberate?'#f4c430':'#c96a6a'}">
+         ${p.n_deliberate}/${p.n_judged}</span>`
+    : '<span class="sm">—</span>';
+  // Effort mix over the neg/even EFFORTS, not races: an athlete with one
+  // negative 24-hour day and three negative embedded hundreds has done two
+  // different things, and a single race count hides that.
+  const mixCell = p => Object.entries(p.by_cohort)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([k,n])=>`<span class="vchip" style="background:#1c2530;color:${
+      k==='unresolved' ? '#8a97a8' : (COHORT_COLOR[k]||'#8a97a8')}">${
+      k==='unresolved' ? 'no lap data' : COHORT_SHORT[k]||k} ×${n}</span>`).join(' ');
   // Detail: one row per (race, effort). A race with both a whole-day and an
   // embedded-100 classification gets two rows, never one merged one - they are
   // different races on different axes and merging them is the bug the header
   // caveat is about.
-  const detRow = (p, r, f, first) => `<tr class="det hide" data-p="${p.pid}">
-      <td>${first ? r.year : ''}</td>
-      <td>${first ? r.series.replace(/ \[duv:\d+\]/,'') + (r.place?` · place ${r.place}`:'') : ''}</td>
-      <td>${f.method==='halves' ? (r.disc==='24_hour'?'whole 24-hour day':'whole race') : 'embedded 100 mi'}</td>
+  const cohortChip = c => c
+    ? `<span class="vchip" style="background:#1c2530;color:${COHORT_COLOR[c]||'#8a97a8'}">${
+        COHORT_SHORT[c]||c}</span>`
+    : '<span class="sm">—</span>';
+  const detRow = (r, f, first) => `<tr>
+      <td class="race">${first ? r.year : ''}</td>
+      <td class="race">${first ? r.series.replace(/ \[duv:\d+\]/,'') + (r.place?` · place ${r.place}`:'') : ''}</td>
+      <td class="num race">${first ? (r.final_km ? r.final_km.toFixed(2)+' km'
+                                    : (r.final_h ? fmtHMS(r.final_h) : '')) : ''}</td>
+      <td style="white-space:nowrap">${f.method==='halves'
+        ? (r.disc==='24_hour' ? 'whole 24-hour day' : 'whole race') : 'embedded 100 mi'}</td>
+      <td>${cohortChip(f.cohort)}</td>
       <td class="num" style="color:${BAND_COLOR[f.band]}">${pc(f.split)}</td>
-      <td class="num">${f.ncp} cp</td>
+      <td class="num">${f.ncp}</td>
       <td>${chip(f.verdict, f.ncp)}</td>
-      <td class="num">${f.intent_s===null?'—':(f.intent_s>0?'+':'')+f.intent_s+' s/mi'}</td>
-      <td class="num">${f.stop_min===null?'—':`${f.stop_min} min stop`}</td>
-      <td class="num">${first && r.final_km ? r.final_km.toFixed(2)+' km' : (first && r.final_h ? fmtHMS(r.final_h) : '')}</td>
+      <td style="color:${f.deliberate===null ? '' : (f.deliberate?'#2ec4b6':'#c96a6a')}">${
+        f.deliberate===null ? '—' : (f.deliberate ? 'yes' : 'no')}</td>
+      <td class="num">${f.intent_s===null?'—':(f.intent_s>0?'+':'')+f.intent_s}</td>
+      <td class="num">${f.stop_min===null?'—':`${f.stop_min} / ${f.stop_med_min}`}</td>
     </tr>`;
+  const SUBHEAD = `<tr><th>Year</th><th>Race</th><th>Result</th><th>Effort</th><th>Effort type</th>
+    <th>Split</th><th>Cp</th><th>Verdict</th><th>Deliberate</th><th>Intent s/mi</th>
+    <th>Gap / median (min)</th></tr>`;
   const body = P.map(p=>{
-    const det = p.races.map(r=>r.perf.map((f,j)=>detRow(p, r, f, j===0)).join('')).join('');
+    const det = `<tr class="det hide" data-p="${p.pid}"><td colspan="11"><table class="sub">${SUBHEAD}` +
+      p.races.map(r=>r.perf.map((f,j)=>detRow(r, f, j===0)).join('')).join('') +
+      `</table></td></tr>`;
     return `<tr class="per" data-p="${p.pid}">
       <td><b>${p.name}</b> <span class="sm">${p.country.join('/')||''} ${p.sex||''}</span></td>
       <td class="num" style="color:${p.n_neg?'#2ec4b6':'var(--muted)'}">${p.n_neg}</td>
       <td class="num" style="color:${p.n_neg_halves?'#2ec4b6':'var(--muted)'}">${p.n_neg_halves}</td>
       <td class="num" style="color:#f4c430">${p.n_ne}</td>
-      <td class="num">${p.n_races}</td><td class="num">${p.n_lap}/${p.n_ne}</td>
+      <td class="num">${p.n_races}</td>
+      <td>${mixCell(p)}</td>
+      <td class="num">${delibCell(p)}</td>
+      <td class="num">${intentCell(p)}</td>
       <td class="num">${p.best_km ? p.best_km.toFixed(1)+' km' : '—'}</td>
       <td class="num">${p.hit_pctile===null?'—':p.hit_pctile}</td>
       <td class="sm">${p.aliases.length>1 ? p.aliases.map(a=>a[0]).join(' · ') : '—'}</td></tr>${det}`;
@@ -426,6 +581,23 @@ Promise.all([
     return [v, eff.filter(e=>e.method===m).length];
   };
   const censusTot = o => VORDER.reduce((s,v)=>s+(o[v]||0), 0);
+  // The same comparison at EFFORT-TYPE granularity, straight from repeats.json
+  // (`mix`), which applies the census's own slow100 exclusion so these rows can
+  // be read next to census.html's. The method-level rows below hide the thing
+  // that most changes what an even hundred MEANS: whether the athlete kept
+  // running afterwards. A held-back `100in24_stop` is a 100-mile race that
+  // happened to start inside a 24-hour event; a held-back `100in24_full` is
+  // the first half of a full day, paced on purpose.
+  const cohortRows = (META.cohorts || Object.keys(D.mix)).filter(c=>D.mix[c]).map(c=>{
+    const m = D.mix[c];
+    const tot = o => VORDER.reduce((s,v)=>s+(o[v]||0), 0);
+    return `<tr><td colspan="7" class="sm" style="padding-top:10px">
+        <span class="vchip" style="background:#1c2530;color:${COHORT_COLOR[c]||'#8a97a8'}">${
+          COHORT_SHORT[c]||c}</span> <b>${META.cohort_label[c]||c}</b></td></tr>
+      <tr>${mixRow('<b>Repeat splitters</b>', m.roster, tot(m.roster))}</tr>
+      <tr>${mixRow('One-time splitters', m.other, tot(m.other))}</tr>`;
+  }).join('');
+
   const [rh, rhn] = rosterMix('halves'), [re_, ren] = rosterMix('100mi_within_24h');
   // The roster's efforts are a SUBSET of the census's, so "roster vs census"
   // would compare a set with itself included. Subtract to get the one-time
@@ -442,9 +614,10 @@ Promise.all([
   const otherRow = (o) => o === null
     ? '<td>One-time splitters</td><td colspan="6" class="sm">— (roster is not a subset of the census here; see build_viz)</td>'
     : mixRow('One-time splitters', o, censusTot(o));
-  document.getElementById('vcmp').innerHTML = `<table class="rt">
-    <tr><th></th><th class="num">efforts</th><th class="num">held back</th><th class="num">metronome</th>
-        <th class="num">overcooked</th><th class="num">stop</th><th class="num">deliberate</th></tr>
+  const vcmpHead = `<tr><th></th><th class="num">efforts</th><th class="num">held back</th>
+    <th class="num">metronome</th><th class="num">overcooked</th><th class="num">stop</th>
+    <th class="num">deliberate</th></tr>`;
+  document.getElementById('vcmp').innerHTML = `<table class="rt">${vcmpHead}
     <tr><td colspan="7" class="sm" style="padding-top:10px"><b>The whole 24-hour day</b></td></tr>
     <tr>${mixRow('<b>Repeat splitters</b>', rh, rhn)}</tr>
     <tr>${otherRow(oh)}</tr>
@@ -452,6 +625,7 @@ Promise.all([
     <tr>${mixRow('<b>Repeat splitters</b>', re_, ren)}</tr>
     <tr>${otherRow(oe)}</tr>
     </table>`;
+  document.getElementById('vcohort').innerHTML = `<table class="rt">${vcmpHead}${cohortRows}</table>`;
 
   // 28.4 — grey connector per athlete, verdict markers on top
   const lines = P.map(p=>{
