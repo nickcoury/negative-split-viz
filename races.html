@@ -1,0 +1,377 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>26 · Every race — the full career</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid var(--accent)}
+.tile .n{font-size:29px;font-weight:700;line-height:1.15;color:var(--accent)}
+.tile .d{color:var(--muted);font-size:12.5px;margin-top:4px}
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{background:#0d1219;color:var(--muted);border:0;border-right:1px solid var(--line);
+  padding:7px 15px;cursor:pointer;font-size:13.5px}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:#04121f;font-weight:600}
+.sticky{position:sticky;top:0;z-index:9;background:#0b0f14ee;backdrop-filter:blur(6px);
+  border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:14px 0}
+table.log{width:100%;border-collapse:collapse;font-size:12.8px}
+table.log th{color:#93a1b0;text-align:left;padding:5px 8px;font-weight:600;white-space:nowrap}
+table.log td{padding:3px 8px;border-top:1px solid #263140;vertical-align:top}
+table.log tr:hover td{background:#1b222c}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.flag{display:inline-block;font-size:10.5px;padding:0 5px;border-radius:4px;margin-left:3px;
+  background:#33291a;color:#d9a441;border:1px solid #5a4520}
+.notecell{color:#93a1b0;font-size:11.5px;max-width:250px}
+</style>
+</head><body>
+<script src="js/common.js?v=650afe93"></script>
+<main>
+<h1>26 · Every race — the full career</h1>
+<p class="sub">
+The <a href="n1.html">attempt log</a> presents these 65 races as the athlete wrote them down: two
+half-times per row, typed into a
+<a href="https://docs.google.com/spreadsheets/d/1MyFyTUzO7lviKZ5mbF60yFgFSHGT6Jzp0atTSRjAmLc/edit">spreadsheet</a>,
+to the minute. This page re-measures every one of them from the <b>GPS track the athlete was
+actually wearing</b> — 60 of the 65 — and then asks the question the clock cannot answer:
+<b>how much of each split was pacing, and how much was the hill?</b>
+Most of these races are on mountain trail. A 50k whose first half climbs 1,400 ft and whose second
+half gives it all back is scored a negative split by any stopwatch, and that number means nothing.
+Flip the toggle and see which ones survive.</p>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="sticky">
+  <span style="color:var(--muted);font-size:13px;margin-right:10px">Split measured</span>
+  <span class="seg" id="mode">
+    <button data-m="raw" class="on">By the clock</button>
+    <button data-m="adj">Terrain-adjusted</button>
+  </span>
+  <span id="modenote" style="color:var(--muted);font-size:12.5px;margin-left:12px"></span>
+</div>
+
+<div class="card">
+  <h3>Chart 26.1 — Fifteen years, every distance</h3>
+  <div class="note">Every logged race that has a track, by date and achieved split, sized by race
+  distance and coloured by class. The green band is a negative split. Switch the toggle above and
+  watch the trail races move: the flat 24-hour and road efforts barely shift, because there is no
+  terrain to remove. (The 2011 and 2017 rows have no Strava file and appear only in the table.)</div>
+  <div id="timeline" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 26.2 — What the terrain was hiding</h3>
+  <div class="note">Clock split against terrain-adjusted split. Points on the diagonal are races
+  where the ground was symmetric and the adjustment changes nothing. Points <b>below</b> the
+  diagonal ran the harder half second and are better than they look; points <b>above</b> it got a
+  downhill finish. Anything in a shaded quadrant <b>changed sign</b> — a negative split that was
+  really the hill, or a positive one that was really a climb. Marker size is climb per kilometre;
+  hover for the course profile.<span id="flipnote"></span></div>
+  <div id="flip" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 26.3 — Does the skill survive the adjustment?</h3>
+  <div class="note">Share of races with a faster second half, by class, measured both ways. If the
+  negative splits were an artefact of downhill finishes, the adjusted bars would collapse. Read the
+  gap between each pair as the amount of credit the terrain was giving.</div>
+  <div id="byclass" class="chart" style="height:400px"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 26.4 — Inside one race</h3>
+  <div class="note">Pick any race with a track. The upper trace is pace per kilometre — solid where
+  it is raw, dashed where it is terrain-adjusted; the shaded band underneath is the course
+  elevation. The vertical line is the halfway point that defines the split. This is where a
+  "negative split" turns out to be a 300 m descent.</div>
+  <div class="controls">
+    <label>Race <select id="pick" style="min-width:330px"></select></label>
+    <label><input type="checkbox" id="smooth" checked> smooth pace</label>
+  </div>
+  <div id="one" class="chart tall"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>The full record</h3>
+  <div class="note">All 65 rows. <b>Sheet</b> is the athlete's self-reported split; <b>track</b> is
+  measured from GPS; <b>adjusted</b> removes the terrain. Both use the project convention
+  (<code>(second − first) / total</code>, negative = faster second half). Flags mark rows where the
+  measurement deserves less trust — see the caveats at the bottom.</div>
+  <div id="tbl"></div>
+</div>
+
+<h2>Reading it honestly</h2>
+<div class="finding" id="verdict">…</div>
+<div class="caveat"><b>What the flags mean.</b>
+<span class="flag">gps</span> the GPS distance disagrees with the official race distance by more
+than 3% — on a short looped course the drift is uneven between halves, which is enough to invent or
+erase a split, and there the official lap count is the better instrument.
+<span class="flag">sheet</span> the track and the spreadsheet disagree by more than 1.5 points.
+<span class="flag">no&nbsp;alt</span> the file carries no usable altitude, so the adjusted number is
+just the raw one. Two 2011/2017 races predate or are missing from the export entirely and have no
+track at all.</div>
+<div class="caveat"><b>And what this page still is.</b> One athlete, self-selected races, and the
+terrain model is a model — Minetti's cost-of-running curve, not a measurement of this runner's own
+economy on this ground. It agrees with Strava's independent implementation to a mean of 0.8% with
+no bias as the ground steepens, which makes it good enough to separate a 3,600 m mountain race from
+a flat one; it is not good enough to rank two efforts a fraction of a percent apart. None of these
+rows are in the research database, and none of them are evidence about anybody else.</div>
+
+<script>
+nav('races.html');
+// 24-hour and 6-hour races share a hue because they are the same discipline
+// (the clock is fixed, the distance is the result); the lighter shade keeps
+// them apart in a legend where they would otherwise be one colour.
+const CLS_C = { short:'#5aa9e6', mid:'#e08b4c', hundred:'#c98bdb', day:'#2ec4b6', fixed_time:'#8fe0d6' };
+const CLS_L = { short:'≤60k', mid:'50mi–100k', hundred:'100 miles', day:'24 hours', fixed_time:'6 hours' };
+const ORDER = ['short','mid','hundred','day','fixed_time'];
+let MODE = 'raw', D = null, PROF = null;
+
+const val = (r, mode) => {
+  if (!r.strava) return null;
+  const v = mode === 'adj' ? r.strava.split_pct_adj : r.strava.split_pct;
+  return (v === null || v === undefined) ? null : v;
+};
+const clip = (p, lo, hi) => Math.max(lo, Math.min(hi, p));
+const sgn = p => (p > 0 ? '+' : '') + p.toFixed(2);
+const climbPerKm = r => r.strava && r.strava.dist_km ? r.strava.gain_m / r.strava.dist_km : 0;
+
+Promise.all([
+  fetch('data/n1_races.json').then(r => r.json()),
+  fetch('data/n1_profiles.json').then(r => r.json()),
+]).then(([races, prof]) => {
+  D = races; PROF = prof;
+  const R = D.races, withTrack = R.filter(r => r.strava);
+
+  // --- tiles -------------------------------------------------------------
+  const negRaw = withTrack.filter(r => val(r,'raw') < 0).length;
+  const negAdj = withTrack.filter(r => val(r,'adj') < 0).length;
+  const ag = D._meta.agreement || {};
+  const dists = new Set(R.map(r => r.dist)).size;
+  document.getElementById('tiles').innerHTML = [
+    [R.length, `logged races, 2011–2024, across ${dists} different distances — 40k to 24 hours`],
+    [withTrack.length, 'measured from the athlete’s own GPS track, not from the sheet'],
+    [`${negRaw} → ${negAdj}`, 'negative splits by the clock → once the terrain is removed'],
+    [`${ag.median_pp ?? '—'} pp`, `median disagreement between track and sheet (${ag.within_1pp ?? '—'} of ${ag.n ?? '—'} within 1 point)`],
+  ].map(([n,d]) => `<div class="tile"><div class="n">${n}</div><div class="d">${d}</div></div>`).join('');
+
+  // --- 26.2 flip chart (mode-independent) --------------------------------
+  // Two blow-ups (+33% Western States, +30% World 24) sit an order of magnitude
+  // out and would squash every other race into a blob around the origin. They
+  // are dropped from the view rather than clipped to the frame, where they
+  // would read as real values, and are named in the caption instead.
+  const lim = 15;
+  const all = withTrack.filter(r => val(r,'raw') !== null && val(r,'adj') !== null);
+  const fl = all.filter(r => Math.abs(val(r,'raw')) <= lim && Math.abs(val(r,'adj')) <= lim);
+  const off = all.filter(r => !fl.includes(r));
+  if (off.length) {
+    document.getElementById('flipnote').innerHTML =
+      ' Off the chart: ' + off.map(r =>
+        `<b>${r.race}</b> (${sgn(val(r,'raw'))}% → ${sgn(val(r,'adj'))}%)`).join(', ') +
+      ` — too far out to plot without flattening everything else, and ${off.length > 1 ? 'both stay' : 'it stays'} positive either way.`;
+  }
+  Plotly.newPlot('flip', [{
+    x: fl.map(r => val(r,'raw')),
+    y: fl.map(r => val(r,'adj')),
+    mode: 'markers', type: 'scatter',
+    marker: { size: fl.map(r => 7 + Math.min(13, climbPerKm(r) / 6)),
+              color: fl.map(r => CLS_C[r.class] || '#8a97a8'),
+              line: { color: '#0f1419', width: 1 } },
+    text: fl.map(r => `${r.race} (${r.dist}) — ${r.date}<br>` +
+      `clock ${sgn(val(r,'raw'))}% · adjusted ${sgn(val(r,'adj'))}%<br>` +
+      `${r.strava.dist_km} km, ${r.strava.gain_m} m climb (${climbPerKm(r).toFixed(0)} m/km)`),
+    hoverinfo: 'text',
+  }], layout({
+    showlegend: false,
+    xaxis: { title: 'split by the clock (%)', zeroline: true, zerolinecolor: '#8fa3b8', range: [-lim, lim] },
+    yaxis: { title: 'terrain-adjusted split (%)', zeroline: true, zerolinecolor: '#8fa3b8', range: [-lim, lim] },
+    shapes: [
+      // sign-change quadrants
+      { type:'rect', x0:-lim, x1:0, y0:0, y1:lim, fillcolor:'rgba(201,106,106,0.10)', line:{width:0} },
+      { type:'rect', x0:0, x1:lim, y0:-lim, y1:0, fillcolor:'rgba(46,196,182,0.10)', line:{width:0} },
+      { type:'line', x0:-lim, y0:-lim, x1:lim, y1:lim, line:{color:'#4a5768', width:1, dash:'dot'} },
+    ],
+    annotations: [
+      { x:-lim*0.6, y:lim*0.85, text:'negative by the clock,<br>positive once adjusted',
+        showarrow:false, font:{color:'#c96a6a', size:11} },
+      { x:lim*0.6, y:-lim*0.85, text:'positive by the clock,<br>negative once adjusted',
+        showarrow:false, font:{color:'#2ec4b6', size:11} },
+    ],
+  }), CFG);
+
+  // --- race picker -------------------------------------------------------
+  const pickable = withTrack.filter(r => (PROF[String(r.strava.activity_id)] || []).length > 4);
+  document.getElementById('pick').innerHTML = pickable
+    .map((r,i) => `<option value="${i}">${r.date} — ${r.race} (${r.dist})</option>`).join('');
+  const flips = pickable.filter(r => val(r,'raw') < 0 && val(r,'adj') > 0);
+  const initial = flips.length ? pickable.indexOf(flips[0]) : 0;
+  document.getElementById('pick').value = initial;
+  document.getElementById('pick').onchange = () => drawOne(pickable);
+  document.getElementById('smooth').onchange = () => drawOne(pickable);
+
+  // --- table -------------------------------------------------------------
+  const FLAG_L = { gps_distance:'gps', sheet_gap:'sheet', no_altitude:'no alt' };
+  const cell = v => v === null || v === undefined ? '<span style="color:#5b6673">—</span>'
+    : `<b style="color:${v < 0 ? '#2ec4b6' : v <= 1 ? '#f4c430' : '#c96a6a'}">${sgn(v)}</b>`;
+  document.getElementById('tbl').innerHTML = `<table class="log">
+    <tr><th>Date</th><th>Race</th><th>Dist</th><th class="num">Sheet</th><th class="num">Track</th>
+        <th class="num">Adjusted</th><th class="num">Climb</th><th>Notes</th></tr>` +
+    R.map(r => {
+      const s = r.strava;
+      const fl = s ? s.flags.map(f => `<span class="flag">${FLAG_L[f]||f}</span>`).join('') : '';
+      return `<tr>
+        <td style="white-space:nowrap">${r.date}</td>
+        <td>${r.kind === 'sub_split' ? '⊂ ' : ''}${r.race}${fl}</td>
+        <td style="color:#93a1b0">${r.dist}</td>
+        <td class="num">${cell(r.sheet.pct)}</td>
+        <td class="num">${cell(s ? s.split_pct : null)}</td>
+        <td class="num">${cell(s ? s.split_pct_adj : null)}</td>
+        <td class="num" style="color:#93a1b0">${s ? s.gain_m + ' m' : '—'}</td>
+        <td class="notecell">${r.sheet.notes || (s ? '' : '<i>no Strava track</i>')}</td></tr>`;
+    }).join('') + '</table>';
+
+  // --- mode toggle -------------------------------------------------------
+  document.querySelectorAll('#mode button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#mode button').forEach(x => x.classList.toggle('on', x === b));
+    MODE = b.dataset.m;
+    redraw(pickable);
+  });
+  redraw(pickable);
+  verdict(withTrack);
+});
+
+function redraw(pickable) {
+  const R = D.races, withTrack = R.filter(r => r.strava);
+  document.getElementById('modenote').textContent = MODE === 'raw'
+    ? 'raw elapsed time against real distance — what the results sheet says'
+    : 'time against flat-equivalent distance (Minetti cost-of-running), so a climb counts for more than a metre';
+
+  // 26.1 timeline
+  const byCls = {};
+  withTrack.forEach(r => { if (val(r,MODE) !== null) (byCls[r.class] = byCls[r.class] || []).push(r); });
+  const traces = ORDER.filter(c => byCls[c]).map(c => {
+    const list = byCls[c];
+    return {
+      x: list.map(r => r.date), y: list.map(r => clip(val(r,MODE), -20, 45)),
+      mode: 'markers', name: CLS_L[c], type: 'scatter',
+      marker: { size: list.map(r => 8 + Math.min(11, r.strava.dist_km / 18)),
+                color: CLS_C[c], symbol: list.map(r => r.kind === 'sub_split' ? 'diamond-open' : 'circle'),
+                line: { color: '#0f1419', width: 1 } },
+      text: list.map(r => `${r.race} (${r.dist})<br>${r.date} — ${sgn(val(r,MODE))}%<br>` +
+        `${r.strava.dist_km} km · ${r.strava.gain_m} m climb` + (r.sheet.notes ? `<br><i>${r.sheet.notes}</i>` : '')),
+      hoverinfo: 'text',
+    };
+  });
+  Plotly.newPlot('timeline', traces, layout({
+    showlegend: true, legend: { orientation: 'h', y: 1.09 },
+    xaxis: { title: 'date' },
+    yaxis: { title: `${MODE==='adj'?'terrain-adjusted':'clock'} split %  (clipped to −20…+45)`,
+             zeroline: true, zerolinecolor: '#8fa3b8', range: [-20, 45] },
+    shapes: [{ type:'rect', xref:'paper', x0:0, x1:1, y0:-20, y1:0,
+               fillcolor:'rgba(46,196,182,0.07)', line:{width:0} }],
+  }), CFG);
+
+  // 26.3 by class, both modes side by side
+  const cs = ORDER.map(c => {
+    const v = withTrack.filter(r => r.class === c && r.kind === 'attempt' && val(r,'raw') !== null);
+    return { c, n: v.length,
+             raw: v.filter(r => val(r,'raw') < 0).length,
+             adj: v.filter(r => val(r,'adj') < 0).length };
+  }).filter(s => s.n);
+  const bar = (key, name, color, dim) => ({
+    x: cs.map(s => CLS_L[s.c]), y: cs.map(s => 100 * s[key] / s.n), type: 'bar', name,
+    marker: { color, opacity: dim ? 0.45 : 1 },
+    text: cs.map(s => `${s[key]}/${s.n}`), textposition: 'outside', textfont: { color: '#e6edf3' },
+    cliponaxis: false,
+    hovertemplate: `%{x} — ${name}: %{text} (%{y:.0f}%)<extra></extra>`,
+  });
+  Plotly.newPlot('byclass', [
+    bar('raw', 'by the clock', '#5aa9e6', MODE !== 'raw'),
+    bar('adj', 'terrain-adjusted', '#2ec4b6', MODE !== 'adj'),
+  ], layout({ barmode: 'group', showlegend: true, legend: { orientation: 'h', y: 1.12 },
+    xaxis: { title: 'race class' },
+    yaxis: { title: 'share with a faster second half (%)', range: [0, 100] } }), CFG);
+
+  drawOne(pickable);
+}
+
+function drawOne(pickable) {
+  const r = pickable[+document.getElementById('pick').value];
+  if (!r) return;
+  const p = PROF[String(r.strava.activity_id)] || [];
+  // profile rows are [km, elapsed_min, alt_m, gap_ratio]; pace comes from the
+  // deltas between bins, and the adjusted pace divides by the bin's own
+  // flat-equivalent length rather than its real one.
+  const km = [], pace = [], gpace = [], alt = [];
+  for (let i = 1; i < p.length; i++) {
+    const dk = p[i][0] - p[i-1][0], dm = p[i][1] - p[i-1][1];
+    if (dk <= 0 || dm <= 0) continue;
+    km.push(p[i][0]); alt.push(p[i][2]);
+    pace.push(dm / dk);
+    gpace.push(dm / (dk * (p[i][3] || 1)));
+  }
+  const win = document.getElementById('smooth').checked ? Math.max(2, Math.round(km.length / 40)) : 0;
+  const sm = a => !win ? a : a.map((_, i) => {
+    const lo = Math.max(0, i - win), hi = Math.min(a.length, i + win + 1);
+    let s = 0, n = 0;
+    for (let k = lo; k < hi; k++) if (a[k] != null) { s += a[k]; n++; }
+    return n ? s / n : null;
+  });
+  const half = r.strava.basis === 'distance'
+    ? km[km.length-1] / 2
+    : (() => { const t = p[p.length-1][1] / 2; const j = p.findIndex(x => x[1] >= t); return j > 0 ? p[j][0] : km[km.length-1]/2; })();
+  const haveAlt = alt.some(a => a != null);
+
+  Plotly.newPlot('one', [
+    haveAlt ? { x: km, y: alt, yaxis: 'y2', type: 'scatter', mode: 'lines', name: 'elevation',
+      line: { color: '#3c4a5c', width: 1 }, fill: 'tozeroy', fillcolor: 'rgba(60,74,92,0.35)',
+      hovertemplate: '%{x:.1f} km · %{y:.0f} m<extra></extra>' } : null,
+    { x: km, y: sm(pace), type: 'scatter', mode: 'lines', name: 'pace (min/km)',
+      line: { color: '#5aa9e6', width: 2 },
+      hovertemplate: '%{x:.1f} km · %{y:.2f} min/km<extra></extra>' },
+    { x: km, y: sm(gpace), type: 'scatter', mode: 'lines', name: 'terrain-adjusted pace',
+      line: { color: '#2ec4b6', width: 2, dash: 'dot' },
+      hovertemplate: '%{x:.1f} km · %{y:.2f} min/km flat-equiv<extra></extra>' },
+  ].filter(Boolean), layout({
+    showlegend: true, legend: { orientation: 'h', y: 1.12 },
+    xaxis: { title: 'distance (km)' },
+    yaxis: { title: 'pace (min/km, lower = faster)', autorange: 'reversed' },
+    yaxis2: { title: 'elevation (m)', overlaying: 'y', side: 'right', showgrid: false,
+              color: '#6b7a8d' },
+    shapes: [{ type: 'line', x0: half, x1: half, yref: 'paper', y0: 0, y1: 1,
+               line: { color: '#f4c430', width: 1.5, dash: 'dash' } }],
+    annotations: [
+      { x: half, y: 1, yref: 'paper', text: 'halfway', showarrow: false,
+        font: { color: '#f4c430', size: 11 }, yanchor: 'bottom' },
+      { x: 0, y: 1.0, xref: 'paper', yref: 'paper', yanchor: 'bottom', xanchor: 'left',
+        showarrow: false, font: { color: '#93a1b0', size: 12 },
+        text: `clock ${sgn(r.strava.split_pct)}%  ·  adjusted ${sgn(r.strava.split_pct_adj)}%  ·  ` +
+              `${r.strava.gain_m} m climb over ${r.strava.dist_km} km` },
+    ],
+  }), CFG);
+}
+
+function verdict(withTrack) {
+  const flipNeg = withTrack.filter(r => val(r,'raw') < 0 && val(r,'adj') > 0);
+  const flipPos = withTrack.filter(r => val(r,'raw') > 0 && val(r,'adj') < 0);
+  const flat = withTrack.filter(r => climbPerKm(r) < 10);
+  const hilly = withTrack.filter(r => climbPerKm(r) >= 25);
+  const rate = (a, m) => a.length ? Math.round(100 * a.filter(r => val(r,m) < 0).length / a.length) : 0;
+  const lost = withTrack.filter(r => val(r,'raw') < 0).length;
+  const kept = withTrack.filter(r => val(r,'adj') < 0).length;
+  document.getElementById('verdict').innerHTML =
+    `<b>The terrain was doing some of the work — levelling the ground costs ` +
+    `${Math.round(100 * (lost - kept) / lost)}% of the wins, and all of the loss is in the mountains.</b> ` +
+    `Of ${withTrack.length} track-measured races, <b>${flipNeg.length}</b> that read as negative splits on the clock ` +
+    `turn positive once the ground is levelled, and <b>${flipPos.length}</b> go the other way — races run up a net ` +
+    `climb in the second half that were better than they looked. The split survives best where there is ` +
+    `nothing to correct: on the ${flat.length} races under 10 m of climb per km the negative-split rate is ` +
+    `${rate(flat,'raw')}% by the clock and ${rate(flat,'adj')}% adjusted, while across the ${hilly.length} genuinely ` +
+    `mountainous ones (≥25 m/km) it falls from ${rate(hilly,'raw')}% to ${rate(hilly,'adj')}%. ` +
+    `The practice is real; so is the fact that a trail split flatters whoever finishes downhill.`;
+}
+</script>
+</main></body></html>

@@ -1,0 +1,624 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>28 · Twice — the repeat negative splitters</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid var(--line)}
+.tile .n{font-size:32px;font-weight:700;line-height:1.1}
+.tile .t{font-weight:600;margin-top:2px}
+.tile .d{color:var(--muted);font-size:12.5px;margin-top:4px}
+.vchip{display:inline-block;padding:1px 9px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+.finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0;color:var(--ink)}
+.finding b{color:var(--accent)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+table.rt{border-collapse:collapse;width:100%;font-size:13px}
+table.rt th{text-align:left;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);padding:6px 8px;white-space:nowrap}
+table.rt td{border-bottom:1px solid #1c2530;padding:5px 8px;vertical-align:top}
+table.rt tr.per{cursor:pointer}
+table.rt tr.per:hover td{background:#1c2530}
+table.rt tr.det td{background:#0d1219;font-size:12.5px;color:var(--muted)}
+table.rt tr.det.hide{display:none}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+.sm{color:var(--muted);font-size:12px}
+</style>
+</head><body>
+<script src="js/common.js?v=650afe93"></script>
+<main>
+<h1>28 · Twice — the repeat negative splitters</h1>
+<p class="sub">
+<a href="census.html">Exploration 17</a> counted negative splits. This page counts the <b>people</b>. If a
+negative split at this distance is mostly an accident — a blow-up that happened to close, or a two-hour
+stop that sank the mid-race average — then it should scatter across the field like a coin landing on its
+edge, and almost nobody should own two. If instead it is a repeatable skill, it should <b>concentrate in
+the same names</b>. That is a testable difference, and the dataset is now big enough to test it:
+<span id="s-races">…</span> classified races by <span id="s-people">…</span> athletes,
+<span id="s-multi">…</span> of whom appear more than once.</p>
+
+<div class="caveat" style="border-left-color:var(--accent);color:var(--ink)">
+<b>The unit here is a RACE, not a performance.</b> One 24-hour race yields up to two classified efforts —
+the whole day (<code>halves</code>) and the embedded 100 miles inside it (<code>100mi_within_24h</code>) —
+and counting those separately lets a single race make somebody a "repeat" splitter on its own. Ari
+Lindsten's 2012 Tapiola is negative on both; that is <i>one</i> negative split, not two. Everything below
+counts distinct races, and a race counts as negative if <i>any</i> method on it is. The per-effort detail
+is kept and shown, never summed.
+</div>
+
+<div class="tiles" id="tiles"></div>
+
+<h2>Who they are</h2>
+<div class="card">
+  <h3>Chart 28.1 — Every race of every repeat splitter</h3>
+  <div class="note">One row per athlete, one marker per classified race, ordered by how many negative
+  races they hold. <b>Colour is the band</b>: <span class="pill neg">negative</span>
+  <span class="pill even">even</span> <span style="color:#e08b4c">near-even (to +3%)</span>
+  <span class="pill pos">positive</span>. The dashed lines are 0% (negative to the left) and the +1% even
+  ceiling. These are not people who split evenly and nothing else — most of them have ordinary +10% and
+  +30% races too, which is the point: <b>the same person produces both</b>. Races beyond +45% are drawn
+  as ▸ at the edge (a blow-up, usually an early stop). Use the selector to read the whole day, the
+  embedded 100 miles, or whichever of the two was more even.</div>
+  <div class="controls">
+    <label>Measure <select id="measure">
+      <option value="best">Most even of the two efforts</option>
+      <option value="h">Whole 24-hour day (halves)</option>
+      <option value="e">Embedded 100 miles</option>
+    </select></label>
+  </div>
+  <div id="roster" class="chart"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>The roster — click a row for the race-by-race detail</h3>
+  <div class="note">Sorted by negative races, then by median split. <b>Whole-day</b> counts only races
+  where the <i>full 24 hours</i> ran negative — the strictest reading of the question, and the reason
+  the top of this table is much shorter than the bottom. <b>Career %ile</b> is where the negative/even
+  races sit among that athlete's own 24-hour distances (100 = their best ever). <b>Aliases</b> lists
+  the database rows that had to be merged to see the person at all. Inside a row, verdicts read
+  <i>not profiled</i> where a race has laps but is too far from even to be in the profiled set, and
+  <i>no lap data</i> where the source only ever gave a halfway checkpoint.</div>
+  <div id="tbl"></div>
+</div>
+
+<h2>Is it luck?</h2>
+<p class="sub">Nineteen repeat splitters out of four thousand athletes could easily be what randomness
+looks like — plenty of people race ten times, and a 2% event repeats by accident. So the count has to be
+compared against a null that is genuinely hard to beat.</p>
+
+<div class="card">
+  <h3>Chart 28.2 — The permutation null</h3>
+  <div class="note">A <b>restricted permutation</b>: the number of negative/even races <i>inside each
+  group is held fixed</i> and only their owners are reshuffled, 20,000 times. That means any group-level
+  rate difference survives into the null untouched — if DUV's 2-checkpoint halves are biased negative, or
+  if championship fields pace more evenly, the null gets exactly the same excess and the test is not
+  fooled by it. The only thing being asked is whether the labels land on the same <i>people</i>.
+  <b>Grouped by event</b> holds each race's field fixed; <b>by event × finishing quartile</b> also holds
+  fixed this project's own finding that stronger finishers pace more evenly, so a repeat splitter cannot
+  score merely by being good. Bars are the null distribution; the vertical line is what actually
+  happened.</div>
+  <div class="two">
+    <div><div class="sm" style="padding:0 0 4px 6px">Negative only</div><div id="nullneg" class="chart" style="height:330px"></div></div>
+    <div><div class="sm" style="padding:0 0 4px 6px">Negative or even</div><div id="nullne" class="chart" style="height:330px"></div></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Chart 28.3 — The same question without any statistics</h3>
+  <div class="note">Take one race at a time and ask whether that athlete <i>also</i> split negative in a
+  <b>different</b> race — leave-one-out, so a race can never be its own evidence. Then compare the two
+  rates. No model, no permutation, no assumption: just a rate among races whose owner has form, and a
+  rate among races whose owner does not.</div>
+  <div id="lift" class="chart" style="height:300px"></div>
+  <div class="sm" id="liftnote" style="margin-top:6px"></div>
+</div>
+
+<h2>How they did it — the intentionality read</h2>
+<p class="sub">Rarity says nothing about intent. <a href="intent.html">Exploration 16</a>'s metric —
+<b>seconds of intentionality</b>, the mean gap in s/mi between an athlete's foresight line and the pace
+they finally averaged — separates the two mechanisms: <b>negative means they held back</b> (never ran
+ahead of what they could sustain), <b>positive means they went out ahead</b> and the faster second half
+fell out of the fade. Combined with the longest gap between timing crossings, that gives every
+lap-resolved effort one of the census's four verdicts. This is available only where lap data exists —
+<span id="s-lap">…</span> of the repeat splitters' negative/even races have it.</p>
+
+<div class="tiles" id="vtiles"></div>
+
+<div class="card">
+  <h3>Roster vs census — like for like</h3>
+  <div class="note">The roster's efforts skew toward the <b>embedded hundred</b>, which the
+  <a href="census.html">census</a> already shows is the more deliberate of the two settings — so the
+  headline mix above cannot be compared against the census's directly. Split by effort, and against the
+  athletes who did it <i>once</i> rather than against a census that contains these same efforts, it can.
+  Both pairs move the same way: <b>a negative/even split that belongs to a repeat splitter is more
+  likely to have been planned</b>, and on the whole day the difference is large.</div>
+  <div id="vcmp"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 28.4 — Does the same person do it the same way twice?</h3>
+  <div class="note">Each marker is one lap-resolved negative/even effort by a repeat splitter, coloured
+  by verdict; <b>the grey line joins one athlete's efforts in chronological order</b>. x = seconds of
+  intentionality (left of zero = held back on purpose), y = split %. A short line means a consistent
+  mechanism; a line that crosses the zero rule means the same athlete produced one planned even race and
+  one accidental one — which is the difference between a skill and a coincidence, drawn per person.
+  ◆ marks a detected stop.</div>
+  <div id="imap" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 28.5 — Are the even races their good races?</h3>
+  <div class="note">For each repeat splitter with both kinds of race, the mean 24-hour distance of their
+  <b>negative/even</b> races against the mean of their <b>other</b> races. This is the
+  <a href="careers.html">careers</a> design narrowed to the people who can actually be asked: the
+  athlete is their own control, so ability, era and talent drop out. It is still not causal — a good day
+  produces both a long race and an even one — but the direction is worth seeing on the repeat set
+  specifically.</div>
+  <div id="dumb" class="chart"></div>
+</div>
+
+<h2>Two ways this could be an artefact</h2>
+<div class="card">
+  <h3>Chart 28.6 — Evidence quality, race by race</h3>
+  <div class="note">Not every negative split is equally well measured. A race with <b>two checkpoints</b>
+  is a DUV 12-hour split, snapped to the last complete lap, which biases <code>split_pct</code> more
+  negative than the truth by roughly loop/total (see <code>docs/methodology.md</code>) — and on such a
+  race the embedded-100 figure is worse still, being interpolated from the same two points. A race with
+  <b>10+ checkpoints</b> is lap-derived and precise. If the repeat splitters lived mostly in the
+  2-checkpoint tier, the finding would be a measurement artefact. Bars: the negative/even races of the
+  roster, by checkpoint count.</div>
+  <div id="tiers" class="chart" style="height:300px"></div>
+</div>
+
+<div class="card">
+  <h3>Are they simply the dataset's most consistent pacers?</h3>
+  <div class="note">If a repeat splitter's whole career sat in a narrow band that happens to straddle
+  zero, "twice" would be arithmetic rather than skill. Tested on their <b>other</b> races only — the
+  negative/even ones excluded from both groups, because membership in the roster is itself selection on
+  an extreme low value and would rig the comparison. Among athletes with 3+ ordinary 24-hour races:</div>
+  <div id="spread"></div>
+</div>
+
+<h2>The watchlist</h2>
+<div class="card" style="overflow:auto">
+  <h3>One band out — <span id="s-near">…</span> athletes with two or more races inside +3%</h3>
+  <div class="note">The even threshold is a definition, not a physical edge, so the population just
+  outside it belongs on the page. These athletes have two or more races at or under <b>+3%</b> without
+  qualifying for the roster above. Several are among the best runners in the dataset, and the list is
+  where the next repeat splitter is most likely to come from.</div>
+  <div id="neartbl"></div>
+</div>
+
+<h2>N = 1, for scale</h2>
+<div class="card">
+  <div class="note" id="n1note">…</div>
+</div>
+
+<h2>What this says</h2>
+<div class="finding" id="f1">…</div>
+<div class="finding" id="f2">…</div>
+<div class="caveat"><b>Caveats.</b> <b>Identity is the measurement here.</b> The database keys athletes on
+(name, country) and the country half fragments people — the same runner arrives as USA from one timer, US
+from another and NULL from a legacy split file — so this page re-keys on name tokens alone and accepts
+the mirror-image risk that two different people sharing a name merge into one. Every merged cluster and
+its aliases is listed in the roster table for inspection, and a validator pins the list. <b>Coverage is
+not uniform</b>: an athlete is only visible here if their races are in the dataset, so someone with two
+negative splits at an unarchived venue is simply absent, and the count is a floor. <b>Verdicts exist only
+where laps exist</b>, and lap-resolved events skew toward venues whose timing survived. The permutation
+controls for event and for within-event finishing quartile, but not for everything — an athlete who
+races the same lap-complete venue every year is measured more precisely there than elsewhere, and
+precision itself is not randomised. Finally, <b>the repeat set is small</b>: 19 people and 4 with two
+negatives. The clustering is unlikely to be luck; the mechanism behind it is still an inference, and
+<a href="agenda.html">Exploration 25</a> is what would settle it.</div>
+
+<script>
+nav('repeats.html');
+const VC = { held_back:'#2ec4b6', metronome:'#f4c430', overcooked:'#c96a6a', stop_recover:'#c98bdb' };
+const VBG = { held_back:'#0c342f', metronome:'#3a2f08', overcooked:'#3a2020', stop_recover:'#32243a' };
+const VLABEL = { held_back:'Held back', metronome:'Metronome', overcooked:'Overcooked', stop_recover:'Stop &amp; recover' };
+const VDESC = {
+  held_back:'Ran conservative of their own final average from the start. The planned negative split.',
+  metronome:'Within +5 s/mi of their eventual average all day, no stop. Deliberate evenness.',
+  overcooked:'Went out ahead of a pace they couldn’t hold; the faster half is the recovery.',
+  stop_recover:'A stop long enough to sink the mid-race average. The split is an artefact of it.',
+};
+const VORDER = ['held_back','metronome','overcooked','stop_recover'];
+// A missing verdict has two different causes and they must not read alike:
+// too few checkpoints to profile at all, or plenty of checkpoints on a race
+// that simply isn't in the negative/even/benchmark set that gets profiled.
+const chip = (v, ncp) => v
+  ? `<span class="vchip" style="background:${VBG[v]};color:${VC[v]}">${VLABEL[v]}</span>`
+  : `<span class="sm">${ncp !== undefined && ncp >= 10 ? 'not profiled' : 'no lap data'}</span>`;
+const pc = x => (x===null||x===undefined) ? '—' : (x>0?'+':'') + x.toFixed(2) + '%';
+const XCAP = 45;   // beyond this a race is a blow-up; drawn at the edge as an arrow
+
+Promise.all([
+  fetch('data/repeats.json').then(r=>r.json()),
+  fetch('data/meta.json').then(r=>r.json()),
+]).then(([D, META])=>{
+  const P = D.people, R = D.rates;
+  const negRoster = P.filter(p=>p.n_neg>=2), halvesRoster = P.filter(p=>p.n_neg_halves>=2);
+
+  document.getElementById('s-races').textContent = R.n_races.toLocaleString();
+  document.getElementById('s-people').textContent = R.n_people.toLocaleString();
+  document.getElementById('s-multi').textContent = R.n_people_multi.toLocaleString();
+  document.getElementById('s-near').textContent = D.near.length;
+
+  // ---- tiles --------------------------------------------------------------
+  const tiles = [
+    [P.length, 'Negative or even, twice or more', `Athletes holding 2+ races classified negative or even. Out of ${R.n_people_multi.toLocaleString()} who raced more than once.`, '#f4c430'],
+    [negRoster.length, 'Strictly negative, twice or more', `A faster second half — by any of the two efforts — in 2+ separate races. ${R.n_neg_races} negative races exist in total.`, '#2ec4b6'],
+    [halvesRoster.length, 'The whole day, twice', 'The strictest cut: the full 24 hours run negative, in two different races.', '#2ec4b6'],
+    [R.pct_ne.toFixed(2) + '%', 'Base rate per race', `${R.n_ne_races} of ${R.n_races.toLocaleString()} classified races split negative or even (${R.pct_neg.toFixed(2)}% strictly negative).`, '#8a97a8'],
+  ];
+  document.getElementById('tiles').innerHTML = tiles.map(([n,t,d,c])=>
+    `<div class="tile" style="border-top-color:${c}"><div class="n" style="color:${c}">${n}</div>
+     <div class="t">${t}</div><div class="d">${d}</div></div>`).join('');
+
+  // ---- 28.1 roster strip --------------------------------------------------
+  const names = P.map(p=>p.name);
+  function drawRoster(){
+    const m = document.getElementById('measure').value;
+    const byBand = {negative:[], even:[], 'near-even':[], positive:[]};
+    P.forEach(p=>p.races.forEach(r=>{
+      const v = m==='best' ? r.best : r[m];
+      if (v===null || v===undefined) return;
+      const band = v<0 ? 'negative' : v<=1 ? 'even' : v<=3 ? 'near-even' : 'positive';
+      byBand[band].push({
+        x: Math.min(v, XCAP), clip: v>XCAP, y: p.name,
+        t: `<b>${p.name}</b><br>${r.year} ${r.series}<br>` +
+           (r.final_km ? `${r.final_km} km` : `${r.final_h ? r.final_h.toFixed(2)+' h' : ''}`) +
+           (r.place ? ` · place ${r.place}` : '') +
+           `<br>whole day ${pc(r.h)} · embedded 100 ${pc(r.e)}`,
+      });
+    }));
+    const traces = ['positive','near-even','even','negative'].map(b=>{
+      const s = byBand[b];
+      return { name: BAND_LABEL[b], x: s.map(d=>d.x), y: s.map(d=>d.y), text: s.map(d=>d.t),
+        mode:'markers', type:'scatter', hovertemplate:'%{text}<extra></extra>',
+        marker:{ size: b==='positive'?8:12, color: BAND_COLOR[b],
+                 symbol: s.map(d=>d.clip?'triangle-right':'circle'),
+                 opacity: b==='positive'?0.55:1, line:{color:'#0f1419',width:1} } };
+    });
+    Plotly.react('roster', traces, layout({
+      height: Math.max(360, names.length*30+130),
+      margin:{l:230,r:24,t:10,b:46},
+      xaxis:{ title:'split % (negative = faster second half)', gridcolor:'#263140',
+              zeroline:false, range:[-13, XCAP+2] },
+      yaxis:{ categoryorder:'array', categoryarray:[...names].reverse(), gridcolor:'#1c2530',
+              automargin:true, tickfont:{size:12} },
+      legend:{orientation:'h', y:1.06, x:0},
+      shapes:[
+        {type:'line', x0:0, x1:0, yref:'paper', y0:0, y1:1, line:{color:'#2ec4b6', width:1.5, dash:'dash'}},
+        {type:'line', x0:1, x1:1, yref:'paper', y0:0, y1:1, line:{color:'#f4c430', width:1, dash:'dot'}},
+      ],
+    }), CFG);
+  }
+  document.getElementById('measure').onchange = drawRoster;
+  drawRoster();
+
+  // ---- roster table -------------------------------------------------------
+  const head = `<tr><th>Athlete</th><th class="num">Neg</th><th class="num">Whole day</th>
+    <th class="num">Neg/even</th><th class="num">Races</th><th class="num">Lap-resolved</th>
+    <th class="num">Best</th><th class="num">Career %ile</th><th>Aliases merged</th></tr>`;
+  // Detail: one row per (race, effort). A race with both a whole-day and an
+  // embedded-100 classification gets two rows, never one merged one - they are
+  // different races on different axes and merging them is the bug the header
+  // caveat is about.
+  const detRow = (p, r, f, first) => `<tr class="det hide" data-p="${p.pid}">
+      <td>${first ? r.year : ''}</td>
+      <td>${first ? r.series.replace(/ \[duv:\d+\]/,'') + (r.place?` · place ${r.place}`:'') : ''}</td>
+      <td>${f.method==='halves' ? (r.disc==='24_hour'?'whole 24-hour day':'whole race') : 'embedded 100 mi'}</td>
+      <td class="num" style="color:${BAND_COLOR[f.band]}">${pc(f.split)}</td>
+      <td class="num">${f.ncp} cp</td>
+      <td>${chip(f.verdict, f.ncp)}</td>
+      <td class="num">${f.intent_s===null?'—':(f.intent_s>0?'+':'')+f.intent_s+' s/mi'}</td>
+      <td class="num">${f.stop_min===null?'—':`${f.stop_min} min stop`}</td>
+      <td class="num">${first && r.final_km ? r.final_km.toFixed(2)+' km' : (first && r.final_h ? fmtHMS(r.final_h) : '')}</td>
+    </tr>`;
+  const body = P.map(p=>{
+    const det = p.races.map(r=>r.perf.map((f,j)=>detRow(p, r, f, j===0)).join('')).join('');
+    return `<tr class="per" data-p="${p.pid}">
+      <td><b>${p.name}</b> <span class="sm">${p.country.join('/')||''} ${p.sex||''}</span></td>
+      <td class="num" style="color:${p.n_neg?'#2ec4b6':'var(--muted)'}">${p.n_neg}</td>
+      <td class="num" style="color:${p.n_neg_halves?'#2ec4b6':'var(--muted)'}">${p.n_neg_halves}</td>
+      <td class="num" style="color:#f4c430">${p.n_ne}</td>
+      <td class="num">${p.n_races}</td><td class="num">${p.n_lap}/${p.n_ne}</td>
+      <td class="num">${p.best_km ? p.best_km.toFixed(1)+' km' : '—'}</td>
+      <td class="num">${p.hit_pctile===null?'—':p.hit_pctile}</td>
+      <td class="sm">${p.aliases.length>1 ? p.aliases.map(a=>a[0]).join(' · ') : '—'}</td></tr>${det}`;
+  }).join('');
+  document.getElementById('tbl').innerHTML = `<table class="rt">${head}${body}</table>`;
+  document.querySelectorAll('#tbl tr.per').forEach(tr=>tr.onclick=()=>{
+    document.querySelectorAll(`#tbl tr.det[data-p="${tr.dataset.p}"]`).forEach(d=>d.classList.toggle('hide'));
+  });
+
+  // ---- 28.2 permutation nulls --------------------------------------------
+  function drawNull(id, a, b, obs){
+    const keys = [...new Set([...Object.keys(a.hist), ...Object.keys(b.hist)])]
+      .map(Number).sort((x,y)=>x-y);
+    const mk = (h, name, color) => ({
+      x: keys, y: keys.map(k=>100*(h.hist[k]||0)/h.iters), name, type:'bar',
+      marker:{color}, hovertemplate:`${name}: %{y:.2f}% of permutations at %{x}<extra></extra>`});
+    Plotly.newPlot(id, [
+      mk(a, 'grouped by event', '#3a4655'),
+      mk(b, 'by event × finishing quartile', '#5aa9e6'),
+    ], layout({
+      margin:{l:52,r:16,t:34,b:44}, barmode:'group', bargap:0.15,
+      xaxis:{title:'athletes with 2+ such races', gridcolor:'#263140', dtick:1},
+      yaxis:{title:'% of 20,000 permutations', gridcolor:'#263140'},
+      legend:{orientation:'h', y:1.16, x:0, font:{size:10.5}},
+      shapes:[{type:'line', x0:obs, x1:obs, yref:'paper', y0:0, y1:1,
+               line:{color:'#2ec4b6', width:2}}],
+      annotations:[{x:obs, y:1, yref:'paper', text:`observed ${obs}`, showarrow:false,
+                    xanchor:obs>keys[keys.length-1]-2?'right':'left', yanchor:'bottom',
+                    font:{color:'#2ec4b6', size:12}}],
+    }), CFG);
+  }
+  const N = D.null;
+  drawNull('nullneg', N.neg_event, N.neg_ability, N.neg_event.obs);
+  drawNull('nullne',  N.ne_event,  N.ne_ability,  N.ne_event.obs);
+
+  // ---- 28.3 conditional lift ---------------------------------------------
+  const C = D.conditional;
+  Plotly.newPlot('lift', [
+    { name:'athlete has NO other such race', type:'bar', orientation:'h',
+      y:['negative', 'negative or even'],
+      x:[C.neg.without.pct, C.ne.without.pct], marker:{color:'#3a4655'},
+      text:[`${C.neg.without.pct}%`, `${C.ne.without.pct}%`], textposition:'outside',
+      textfont:{color:'#93a1b0'},
+      hovertemplate:'%{x}% of %{customdata} races<extra></extra>',
+      customdata:[C.neg.without.n.toLocaleString(), C.ne.without.n.toLocaleString()] },
+    { name:'athlete HAS another such race', type:'bar', orientation:'h',
+      y:['negative', 'negative or even'],
+      x:[C.neg.with.pct, C.ne.with.pct], marker:{color:'#2ec4b6'},
+      text:[`${C.neg.with.pct}%`, `${C.ne.with.pct}%`], textposition:'outside',
+      textfont:{color:'#2ec4b6'},
+      hovertemplate:'%{x}% of %{customdata} races<extra></extra>',
+      customdata:[C.neg.with.n.toLocaleString(), C.ne.with.n.toLocaleString()] },
+  ], layout({ margin:{l:130,r:60,t:34,b:44}, barmode:'group',
+    xaxis:{title:'% of races splitting that way', gridcolor:'#263140'},
+    yaxis:{gridcolor:'#1c2530', automargin:true},
+    legend:{orientation:'h', y:1.16, x:0} }), CFG);
+  document.getElementById('liftnote').innerHTML =
+    `A race by an athlete with negative-split form elsewhere is <b>${C.neg.lift}×</b> more likely to run
+     negative (${C.neg.with.pct}% of ${C.neg.with.n.toLocaleString()} races vs ${C.neg.without.pct}% of
+     ${C.neg.without.n.toLocaleString()}); for negative-or-even the ratio is <b>${C.ne.lift}×</b>
+     (${C.ne.with.pct}% vs ${C.ne.without.pct}%).`;
+
+  // ---- intentionality -----------------------------------------------------
+  // One entry per lap-resolved negative/even effort belonging to the roster.
+  const eff = [];
+  P.forEach(p=>p.races.forEach(r=>{
+    if (!r.ne) return;
+    r.perf.forEach(f=>{
+      if (f.verdict===null || !(f.band==='negative'||f.band==='even')) return;
+      eff.push({p:p.name, year:r.year, series:r.series, km:r.final_km, ...f});
+    });
+  }));
+  document.getElementById('s-lap').textContent =
+    `${P.reduce((s,p)=>s+p.n_lap,0)} of ${P.reduce((s,p)=>s+p.n_ne,0)}`;
+
+  document.getElementById('vtiles').innerHTML = VORDER.map(v=>{
+    const n = eff.filter(e=>e.verdict===v).length;
+    return `<div class="tile" style="border-top-color:${VC[v]}">
+      <div class="n" style="color:${VC[v]}">${n}</div><div class="t">${VLABEL[v]}</div>
+      <div class="d">${VDESC[v]}</div></div>`;
+  }).join('');
+
+  // Roster vs census verdict mix, held apart by EFFORT. Aggregating the two
+  // would compare a roster that is mostly embedded-100 efforts against a
+  // census row that is entirely whole-day ones, and report a composition
+  // difference as a repeat effect.
+  const mixRow = (label, v, n) => {
+    const del = (v.held_back||0) + (v.metronome||0);
+    return `<td>${label}</td><td class="num">${n}</td>
+      <td class="num" style="color:#2ec4b6">${v.held_back||0}</td>
+      <td class="num" style="color:#f4c430">${v.metronome||0}</td>
+      <td class="num" style="color:#c96a6a">${v.overcooked||0}</td>
+      <td class="num" style="color:#c98bdb">${v.stop_recover||0}</td>
+      <td class="num"><b>${n?Math.round(100*del/n):0}%</b></td>`;
+  };
+  const rosterMix = m => {
+    const v = {};
+    eff.filter(e=>e.method===m).forEach(e=>{ v[e.verdict] = (v[e.verdict]||0)+1; });
+    return [v, eff.filter(e=>e.method===m).length];
+  };
+  const censusTot = o => VORDER.reduce((s,v)=>s+(o[v]||0), 0);
+  const [rh, rhn] = rosterMix('halves'), [re_, ren] = rosterMix('100mi_within_24h');
+  // The roster's efforts are a SUBSET of the census's, so "roster vs census"
+  // would compare a set with itself included. Subtract to get the one-time
+  // splitters. Verified subtractable: every roster whole-day effort is on a
+  // 24-hour event (what census counts) and none of its embedded hundreds is a
+  // slow100 (what census100 excludes) - a guard below shows '—' if that ever
+  // stops being true rather than printing a negative count.
+  const minus = (a, b) => {
+    const o = {};
+    VORDER.forEach(v => { o[v] = (a[v]||0) - (b[v]||0); });
+    return VORDER.some(v => o[v] < 0) ? null : o;
+  };
+  const oh = minus(META.census.verdicts, rh), oe = minus(META.census100.verdicts, re_);
+  const otherRow = (o) => o === null
+    ? '<td>One-time splitters</td><td colspan="6" class="sm">— (roster is not a subset of the census here; see build_viz)</td>'
+    : mixRow('One-time splitters', o, censusTot(o));
+  document.getElementById('vcmp').innerHTML = `<table class="rt">
+    <tr><th></th><th class="num">efforts</th><th class="num">held back</th><th class="num">metronome</th>
+        <th class="num">overcooked</th><th class="num">stop</th><th class="num">deliberate</th></tr>
+    <tr><td colspan="7" class="sm" style="padding-top:10px"><b>The whole 24-hour day</b></td></tr>
+    <tr>${mixRow('<b>Repeat splitters</b>', rh, rhn)}</tr>
+    <tr>${otherRow(oh)}</tr>
+    <tr><td colspan="7" class="sm" style="padding-top:10px"><b>The embedded 100 miles</b></td></tr>
+    <tr>${mixRow('<b>Repeat splitters</b>', re_, ren)}</tr>
+    <tr>${otherRow(oe)}</tr>
+    </table>`;
+
+  // 28.4 — grey connector per athlete, verdict markers on top
+  const lines = P.map(p=>{
+    const s = eff.filter(e=>e.p===p.name).sort((a,b)=>a.year-b.year);
+    if (s.length<2) return null;
+    return { x:s.map(e=>e.intent_s), y:s.map(e=>e.split), mode:'lines', type:'scatter',
+      line:{color:'#3a4655', width:1}, hoverinfo:'skip', showlegend:false };
+  }).filter(Boolean);
+  const marks = VORDER.map(v=>{
+    const s = eff.filter(e=>e.verdict===v);
+    return { name:VLABEL[v].replace('&amp;','&'), x:s.map(e=>e.intent_s), y:s.map(e=>e.split),
+      mode:'markers', type:'scatter',
+      marker:{ size:12, color:VC[v], symbol:s.map(e=>e.stop_min>=Math.max(30,2.5*e.stop_med_min)?'diamond':'circle'),
+               line:{color:'#0f1419',width:1} },
+      text:s.map(e=>`<b>${e.p}</b> — ${e.year} ${e.series}<br>` +
+        `${e.method==='halves'?'whole 24-hour day':'embedded 100 miles'}<br>` +
+        `split ${pc(e.split)}${e.km?` · ${e.km} km`:''}<br>` +
+        `intentionality ${(e.intent_s>0?'+':'')+e.intent_s} s/mi · longest gap ${e.stop_min} min ` +
+        `(median ${e.stop_med_min})`),
+      hovertemplate:'%{text}<extra></extra>' };
+  });
+  Plotly.newPlot('imap', [...lines, ...marks], layout({
+    margin:{l:60,r:24,t:34,b:50},
+    xaxis:{title:'seconds of intentionality (s/mi) — left = held back on purpose', gridcolor:'#263140',
+           zerolinecolor:'#5aa9e6', zerolinewidth:2},
+    yaxis:{title:'split %', gridcolor:'#263140', zerolinecolor:'#3a4655'},
+    legend:{orientation:'h', y:1.1, x:0} }), CFG);
+
+  // ---- 28.5 dumbbell: neg/even races vs their other races -----------------
+  const db = P.map(p=>{
+    const hit = p.races.filter(r=>r.ne && r.final_km).map(r=>r.final_km);
+    const oth = p.races.filter(r=>!r.ne && r.final_km).map(r=>r.final_km);
+    if (!hit.length || !oth.length) return null;
+    return { name:p.name, hit:mean(hit), oth:mean(oth), nh:hit.length, no:oth.length };
+  }).filter(Boolean).sort((a,b)=>(a.hit-a.oth)-(b.hit-b.oth));
+  const seg = [];
+  db.forEach(d=>seg.push(
+    {x:[d.oth,d.hit], y:[d.name,d.name], mode:'lines', type:'scatter',
+     line:{color:d.hit>=d.oth?'#2a6b64':'#5a3a3a', width:3}, hoverinfo:'skip', showlegend:false}));
+  Plotly.newPlot('dumb', [...seg,
+    { name:'their other races', x:db.map(d=>d.oth), y:db.map(d=>d.name), mode:'markers',
+      type:'scatter', marker:{size:11, color:'#8a97a8'},
+      text:db.map(d=>`${d.no} other race${d.no>1?'s':''}, mean ${d.oth.toFixed(1)} km`),
+      hovertemplate:'%{y}<br>%{text}<extra></extra>' },
+    { name:'their negative/even races', x:db.map(d=>d.hit), y:db.map(d=>d.name), mode:'markers',
+      type:'scatter', marker:{size:13, color:'#f4c430'},
+      text:db.map(d=>`${d.nh} negative/even race${d.nh>1?'s':''}, mean ${d.hit.toFixed(1)} km`),
+      hovertemplate:'%{y}<br>%{text}<extra></extra>' },
+  ], layout({
+    height: Math.max(340, db.length*30+120), margin:{l:230,r:30,t:34,b:46},
+    xaxis:{title:'mean 24-hour distance (km)', gridcolor:'#263140'},
+    yaxis:{gridcolor:'#1c2530', automargin:true, tickfont:{size:12}},
+    legend:{orientation:'h', y:1.07, x:0} }), CFG);
+  const up = db.filter(d=>d.hit>d.oth).length;
+  document.getElementById('dumb').insertAdjacentHTML('afterend',
+    `<div class="sm" style="margin-top:6px">The negative/even races are the longer ones for
+     <b>${up} of ${db.length}</b> athletes who have both kinds
+     (median career percentile of a negative/even race: <b>${
+       (arr=>arr.sort((a,b)=>a-b)[Math.floor(arr.length/2)])(P.filter(p=>p.hit_pctile!==null).map(p=>p.hit_pctile))
+     }</b> of their own 24-hour distances).</div>`);
+
+  // ---- 28.6 evidence tiers ------------------------------------------------
+  const tierOf = n => n<=2 ? '2 checkpoints (DUV halves)' : n<10 ? '3–9 (sampled)' : n<100 ? '10–99 laps' : '100+ laps';
+  const TORDER = ['2 checkpoints (DUV halves)','3–9 (sampled)','10–99 laps','100+ laps'];
+  const cnt = {}, cntNeg = {};
+  P.forEach(p=>p.races.forEach(r=>{
+    if (!r.ne) return;
+    const n = Math.max(...r.perf.map(f=>f.ncp));
+    cnt[tierOf(n)] = (cnt[tierOf(n)]||0)+1;
+    if (r.neg) cntNeg[tierOf(n)] = (cntNeg[tierOf(n)]||0)+1;
+  }));
+  Plotly.newPlot('tiers', [
+    { name:'negative or even', x:TORDER, y:TORDER.map(t=>cnt[t]||0), type:'bar', marker:{color:'#f4c430'} },
+    { name:'strictly negative', x:TORDER, y:TORDER.map(t=>cntNeg[t]||0), type:'bar', marker:{color:'#2ec4b6'} },
+  ], layout({ margin:{l:50,r:20,t:34,b:56}, barmode:'group',
+    xaxis:{gridcolor:'#263140'}, yaxis:{title:'races on the roster', gridcolor:'#263140'},
+    legend:{orientation:'h', y:1.16, x:0} }), CFG);
+  const lapShare = TORDER.slice(2).reduce((s,t)=>s+(cnt[t]||0),0);
+  const tot = TORDER.reduce((s,t)=>s+(cnt[t]||0),0);
+  document.getElementById('tiers').insertAdjacentHTML('afterend',
+    `<div class="sm" style="margin-top:6px"><b>${lapShare} of ${tot}</b> of the roster's negative/even
+     races carry real lap data, so the roster is not an artefact of the 2-checkpoint tier — but the
+     2-checkpoint races on it should be read with the snap-to-lap bias in mind, and one of them
+     (a −10.1% whole-day split in a field otherwise spread +7% to +19%) is almost certainly a bad
+     12-hour reading rather than a run.</div>`);
+
+  // ---- spread -------------------------------------------------------------
+  const S = D.spread;
+  document.getElementById('spread').innerHTML = `<table class="rt">
+    <tr><th></th><th class="num">athletes</th><th class="num">median split of their ordinary races</th>
+        <th class="num">median within-athlete SD</th></tr>
+    <tr><td><b>Repeat splitters</b></td><td class="num">${S.repeat.n}</td>
+        <td class="num">${pc(S.repeat.split_median)}</td><td class="num">${S.repeat.sd_median} pp</td></tr>
+    <tr><td>Everyone else</td><td class="num">${S.other.n}</td>
+        <td class="num">${pc(S.other.split_median)}</td><td class="num">${S.other.sd_median} pp</td></tr>
+    </table>
+    <div class="sm" style="margin-top:8px">Their ordinary races are <b>more even than the field's</b>
+    (${pc(S.repeat.split_median)} vs ${pc(S.other.split_median)}) but <b>more variable</b>, not less —
+    so "twice" is not a narrow band straddling zero. <b>With ${S.repeat.n} athletes on the left-hand
+    row, this is suggestive and nothing more</b>: qualifying for the roster requires several races
+    <i>and</i> two even ones, which is a small and peculiar sample.</div>`;
+
+  // ---- watchlist ----------------------------------------------------------
+  document.getElementById('neartbl').innerHTML = `<table class="rt">
+    <tr><th>Athlete</th><th class="num">races ≤ +3%</th><th class="num">of</th>
+        <th class="num">most even</th><th>the close ones</th></tr>` +
+    D.near.map(x=>`<tr><td><b>${x.name}</b> <span class="sm">${x.country.join('/')}</span></td>
+      <td class="num" style="color:#e08b4c">${x.n_close}</td><td class="num">${x.n_races}</td>
+      <td class="num" style="color:${BAND_COLOR[x.best<0?'negative':x.best<=1?'even':'near-even']}">${pc(x.best)}</td>
+      <td class="sm">${x.races.map(r=>`${r.year} ${r.series.replace(/ \[duv:\d+\]/,'')} ${pc(r.best)}`).join(' · ')}</td>
+      </tr>`).join('') + '</table>';
+
+  // ---- N=1 sidebar --------------------------------------------------------
+  const nick = P.find(p=>/coury/i.test(p.name));
+  const nickNeg = nick.races.filter(r=>r.neg).map(r=>
+    `${r.year} ${r.series.replace(/ \[duv:\d+\]/,'')} (${
+      r.perf.filter(f=>f.cls==='negative')
+            .map(f=>`${f.method==='halves'?'full day':'embedded 100'} ${pc(f.split)}`).join(', ')})`);
+  fetch('data/n1_races.json').then(r=>r.ok?r.json():null).then(n1=>{
+    let extra = '';
+    if (n1 && n1.races) {
+      const withTrack = n1.races.filter(r=>r.strava && r.strava.split_pct!==null);
+      const negClock = withTrack.filter(r=>r.strava.split_pct<0).length;
+      const negAdj = withTrack.filter(r=>r.strava.split_pct_adj!==null && r.strava.split_pct_adj<0).length;
+      extra = ` Outside this dataset, his own GPS-measured race log (<a href="races.html">Exploration 26</a>)
+        holds <b>${negClock} negative splits by the clock across ${withTrack.length} races</b>, and
+        <b>${negAdj}</b> once the terrain is levelled — nearly all at distances and on courses this
+        database does not cover. That gap is the honest scale of the problem: <b>the census can only
+        count the races somebody archived.</b>`;
+    }
+    document.getElementById('n1note').innerHTML =
+      `The dataset's owner sits at the top of the roster with <b>${nick.n_neg} negative races out of
+       ${nick.n_races}</b> classified — ${nickNeg.join('; ')} — more than any other athlete here. Only
+       one of the three is a negative <i>full day</i>; the other two are held-back hundreds inside a
+       24-hour race. The whole-day double belongs to <b>Patrick Hösl</b> alone.${extra}`;
+  });
+
+  // ---- findings -----------------------------------------------------------
+  document.getElementById('f1').innerHTML =
+    `<b>Negative and even splits concentrate in people far more than chance allows.</b> ${P.length}
+     athletes hold two or more; a permutation that fixes every event's own rate expects
+     ${N.ne_event.mean}, and one that additionally fixes finishing quartile expects ${N.ne_ability.mean}
+     (p ${N.ne_ability.p<0.001?'< 0.001':'= '+N.ne_ability.p}). For strictly negative races the counts
+     are smaller and the signal is weaker but points the same way: ${N.neg_event.obs} observed against
+     ${N.neg_ability.mean} expected (p = ${N.neg_ability.p}). Put without statistics: an athlete with
+     negative-split form elsewhere runs one <b>${C.neg.lift}×</b> more often than an athlete without.`;
+  // Who did it deliberately BOTH times? Every one of their lap-resolved
+  // negative/even efforts held back or ran metronome - no fade, no stop.
+  const twiceDeliberate = P.filter(p=>{
+    const s = eff.filter(e=>e.p===p.name);
+    return s.length>=2 && s.every(e=>e.verdict==='held_back'||e.verdict==='metronome');
+  });
+  const nHeld = eff.filter(e=>e.verdict==='held_back').length;
+  const nMetro = eff.filter(e=>e.verdict==='metronome').length;
+  const nStop = eff.filter(e=>e.verdict==='stop_recover').length;
+  const nOver = eff.filter(e=>e.verdict==='overcooked').length;
+  const delPct = (v,n) => n ? Math.round(100*((v.held_back||0)+(v.metronome||0))/n) : 0;
+  document.getElementById('f2').innerHTML =
+    `<b>A negative split that belongs to a repeat splitter is more likely to have been planned.</b>
+     Compared like for like against the athletes who did it <i>once</i>, the roster's whole-day efforts
+     are ${delPct(rh,rhn)}% deliberate against ${oh?delPct(oh, censusTot(oh)):'—'}%, and its embedded
+     hundreds ${delPct(re_,ren)}% against ${oe?delPct(oe, censusTot(oe)):'—'}%.
+     <b>None of the ${eff.length} is a stop artefact</b>, where the one-time splitters carry seven. That is the
+     result you would expect if a second negative split is a repeat rather than a second coincidence —
+     and <b>${twiceDeliberate.length} athletes did it deliberately every time we can see</b>:
+     ${twiceDeliberate.map(p=>p.name).join(', ')}. The counts are small (${rhn} whole-day efforts), so
+     read the direction, not the percentage points.`;
+});
+</script>
+</main></body></html>

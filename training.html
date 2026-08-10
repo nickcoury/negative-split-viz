@@ -1,0 +1,334 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>27 · The training — where the habit was built</title>
+<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<script src="lib/plotly.min.js"></script>
+<style>
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;border-top:3px solid var(--neg)}
+.tile .n{font-size:29px;font-weight:700;line-height:1.15;color:var(--neg)}
+.tile .d{color:var(--muted);font-size:12.5px;margin-top:4px}
+.finding{border-left:3px solid var(--neg);padding:2px 0 2px 14px;margin:16px 0}
+.finding b{color:var(--neg)}
+.caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{background:#0d1219;color:var(--muted);border:0;border-right:1px solid var(--line);
+  padding:7px 15px;cursor:pointer;font-size:13.5px}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--neg);color:#04121f;font-weight:600}
+.sticky{position:sticky;top:0;z-index:9;background:#0b0f14ee;backdrop-filter:blur(6px);
+  border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:14px 0;
+  display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.sticky .lbl{color:var(--muted);font-size:13px;margin-right:8px}
+table.log{width:100%;border-collapse:collapse;font-size:12.8px}
+table.log th{color:#93a1b0;text-align:left;padding:5px 8px;font-weight:600;white-space:nowrap}
+table.log td{padding:3px 8px;border-top:1px solid #263140;vertical-align:top}
+table.log tr:hover td{background:#1b222c}
+.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.flag{display:inline-block;font-size:10.5px;padding:0 5px;border-radius:4px;margin-left:3px;
+  background:#33291a;color:#d9a441;border:1px solid #5a4520}
+.flag.solo{background:#1a2c33;color:#5aa9e6;border-color:#22485a}
+</style>
+</head><body>
+<script src="js/common.js?v=650afe93"></script>
+<main>
+<h1>27 · The training — where the habit was built</h1>
+<p class="sub">
+The <a href="races.html">race page</a> covers 65 days out of fifteen years. This one covers the
+other thing entirely: <b>every training run of 25 miles or more in the Strava export</b> — 119 of
+them, none of which had a bib, a clock, or anyone watching. They were never logged as
+negative-split attempts, which is exactly what makes them interesting. If pacing is a
+<i>skill</i> rather than a race-day decision, it should show up here first, and it should show up
+as a habit that strengthens over time.
+Every long run is included, not just the good ones: a rate needs a denominator.</p>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="sticky">
+  <span><span class="lbl">Terrain</span>
+  <span class="seg" id="mode">
+    <button data-m="raw" class="on">By the clock</button>
+    <button data-m="adj">Adjusted</button>
+  </span></span>
+  <span><span class="lbl">Time counted</span>
+  <span class="seg" id="clock">
+    <button data-c="moving" class="on">Moving</button>
+    <button data-c="elapsed">Elapsed</button>
+  </span></span>
+  <span id="modenote" style="color:var(--muted);font-size:12.5px"></span>
+</div>
+
+<div class="card">
+  <h3>Chart 27.1 — The habit forming</h3>
+  <div class="note">Share of long runs finishing faster than they started, by year, with the median
+  split as a line. These are unwatched training runs, so nothing here is a performance — it is a
+  default. Read it against the <a href="n1.html">attempt log</a>: the years where the default turns
+  negative are the years the race results follow.</div>
+  <div id="byyear" class="chart" style="height:420px"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 27.2 — Every long run</h3>
+  <div class="note">All 119, by date and split, sized by distance and coloured by how hilly the run
+  was. The green band is a faster second half. ◆ marks the five solo efforts — time trials, an FKT
+  and the virtual races — which is where training shades into racing; the 100k TT also appears on
+  the race page, because it is in the attempt log too.</div>
+  <div id="scatter" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 27.3 — Does it hold as the run gets longer?</h3>
+  <div class="note">Split against distance. The interesting question for a 24-hour runner is not
+  whether he can close a 25-miler but whether the habit survives into the range where it matters.
+  Bars are the median split per distance band; the count in each band is on the bar.</div>
+  <div id="bydist" class="chart" style="height:400px"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 27.4 — Inside one run</h3>
+  <div class="note">Same view as the race page: pace per kilometre solid, terrain-adjusted pace
+  dashed, elevation shaded beneath, halfway marked. Sorted with the strongest negative splits
+  first.</div>
+  <div class="controls">
+    <label>Run <select id="pick" style="min-width:360px"></select></label>
+    <label><input type="checkbox" id="smooth" checked> smooth pace</label>
+  </div>
+  <div id="one" class="chart tall"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>Every long run</h3>
+  <div class="note">Sorted newest first. <b>Clock</b> and <b>adjusted</b> follow the toggles above
+  for the highlighted column, but both are always shown. <b>Stop</b> is time spent not moving —
+  where it is large the run was a pacing job or an all-day mountain outing, and the moving-time
+  number is the fairer one.</div>
+  <div id="tbl"></div>
+</div>
+
+<h2>Reading it honestly</h2>
+<div class="finding" id="verdict">…</div>
+<div class="caveat"><b>Caveats.</b> These runs were not scored by anyone at the time, so there is no
+stated intent to succeed or fail against — a negative split here may be a plan, a warm-up mile, or
+a downhill route home, and the terrain toggle only removes the third of those. Training runs also
+have no official distance to check the GPS against, so the loop-course drift that the race page can
+catch is invisible here. Twelve files carry no usable altitude and cannot be adjusted at all; they
+are marked <span class="flag">no alt</span>. The floor of 25 miles is the owner's, and it means this
+is a page about long runs, not about training as a whole — the speed work, the doubles and the
+recovery weeks that make the long runs possible are all outside it.</div>
+
+<script>
+nav('training.html');
+let MODE = 'raw', CLOCK = 'moving', T = null, PROF = null;
+
+const key = () => (CLOCK === 'moving'
+  ? (MODE === 'adj' ? 'split_pct_moving_adj' : 'split_pct_moving')
+  : (MODE === 'adj' ? 'split_pct_adj' : 'split_pct'));
+const val = (r, k) => { const v = r[k === undefined ? key() : k]; return (v === null || v === undefined) ? null : v; };
+const sgn = p => (p > 0 ? '+' : '') + p.toFixed(2);
+const clip = (p, lo, hi) => Math.max(lo, Math.min(hi, p));
+const climbPerKm = r => r.dist_km ? r.gain_m / r.dist_km : 0;
+const miles = r => r.dist_km / 1.609344;
+
+Promise.all([
+  fetch('data/n1_training.json').then(r => r.json()),
+  fetch('data/n1_profiles.json').then(r => r.json()),
+]).then(([tr, prof]) => {
+  T = tr.runs; PROF = prof;
+
+  const pickable = [...T].filter(r => (PROF[String(r.activity_id)] || []).length > 4)
+                         .sort((a, b) => (a.split_pct_moving ?? 0) - (b.split_pct_moving ?? 0));
+  document.getElementById('pick').innerHTML = pickable.map((r, i) =>
+    `<option value="${i}">${r.date} — ${r.name || 'untitled'} · ${miles(r).toFixed(1)} mi · ${sgn(r.split_pct_moving)}%</option>`).join('');
+  document.getElementById('pick').onchange = () => drawOne(pickable);
+  document.getElementById('smooth').onchange = () => drawOne(pickable);
+
+  document.querySelectorAll('#mode button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#mode button').forEach(x => x.classList.toggle('on', x === b));
+    MODE = b.dataset.m; redraw(pickable);
+  });
+  document.querySelectorAll('#clock button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#clock button').forEach(x => x.classList.toggle('on', x === b));
+    CLOCK = b.dataset.c; redraw(pickable);
+  });
+
+  buildTable();
+  redraw(pickable);
+});
+
+function redraw(pickable) {
+  document.getElementById('modenote').textContent =
+    (MODE === 'raw' ? 'real distance' : 'flat-equivalent distance (Minetti)') + ' · ' +
+    (CLOCK === 'moving' ? 'stopped time excluded — a traffic light is not pacing'
+                        : 'stopped time included, as an official clock would');
+
+  const V = T.filter(r => val(r) !== null);
+  const neg = V.filter(r => val(r) < 0).length;
+  const negOther = V.filter(r => val(r, MODE === 'adj' ? 'split_pct_moving' : 'split_pct_moving_adj') < 0).length;
+  const med = a => { const s = a.map(r => val(r)).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length/2)] : 0; };
+  const recent = V.filter(r => +r.date.slice(0,4) >= 2020);
+  const early = V.filter(r => +r.date.slice(0,4) < 2020);
+  document.getElementById('tiles').innerHTML = [
+    [V.length, 'training runs of 25 miles or more, 2014–2025 — every one, not just the good ones'],
+    [`${Math.round(100*neg/V.length)}%`, `finish faster than they start (${neg} of ${V.length}) — ${MODE==='adj'?'with the terrain removed':'by the clock'}`],
+    [`${Math.round(100*early.filter(r=>val(r)<0).length/early.length)}% → ${Math.round(100*recent.filter(r=>val(r)<0).length/recent.length)}%`,
+     `before 2020 → 2020 onward (${early.length} runs → ${recent.length}) — the habit forming`],
+    [sgn(med(V)) + '%', 'median split across every long run'],
+  ].map(([n,d]) => `<div class="tile"><div class="n">${n}</div><div class="d">${d}</div></div>`).join('');
+
+  // 27.1 by year
+  const yrs = {};
+  V.forEach(r => { (yrs[r.date.slice(0,4)] = yrs[r.date.slice(0,4)] || []).push(r); });
+  const ys = Object.keys(yrs).sort();
+  const rate = ys.map(y => 100 * yrs[y].filter(r => val(r) < 0).length / yrs[y].length);
+  Plotly.newPlot('byyear', [
+    { x: ys, y: rate, type: 'bar', name: 'share negative',
+      marker: { color: rate.map(v => v >= 50 ? '#2ec4b6' : '#8a97a8') },
+      text: ys.map(y => `n=${yrs[y].length}`), textposition: 'outside',
+      textfont: { color: '#93a1b0', size: 11 }, cliponaxis: false,
+      hovertemplate: '%{x}: %{y:.0f}% of %{text} long runs closed faster<extra></extra>' },
+    { x: ys, y: ys.map(y => med(yrs[y])), yaxis: 'y2', type: 'scatter', mode: 'lines+markers',
+      name: 'median split', line: { color: '#f4c430', width: 2 }, marker: { size: 7 },
+      hovertemplate: '%{x}: median %{y:+.2f}%<extra></extra>' },
+  ], layout({
+    showlegend: true, legend: { orientation: 'h', y: 1.13 },
+    xaxis: { title: 'year', type: 'category', dtick: 1 },
+    yaxis: { title: 'share with a faster second half (%)', range: [0, 100] },
+    yaxis2: { title: 'median split %', overlaying: 'y', side: 'right', zeroline: true,
+              zerolinecolor: '#8fa3b8', showgrid: false, color: '#b9a24a' },
+    shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 50, y1: 50,
+               line: { color: '#4a5768', width: 1, dash: 'dot' } }],
+  }), CFG);
+
+  // 27.2 scatter
+  const V2 = V.filter(r => val(r) !== null);
+  Plotly.newPlot('scatter', [{
+    x: V2.map(r => r.date), y: V2.map(r => clip(val(r), -20, 25)),
+    mode: 'markers', type: 'scatter',
+    marker: {
+      size: V2.map(r => 7 + Math.min(14, (miles(r) - 25) / 2.2)),
+      color: V2.map(r => climbPerKm(r)),
+      colorscale: [[0, '#5aa9e6'], [0.5, '#e08b4c'], [1, '#c96a6a']],
+      cmin: 0, cmax: 40, showscale: true,
+      colorbar: { title: { text: 'm climb<br>per km', side: 'right' }, thickness: 12, len: 0.55, x: 1.02 },
+      symbol: V2.map(r => r.kind === 'solo_effort' ? 'diamond' : 'circle'),
+      line: { color: '#0f1419', width: 1 },
+    },
+    text: V2.map(r => `${r.name || 'untitled'} — ${r.date}<br>${sgn(val(r))}%<br>` +
+      `${miles(r).toFixed(1)} mi · ${r.gain_m} m climb · ${r.stopped_min} min stopped` +
+      (r.in_attempt_log ? '<br><i>also in the attempt log</i>' : '')),
+    hoverinfo: 'text',
+  }], layout({
+    showlegend: false, xaxis: { title: 'date' },
+    yaxis: { title: 'split %  (clipped to −20…+25)', zeroline: true, zerolinecolor: '#8fa3b8', range: [-20, 25] },
+    shapes: [{ type: 'rect', xref: 'paper', x0: 0, x1: 1, y0: -20, y1: 0,
+               fillcolor: 'rgba(46,196,182,0.07)', line: { width: 0 } }],
+  }), CFG);
+
+  // 27.3 by distance band
+  const BANDS = [[25,30,'25–30 mi'],[30,40,'30–40 mi'],[40,50,'40–50 mi'],[50,200,'50 mi +']];
+  const bs = BANDS.map(([lo,hi,l]) => {
+    const v = V.filter(r => miles(r) >= lo && miles(r) < hi);
+    return { l, n: v.length, med: v.length ? med(v) : 0,
+             neg: v.filter(r => val(r) < 0).length };
+  }).filter(b => b.n);
+  Plotly.newPlot('bydist', [{
+    x: bs.map(b => b.l), y: bs.map(b => b.med), type: 'bar',
+    marker: { color: bs.map(b => b.med < 0 ? '#2ec4b6' : '#c96a6a') },
+    text: bs.map(b => `${b.neg}/${b.n} negative`), textposition: 'outside',
+    textfont: { color: '#93a1b0', size: 11 }, cliponaxis: false,
+    hovertemplate: '%{x}: median %{y:+.2f}%<br>%{text}<extra></extra>',
+  }], layout({ showlegend: false, xaxis: { title: 'run distance' },
+    yaxis: { title: 'median split %', zeroline: true, zerolinecolor: '#8fa3b8' } }), CFG);
+
+  drawOne(pickable);
+  verdict(V, neg);
+}
+
+function buildTable() {
+  const rows = [...T].sort((a, b) => b.date.localeCompare(a.date));
+  const cell = v => v === null || v === undefined ? '<span style="color:#5b6673">—</span>'
+    : `<b style="color:${v < 0 ? '#2ec4b6' : v <= 1 ? '#f4c430' : '#c96a6a'}">${sgn(v)}</b>`;
+  document.getElementById('tbl').innerHTML = `<table class="log">
+    <tr><th>Date</th><th>Run</th><th class="num">Miles</th><th class="num">Climb</th>
+        <th class="num">Clock</th><th class="num">Adjusted</th><th class="num">Stop</th></tr>` +
+    rows.map(r => `<tr>
+      <td style="white-space:nowrap">${r.date}</td>
+      <td>${r.name || '<i style="color:#5b6673">untitled</i>'}` +
+        (r.kind === 'solo_effort' ? '<span class="flag solo">solo</span>' : '') +
+        (r.in_attempt_log ? '<span class="flag solo">in log</span>' : '') +
+        (r.flags && r.flags.length ? '<span class="flag">no alt</span>' : '') + `</td>
+      <td class="num" style="color:#93a1b0">${miles(r).toFixed(1)}</td>
+      <td class="num" style="color:#93a1b0">${r.gain_m} m</td>
+      <td class="num">${cell(r.split_pct_moving)}</td>
+      <td class="num">${cell(r.split_pct_moving_adj)}</td>
+      <td class="num" style="color:${r.stopped_min > 20 ? '#d9a441' : '#5b6673'}">${r.stopped_min}′</td>
+    </tr>`).join('') + '</table>';
+}
+
+function drawOne(pickable) {
+  const r = pickable[+document.getElementById('pick').value];
+  if (!r) return;
+  const p = PROF[String(r.activity_id)] || [];
+  const km = [], pace = [], gpace = [], alt = [];
+  for (let i = 1; i < p.length; i++) {
+    const dk = p[i][0] - p[i-1][0], dm = p[i][1] - p[i-1][1];
+    if (dk <= 0 || dm <= 0) continue;
+    km.push(p[i][0]); alt.push(p[i][2]);
+    pace.push(dm / dk);
+    gpace.push(dm / (dk * (p[i][3] || 1)));
+  }
+  const win = document.getElementById('smooth').checked ? Math.max(2, Math.round(km.length / 40)) : 0;
+  const sm = a => !win ? a : a.map((_, i) => {
+    const lo = Math.max(0, i - win), hi = Math.min(a.length, i + win + 1);
+    let s = 0, n = 0;
+    for (let k = lo; k < hi; k++) if (a[k] != null) { s += a[k]; n++; }
+    return n ? s / n : null;
+  });
+  const half = km.length ? km[km.length-1] / 2 : 0;
+  const haveAlt = alt.some(a => a != null);
+  Plotly.newPlot('one', [
+    haveAlt ? { x: km, y: alt, yaxis: 'y2', type: 'scatter', mode: 'lines', name: 'elevation',
+      line: { color: '#3c4a5c', width: 1 }, fill: 'tozeroy', fillcolor: 'rgba(60,74,92,0.35)',
+      hovertemplate: '%{x:.1f} km · %{y:.0f} m<extra></extra>' } : null,
+    { x: km, y: sm(pace), type: 'scatter', mode: 'lines', name: 'pace (min/km)',
+      line: { color: '#5aa9e6', width: 2 },
+      hovertemplate: '%{x:.1f} km · %{y:.2f} min/km<extra></extra>' },
+    { x: km, y: sm(gpace), type: 'scatter', mode: 'lines', name: 'terrain-adjusted pace',
+      line: { color: '#2ec4b6', width: 2, dash: 'dot' },
+      hovertemplate: '%{x:.1f} km · %{y:.2f} min/km flat-equiv<extra></extra>' },
+  ].filter(Boolean), layout({
+    showlegend: true, legend: { orientation: 'h', y: 1.12 },
+    xaxis: { title: 'distance (km)' },
+    yaxis: { title: 'pace (min/km, lower = faster)', autorange: 'reversed' },
+    yaxis2: { title: 'elevation (m)', overlaying: 'y', side: 'right', showgrid: false, color: '#6b7a8d' },
+    shapes: [{ type: 'line', x0: half, x1: half, yref: 'paper', y0: 0, y1: 1,
+               line: { color: '#f4c430', width: 1.5, dash: 'dash' } }],
+    annotations: [
+      { x: half, y: 1, yref: 'paper', text: 'halfway', showarrow: false,
+        font: { color: '#f4c430', size: 11 }, yanchor: 'bottom' },
+      { x: 0, y: 1.0, xref: 'paper', yref: 'paper', yanchor: 'bottom', xanchor: 'left',
+        showarrow: false, font: { color: '#93a1b0', size: 12 },
+        text: `${miles(r).toFixed(1)} mi · clock ${sgn(r.split_pct_moving)}% · ` +
+              `adjusted ${sgn(r.split_pct_moving_adj)}% · ${r.gain_m} m climb · ${r.stopped_min}′ stopped` },
+    ],
+  }), CFG);
+}
+
+function verdict(V, neg) {
+  const early = V.filter(r => +r.date.slice(0,4) < 2020);
+  const recent = V.filter(r => +r.date.slice(0,4) >= 2020);
+  const pct = a => Math.round(100 * a.filter(r => val(r) < 0).length / a.length);
+  const long = V.filter(r => miles(r) >= 40);
+  document.getElementById('verdict').innerHTML =
+    `<b>The habit is visible in the training long before it is reliable in the races.</b> ` +
+    `Across ${V.length} unwatched long runs the second half is the faster one ` +
+    `${Math.round(100*neg/V.length)}% of the time — and the rate moves, from ${pct(early)}% before 2020 ` +
+    `(${early.length} runs) to ${pct(recent)}% from 2020 on (${recent.length} runs), the same years the ` +
+    `<a href="n1.html">attempt log</a> starts converting at 100 miles and then at 24 hours. ` +
+    `It thins out with distance: over 40 miles the rate is ${pct(long)}% across ${long.length} runs, which is ` +
+    `where a long run stops being a pace exercise and starts being an all-day outing with stops in it. ` +
+    `Nothing here was scored at the time, which is the point — this is what the default looks like when ` +
+    `nobody is watching, and a default is what a skill becomes.`;
+}
+</script>
+</main></body></html>
