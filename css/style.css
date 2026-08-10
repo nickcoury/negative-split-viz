@@ -31,9 +31,58 @@ select,input[type=text]{background:#0d1219;color:var(--ink);border:1px solid var
 .idxgroup ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
 .idxgroup li{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
 .idxgroup li .t{font-weight:600} .idxgroup li .d{color:var(--muted);font-size:13px;margin-top:3px}
+/* The page NUMBER is an identifier, not a name - pages cross-reference each
+   other by it ("see Exploration 16"), so it has to stay visible, but leading
+   with it made the index read as a jumbled numeric list because the argument's
+   order is not the build order. Badge it and let the name lead. */
+.idxgroup li .n{display:inline-block;min-width:22px;padding:1px 6px;margin-right:8px;border-radius:6px;
+  background:#0d1219;border:1px solid var(--line);color:var(--muted);
+  font-size:11.5px;font-weight:600;text-align:center;vertical-align:2px}
+.idxgroup li a{display:block}
+.idxgroup li a:hover{text-decoration:none} .idxgroup li a:hover .t{text-decoration:underline}
 .tabs{display:flex;gap:8px;margin:4px 0 12px}
 .tabs button{background:#0d1219;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:6px 14px;cursor:pointer;font-size:14px}
 .tabs button.active{background:var(--accent);color:#04121f;border-color:var(--accent);font-weight:600}
 .tabpage{display:none} .tabpage.active{display:block}
 code{background:#0d1219;padding:1px 5px;border-radius:5px;font-size:13px}
 .todo{color:var(--muted);font-size:13px}
+
+/* ---------------------------------------------------------------- phones --
+   Audited at 390px across all 28 pages. Four failure patterns, in the order
+   they hurt:
+
+   1. A <select> is sized by its LONGEST OPTION, and several pickers hold
+      "Athlete — 2019 IAU 24H World Championship — 267.96 km". That made the
+      SELECT 686px wide inside a 390px viewport and pushed the whole document
+      sideways, so every page below it scrolled horizontally and the text
+      ran off the screen. Six pages did this. `max-width:100%` is the entire
+      fix; the option list still opens at full width natively.
+   2. Fixed chart heights (460/560px) against a ~316px column produce a
+      portrait strip - the data gets squeezed into a sliver while the axis
+      furniture keeps its full size. Charts that set their height in JS are
+      left alone: those are categorical strips whose height IS their row
+      count, and shrinking them would overlap the labels.
+   3. Wide content has to scroll INSIDE its card, never move the page. The
+      rule below is deliberately on .card rather than on each table, because
+      pages inject tables into bare divs and any new one would otherwise
+      reintroduce pattern 1.
+   4. Plotly's pixel margins are desktop assumptions (l:230 leaves 86px of
+      plot area at this width) - fixed in js/common.js `layout()`, which
+      every chart on every page already goes through. */
+@media (max-width: 640px) {
+  main{padding:16px 14px 60px}
+  h1{font-size:21px} h2{font-size:17px}
+  body{font-size:14.5px}
+  .card{padding:12px 12px;overflow-x:auto}
+  .chart{height:330px} .chart.tall{height:400px}
+  .grid{grid-template-columns:1fr}
+  .idxgroup ul{grid-template-columns:1fr}
+  .controls{gap:10px}
+  .controls label{display:flex;align-items:center;gap:6px;width:100%}
+  select,input[type=text]{max-width:100%}
+  .tabs{flex-wrap:wrap}
+  header.nav{padding:8px 14px}
+}
+/* Unconditional: a picker must never be able to widen the document, at any
+   viewport. This is the one-line guard behind pattern 1 above. */
+select{max-width:100%}

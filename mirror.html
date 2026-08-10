@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>19 · The marathon mirror</title>
-<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 <script src="lib/plotly.min.js"></script>
 <style>
 .finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
@@ -10,7 +10,7 @@
 .srcs{color:var(--muted);font-size:12.5px;margin-top:8px}
 </style>
 </head><body>
-<script src="js/common.js?v=650afe93"></script>
+<script src="js/common.js?v=ebb14d35"></script>
 <main>
 <h1>19 · The marathon mirror</h1>
 <p class="sub">
@@ -86,12 +86,20 @@ WR.forEach(w=>w.pct = 100*(w.s2-w.s1)/(w.s1+w.s2));
 loadData().then(({results, meta})=>{
   // 19.1 WR splits
   const cols = WR.map(w=>w.pct<0 ? '#2ec4b6' : '#f4c430');
+  // On a phone there is no room for a 290px label gutter AND a 150px lane of
+  // outside text: the labels clip mid-word and the values run off the edge. So
+  // the value moves INTO the tick label on a second line, and the outside text
+  // is dropped - same information, one column instead of three.
+  const wrLab = w => isPhone()
+    ? `${w.who.split(' (')[0]}<br>${w.pct>0?'+':''}${w.pct.toFixed(2)}%`
+    : w.who;
   Plotly.newPlot('wr', [{
-    y:WR.map(w=>w.who), x:WR.map(w=>w.pct), type:'bar', orientation:'h',
+    y:WR.map(wrLab), x:WR.map(w=>w.pct), type:'bar', orientation:'h',
     marker:{color:cols}, cliponaxis:false,
     text:WR.map(w=>`${w.h1} / ${w.h2} → ${w.pct>0?'+':''}${w.pct.toFixed(2)}%`),
-    textposition:'outside', textfont:{color:'#e6edf3', size:12},
-    hovertemplate:'%{y}<br>halves %{text}<extra></extra>',
+    textposition: isPhone() ? 'none' : 'outside', textfont:{color:'#e6edf3', size:12},
+    customdata:WR.map(w=>`${w.who}<br>halves ${w.h1} / ${w.h2}`),
+    hovertemplate:'%{customdata} → %{x:.2f}%<extra></extra>',
   }], layout({margin:{l:290, r:150, t:10, b:50}, showlegend:false,
     xaxis:{title:'split %  (negative = faster second half)', range:[-2,2], zeroline:true,
            zerolinecolor:'#8fa3b8'},
@@ -107,13 +115,17 @@ loadData().then(({results, meta})=>{
     ['Top-50 all-time 24h marks (this dataset)', med(top50.map(r=>r.split)), '#e08b4c', `n=50, computed live`],
     [`All elite 24h halves (n=${h24.length.toLocaleString()})`, med(h24.map(r=>r.split)), '#c96a6a', 'computed live'],
   ];
+  const rungLab = r => isPhone()
+    ? `${r[0].replace(/ \(.*/,'').replace(/ \(n=.*/,'')}<br>${r[1]>0?'+':''}${r[1].toFixed(1)}%`
+    : r[0];
   Plotly.newPlot('ladder', [{
-    y:rungs.map(r=>r[0]), x:rungs.map(r=>r[1]), type:'bar', orientation:'h',
+    y:rungs.map(rungLab), x:rungs.map(r=>r[1]), type:'bar', orientation:'h',
     marker:{color:rungs.map(r=>r[2])}, cliponaxis:false,
-    text:rungs.map(r=>`${r[1]>0?'+':''}${r[1].toFixed(1)}%`), textposition:'outside',
+    text:rungs.map(r=>`${r[1]>0?'+':''}${r[1].toFixed(1)}%`),
+    textposition: isPhone() ? 'none' : 'outside',
     textfont:{color:'#e6edf3', size:13},
     customdata:rungs.map(r=>r[3]),
-    hovertemplate:'%{y}<br>median split %{x:.1f}%<br>%{customdata}<extra></extra>',
+    hovertemplate:'median split %{x:.1f}%<br>%{customdata}<extra></extra>',
   }], layout({margin:{l:290, r:70, t:10, b:50}, showlegend:false,
     xaxis:{title:'median split %', zeroline:true, zerolinecolor:'#8fa3b8'},
     yaxis:{autorange:'reversed'}}), CFG);

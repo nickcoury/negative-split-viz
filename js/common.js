@@ -119,6 +119,99 @@ function attachWide(id, wideW = 1200) {
   };
 }
 
-function layout(overrides) { return Object.assign({}, structuredClone(BASE_LAYOUT), overrides || {}); }
+// --- phone layout ----------------------------------------------------------
+// Every chart on every page builds its layout through layout(), which makes
+// this the one place a viewport rule can reach all 28 of them.
+//
+// Plotly margins are PIXELS, and the pages were written at ~1100px wide. A
+// category strip asks for margin.l = 230 to fit athlete names; on a 316px
+// phone column that leaves 86px of plot - the chart becomes a label list with
+// a stripe of data next to it. Same for legends, which sit beside the plot by
+// default and eat a third of the width.
+//
+// The rules: clamp side margins to a fraction of the actual width, drop the
+// font a point, and push legends above the plot horizontally. Axis TITLES are
+// left alone - they are what makes a chart readable to someone who did not
+// write it, and dropping them to buy pixels is the wrong trade.
+//
+// automargin beats an explicit margin, so a page with long category labels
+// must also shorten them - see shortLabel().
+const PHONE_W = 640;
+function isPhone() { return window.innerWidth <= PHONE_W; }
+
+function layout(overrides) {
+  const lay = Object.assign({}, structuredClone(BASE_LAYOUT), overrides || {});
+  if (!isPhone()) return lay;
+  const w = window.innerWidth;
+  const m = Object.assign({ l: 60, r: 20, t: 30, b: 50 }, lay.margin || {});
+  // Never spend more than ~38% of the width on the left gutter. Horizontal bar
+  // charts legitimately need a wide one for their category labels, so the cap
+  // is a compromise, not a target - a page with labels that do not fit in it
+  // must shorten them (shortLabels) or wrap them onto two lines.
+  m.l = Math.min(m.l, Math.max(44, Math.round(w * 0.38)));
+  // The right gutter is only safe to reclaim when nothing is drawn in it.
+  // `textposition:'outside'` on a horizontal bar puts the value labels there,
+  // and squeezing r to 16 clipped them mid-string on the marathon-mirror
+  // charts - a fix for one chart that broke another. Pages that keep outside
+  // text on a phone keep their right margin.
+  m.r = lay.annotations && lay.annotations.length ? m.r : Math.min(m.r, 16);
+  m.t = Math.min(m.t, 34);
+  lay.margin = m;
+  lay.font = Object.assign({}, lay.font, { size: 11 });
+  if (lay.legend !== null) {
+    lay.legend = Object.assign({}, lay.legend, {
+      orientation: 'h', x: 0, xanchor: 'left',
+      y: (lay.legend && lay.legend.y !== undefined && lay.legend.y > 1) ? lay.legend.y : 1.02,
+      yanchor: 'bottom', font: { size: 10 },
+    });
+  }
+  return lay;
+}
+
+/** Shorten category labels (athlete names, event names) for a phone's y axis,
+ *  returning a full-label -> short-label map. Desktop gets identity.
+ *
+ *  automargin:true tells Plotly to widen the margin until the longest label
+ *  fits, which silently defeats the clamp in layout() - on the repeat-splitter
+ *  strip it took 245 of 336px, leaving a stripe of plot and pushing the legend
+ *  off to the right. The only way to get the width back is to make the label
+ *  itself shorter.
+ *
+ *  It TRUNCATES rather than extracting a surname, because this dataset has no
+ *  reliable name order: "Coury Nick" and "HOSL Patrick" are surname-first,
+ *  "Olivier Leblond" is not, and "Fatton, Julia" is comma-separated. Taking
+ *  the last token would label Patrick Hosl "Patrick". Truncation is never
+ *  wrong, and the hover text carries the full name.
+ *
+ *  Collisions would be worse than long labels - two athletes sharing a
+ *  truncated label become ONE category row on a Plotly category axis, silently
+ *  merging their races - so the cut only applies if it stays unique. */
+function shortLabels(names, max = 14) {
+  const map = new Map(names.map(n => [n, n]));
+  if (!isPhone()) return map;
+  const cut = n => n.length <= max ? n : n.slice(0, max - 1).trimEnd() + '…';
+  const shortened = names.map(cut);
+  if (new Set(shortened).size !== new Set(names).size) return map;   // collision: keep full
+  names.forEach((n, i) => map.set(n, shortened[i]));
+  return map;
+}
+
+// Refit on rotate/resize. Only the WIDTH is refitted: the margin clamp above
+// runs when a chart is built, and Plotly keeps the computed layout, so a chart
+// first drawn in portrait keeps its portrait gutter in landscape - tighter
+// than it needs to be, never broken.
+//
+// Do NOT reach for a page-defined redraw hook here. `window.redraw` looks like
+// the obvious convention and is already taken: races.html and training.html
+// define their own `redraw(pickable)` at top level, so calling it with no
+// argument threw on every resize of those two pages. Any future hook needs a
+// namespaced name and pages that opt in explicitly.
+let _rzTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(_rzTimer);
+  _rzTimer = setTimeout(() => {
+    document.querySelectorAll('.js-plotly-plot').forEach(el => Plotly.Plots.resize(el));
+  }, 200);
+});
 function mean(a) { return a.reduce((s, x) => s + x, 0) / a.length; }
 function fmtHMS(h){const s=Math.round(h*3600);return `${Math.floor(s/3600)}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}

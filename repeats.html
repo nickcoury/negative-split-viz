@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>28 · Twice — the repeat negative splitters</title>
-<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 <script src="lib/plotly.min.js"></script>
 <style>
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0}
@@ -40,7 +40,7 @@ table.sub td.race{color:var(--ink)}
 .sm{color:var(--muted);font-size:12px}
 </style>
 </head><body>
-<script src="js/common.js?v=650afe93"></script>
+<script src="js/common.js?v=ebb14d35"></script>
 <main>
 <h1>28 · Twice — the repeat negative splitters</h1>
 <p class="sub">
@@ -314,7 +314,10 @@ Promise.all([
   // WHICH efforts are drawn (a 24-hour race and the hundred inside it are
   // different races on different axes - see the header caveat), and WHAT the
   // colour encodes.
+  // Phone y-axis labels: truncated names, full names still in every hover.
   const names = P.map(p=>p.name);
+  const LBL = shortLabels(names);
+  const lbl = n => LBL.get(n) || n;
   // One point per (race, effort) pair, flattened once and filtered per draw.
   const pts = [];
   P.forEach(p=>p.races.forEach(r=>r.perf.forEach(f=>pts.push({
@@ -333,7 +336,7 @@ Promise.all([
       const g = groupOf(d.f, ck);
       if (!groups.has(g.key)) groups.set(g.key, {...g, pts:[]});
       groups.get(g.key).pts.push({
-        x: xk==='split' ? Math.min(v, XCAP) : v, clip: xk==='split' && v>XCAP, y: d.p,
+        x: xk==='split' ? Math.min(v, XCAP) : v, clip: xk==='split' && v>XCAP, y: lbl(d.p),
         t: `<b>${d.p}</b><br>${d.r.year} ${d.r.series.replace(/ \[duv:\d+\]/,'')}` +
            (d.r.place ? ` · place ${d.r.place}` : '') +
            (d.r.final_km ? `<br>${d.r.final_km} km` : '') +
@@ -365,7 +368,7 @@ Promise.all([
               gridcolor:'#263140', zeroline:false,
               range: xk==='split' ? [-13, XCAP+2]
                 : [Math.min(-13, Math.min(...xs)-2), Math.max(...xs)+2] },
-      yaxis:{ categoryorder:'array', categoryarray:[...names].reverse(), gridcolor:'#1c2530',
+      yaxis:{ categoryorder:'array', categoryarray:[...names].map(lbl).reverse(), gridcolor:'#1c2530',
               automargin:true, tickfont:{size:12} },
       legend:{orientation:'h', y:1.06, x:0},
       shapes: guides.map(([x,c,w,dash])=>({type:'line', x0:x, x1:x, yref:'paper',
@@ -663,17 +666,17 @@ Promise.all([
   }).filter(Boolean).sort((a,b)=>(a.hit-a.oth)-(b.hit-b.oth));
   const seg = [];
   db.forEach(d=>seg.push(
-    {x:[d.oth,d.hit], y:[d.name,d.name], mode:'lines', type:'scatter',
+    {x:[d.oth,d.hit], y:[lbl(d.name),lbl(d.name)], mode:'lines', type:'scatter',
      line:{color:d.hit>=d.oth?'#2a6b64':'#5a3a3a', width:3}, hoverinfo:'skip', showlegend:false}));
   Plotly.newPlot('dumb', [...seg,
-    { name:'their other races', x:db.map(d=>d.oth), y:db.map(d=>d.name), mode:'markers',
+    { name:'their other races', x:db.map(d=>d.oth), y:db.map(d=>lbl(d.name)), mode:'markers',
       type:'scatter', marker:{size:11, color:'#8a97a8'},
-      text:db.map(d=>`${d.no} other race${d.no>1?'s':''}, mean ${d.oth.toFixed(1)} km`),
-      hovertemplate:'%{y}<br>%{text}<extra></extra>' },
-    { name:'their negative/even races', x:db.map(d=>d.hit), y:db.map(d=>d.name), mode:'markers',
+      text:db.map(d=>`<b>${d.name}</b><br>${d.no} other race${d.no>1?'s':''}, mean ${d.oth.toFixed(1)} km`),
+      hovertemplate:'%{text}<extra></extra>' },
+    { name:'their negative/even races', x:db.map(d=>d.hit), y:db.map(d=>lbl(d.name)), mode:'markers',
       type:'scatter', marker:{size:13, color:'#f4c430'},
-      text:db.map(d=>`${d.nh} negative/even race${d.nh>1?'s':''}, mean ${d.hit.toFixed(1)} km`),
-      hovertemplate:'%{y}<br>%{text}<extra></extra>' },
+      text:db.map(d=>`<b>${d.name}</b><br>${d.nh} negative/even race${d.nh>1?'s':''}, mean ${d.hit.toFixed(1)} km`),
+      hovertemplate:'%{text}<extra></extra>' },
   ], layout({
     height: Math.max(340, db.length*30+120), margin:{l:230,r:30,t:34,b:46},
     xaxis:{title:'mean 24-hour distance (km)', gridcolor:'#263140'},

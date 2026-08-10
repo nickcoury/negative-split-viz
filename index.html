@@ -1,83 +1,128 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Negative-Split Explorer</title>
-<link rel="stylesheet" href="css/style.css?v=26c4ebe0">
+<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 </head><body>
-<script src="js/common.js?v=650afe93"></script>
+<script src="js/common.js?v=ebb14d35"></script>
 <main>
 <h1>Negative-Split Explorer</h1>
 <p class="sub" id="stats">loading…</p>
-<p class="sub">How rare are negative and even splits among elite ultrarunners, and do world-class efforts pace
-more evenly? These pages explore a research dataset built from official results and lap data.
+<p class="sub">How rare are negative and even splits among elite ultrarunners, and do world-class efforts
+pace more evenly? These pages explore a research dataset built from official results and lap data.
 <b>Work in progress — findings are preliminary and the full analysis is not yet published.</b></p>
 
 <div class="idxgroup">
-<h2>The argument, in order</h2>
-<p class="sub">Seven pages that build the paper's case for a skeptical reader — each one states its own
-caveats. Start here.</p>
+<h2>Start here — the argument, in reading order</h2>
+<p class="sub">The paper's case, built for a skeptical reader. Each page states its own caveats. The
+badge is the page's number, which the cross-references between pages use; the order below is the
+argument's, not the number's.</p>
 <ul>
-  <li><a href="census.html"><span class="t">17 · The Census</span></a>
-      <div class="d"><b>Negative splits are real but rare, and mostly accidents.</b> Every lap-resolved negative/even 24h split given a verdict: held back · metronome · overcooked · stop&amp;recover — the 46 split 5/12/22/7.</div></li>
-  <li><a href="repeats.html"><span class="t">28 · Twice — the repeat splitters</span></a>
-      <div class="d"><b>It clusters in people, and that is not luck.</b> 19 athletes have split negative or even in two or more separate races, where a permutation holding each event's own rate and each athlete's finishing quartile fixed expects 7 (p&nbsp;&lt;&nbsp;0.001); a race by an athlete with form elsewhere runs negative 5.7× as often. Only 4 have two strictly negative races, and only 1 has two negative full days.</div></li>
-  <li><a href="mirror.html"><span class="t">19 · The marathon mirror</span></a>
-      <div class="d"><b>The assumption gap is real.</b> Verified WR splits (all within ~1% of even) and the published pacing literature vs this dataset's +14% median elite fade.</div></li>
-  <li><a href="careers.html"><span class="t">18 · Your best day is your most even</span></a>
-      <div class="d"><b>Within careers, evenness tracks peak performance.</b> 590 athletes vs themselves; the staircase from +5% splits (75th career percentile) to +30% (13th). What it can and cannot conclude.</div></li>
-  <li><a href="lenses.html"><span class="t">21 · Three lenses, and two of them lie</span></a>
-      <div class="d"><b>The confounds, taken seriously.</b> The chart that flatters even pacing, the chart that flatters banking, why each lies — and the matched-pairs design (same race, same halfway distance) where the evener arrival wins 64% by +7 km.</div></li>
-  <li><a href="anatomy.html"><span class="t">22 · The anatomy of the fade</span></a>
-      <div class="d"><b>The fade is collapse, not destiny.</b> Median 62% of second-half time-loss is discrete bad patches, foreshadowed before halfway; the five deliberate runs never leave ±4% while the field swings 46 points.</div></li>
-  <li><a href="attempts.html"><span class="t">20 · Nobody is shooting threes</span></a>
-      <div class="d"><b>The strategy is untested, not disproven.</b> 9 of 3,264 elite full-day efforts ever opened at/below their own final average; six of the nine landed negative or even, none blew up.</div></li>
-  <li><a href="n1.html"><span class="t">23 · N = 1 — the attempt log</span></a>
-      <div class="d"><b>What practicing the skill looks like.</b> 65 self-recorded attempts over 15 years, 62% success, transferring up-distance until the American Record — presented as anecdote and as a template.</div></li>
-  <li><a href="races.html"><span class="t">26 · Every race — the full career</span></a>
-      <div class="d"><b>How much of a trail split is the hill?</b> All 65 logged races re-measured from the athlete's own GPS tracks, with a terrain-adjustment toggle: 37 negative splits by the clock, 27 once the ground is levelled — and the whole loss is in the mountains.</div></li>
-  <li><a href="training.html"><span class="t">27 · The training — where the habit was built</span></a>
-      <div class="d"><b>The default when nobody is watching.</b> Every long run of 25+ miles, 119 of them, none logged as attempts: the faster-second-half rate climbs from 40% before 2020 to 61% after, tracking the years the races started converting.</div></li>
-  <li><a href="engine.html"><span class="t">24 · The engine room</span></a>
-      <div class="d"><b>Even pace was even effort.</b> Per-mile heart rate from the AR run: −1.6% Pa:HR decoupling over 24 hours, 8.8 min stopped all day; the Dome 100 closed fastest at 17 bpm below its opening.</div></li>
-  <li><a href="agenda.html"><span class="t">25 · The experiment nobody has run</span></a>
-      <div class="d"><b>The protocol, not a verdict.</b> The paper's five claims, and the four asks: attempt logs with pre-declared plans, published lap data, a season-long cohort study, and the three-point long game.</div></li>
+  <li><a href="census.html"><span class="n">17</span><span class="t">How negative splits actually happen</span></a>
+      <div class="d">A verdict for every lap-resolved negative/even 24-hour split — held back, metronome,
+      overcooked, or stop-and-recover. <b>The 46 split 5 / 12 / 22 / 7: most are accidents.</b></div></li>
+  <li><a href="mirror.html"><span class="n">19</span><span class="t">Marathon pacing vs ultra pacing</span></a>
+      <div class="d">Verified marathon world-record halves and the published pacing literature, set
+      against this dataset. <b>Marathon records run within ~1% of even; elite 24-hour fields fade +14%.</b></div></li>
+  <li><a href="careers.html"><span class="n">18</span><span class="t">Evenness inside a single career</span></a>
+      <div class="d">590 athletes compared only with themselves, which removes the ability confound.
+      <b>An athlete's best day is usually their most even one.</b></div></li>
+  <li><a href="repeats.html"><span class="n">28</span><span class="t">Who has done it more than once</span></a>
+      <div class="d">Every athlete with two or more negative or even races, and a permutation test on
+      whether that clusters. <b>19 have done it twice; chance predicts 7.</b></div></li>
+  <li><a href="attempts.html"><span class="n">20</span><span class="t">How often anyone even tries</span></a>
+      <div class="d">Measures the attempt rather than the outcome: who ever opened conservatively?
+      <b>9 of 3,264 full-day efforts — the rarity is mostly the rarity of trying.</b></div></li>
+  <li><a href="lenses.html"><span class="n">21</span><span class="t">The confounds, and a design that survives them</span></a>
+      <div class="d">Two charts that look like evidence and are not, why each fails, and a matched-pairs
+      test that holds race and halfway distance fixed. <b>The evener arrival wins 64% of pairs.</b></div></li>
+  <li><a href="anatomy.html"><span class="n">22</span><span class="t">What the fade is actually made of</span></a>
+      <div class="d">Second-half time-loss broken into gradual drift and discrete bad patches.
+      <b>62% is bad patches, and they are foreshadowed before halfway.</b></div></li>
+  <li><a href="n1.html"><span class="n">23</span><span class="t">One athlete's attempt log</span></a>
+      <div class="d">65 self-recorded pacing attempts over 15 years, kept outside the database by design
+      and presented as anecdote. <b>62% success, transferring up in distance last.</b></div></li>
+  <li><a href="races.html"><span class="n">26</span><span class="t">Every race in that log, measured from GPS</span></a>
+      <div class="d">The same career re-measured from the athlete's own tracks, with a terrain-adjustment
+      toggle. <b>37 negative splits by the clock, 27 once the ground is levelled.</b></div></li>
+  <li><a href="training.html"><span class="n">27</span><span class="t">Every long run, when nobody is watching</span></a>
+      <div class="d">119 non-race runs of 25+ miles — the unlogged default, not the attempts.
+      <b>Faster second half on 40% before 2020, 61% after.</b></div></li>
+  <li><a href="engine.html"><span class="n">24</span><span class="t">Heart rate behind an even pace</span></a>
+      <div class="d">Per-mile heart rate and stopped time from the American Record run.
+      <b>−1.6% Pa:HR decoupling over 24 hours; 8.8 minutes stopped all day.</b></div></li>
+  <li><a href="agenda.html"><span class="n">25</span><span class="t">What would actually settle this</span></a>
+      <div class="d">The discussion section: the paper's five claims, what each still rests on, and the
+      four things the sport would have to publish or run to test them.</div></li>
 </ul>
 </div>
 
 <div class="idxgroup">
-<h2>Built — explorations</h2>
+<h2>Browse the data</h2>
+<p class="sub">Start from a performance, an athlete, or a filter, rather than from an argument.</p>
 <ul>
-  <li><a href="scatter.html"><span class="t">Scatter — Split vs Performance</span></a>
-      <div class="d">Seed #1. Split % vs final distance (24h) / finish time (100mi). Tabs per discipline; color by class or sex; distance filter.</div></li>
-  <li><a href="foresight.html"><span class="t">2 · Foresight</span></a>
-      <div class="d">Seed #2. Projecting from your average pace <i>so far</i> (start→point). Even/neg rich-lap races — overlay, single, small-multiples; 100mi &amp; 24h; above the line = ahead of your average.</div></li>
-  <li><a href="hindsight.html"><span class="t">3 · Hindsight / Green Line</span></a>
-      <div class="d">The mirror: average pace from each point <i>to the end</i>. A negative split starts on the line and climbs above it as the fast close accumulates.</div></li>
-  <li><a href="shapes-adv.html"><span class="t">Shape Metrics</span></a>
-      <div class="d">Full rich cohort (n≈705): first-vs-second-half, late surge, steadiness, quarter-by-quarter signature curves, even/neg quarter heatmap.</div></li>
-  <li><a href="aggregate.html"><span class="t">Aggregate</span></a>
-      <div class="d">Distribution, place-band (core question), split-vs-place, sex, tier, over-time, in-race-100mi green line.</div></li>
-  <li><a href="relative.html"><span class="t">Relative Performance</span></a>
-      <div class="d">Gap-to-winner vs split, within-field percentile vs split, and an "even = your best?" optimality view.</div></li>
-  <li><a href="cohorts.html"><span class="t">Cohorts</span></a>
-      <div class="d">Rarity by tier/decade/sex, mean split by country, field-quality vs evenness, split vs age.</div></li>
-  <li><a href="athletes.html"><span class="t">Athletes</span></a>
-      <div class="d">Repeat even/negative splitters and a per-athlete career history (24h + in-race 100mi).</div></li>
-  <li><a href="gallery.html"><span class="t">Gallery</span></a>
-      <div class="d">Sortable/filterable table of every even &amp; negative performance; ◆ marks ones with a race shape.</div></li>
-  <li><a href="intent.html"><span class="t">16 · Intentional vs accidental</span></a>
-      <div class="d">Foresight + hindsight + instantaneous pace on one scale, scored in <b>seconds of intentionality</b> — the mean gap in s/mi between what you were on pace for and what you averaged, which separates a planned negative split from one that fell out of a bad patch.</div></li>
-  <li><a href="facets.html"><span class="t">10 · Facets &amp; distributions</span></a>
-      <div class="d">Seed scatter faceted by tier &amp; decade (small multiples); final-distance distribution by split class; split by venue type.</div></li>
-  <li><a href="fielddyn.html"><span class="t">11 · Field dynamics</span></a>
-      <div class="d">Fade-point distribution, survival curve (fraction still on even pace, by tier), and places gained from halfway to finish vs split. Rich cohort.</div></li>
-  <li><a href="archetypes.html"><span class="t">12 · Pacing archetypes &amp; replay</span></a>
-      <div class="d">2-D archetype quadrants (go-out-hard-fade … held-back-kick), mean shape men vs women, and an animated single-race replay vs the even-pace ghost.</div></li>
-  <li><a href="records.html"><span class="t">13 · Record-attempt pacing</span></a>
-      <div class="d">Caliber (% of dataset best) vs split, with a spotlight slider — do the near-record efforts pace more evenly?</div></li>
-  <li><a href="spotlight.html"><span class="t">14 · Nick Coury spotlight</span></a>
-      <div class="d">Every Coury performance annotated + his in-race pace shapes, anchored on the 2021 Desert Solstice AR.</div></li>
-  <li><a href="builder.html"><span class="t">15 · Build-a-cohort</span></a>
-      <div class="d">Pick filters (discipline, sex, tier, years, distance) and watch the split distribution + finishing-band gradient update live.</div></li>
+  <li><a href="scatter.html"><span class="n">1</span><span class="t">Split vs performance</span></a>
+      <div class="d">The core scatter: split % against final distance (24-hour) or finish time
+      (100-mile). Click any point for the full performance.</div></li>
+  <li><a href="gallery.html"><span class="n">9</span><span class="t">Every even &amp; negative performance</span></a>
+      <div class="d">Sortable, filterable table of the whole even/negative set, flagging which ones
+      have a lap-by-lap race shape behind them.</div></li>
+  <li><a href="builder.html"><span class="n">15</span><span class="t">Build a cohort</span></a>
+      <div class="d">Pick discipline, sex, tier, years and distance, and watch the split distribution
+      and the finishing-band gradient update live.</div></li>
+  <li><a href="athletes.html"><span class="n">8</span><span class="t">One athlete's history</span></a>
+      <div class="d">Pick a name and see their whole career of classified races, 24-hour and embedded
+      100-mile together.</div></li>
+  <li><a href="spotlight.html"><span class="n">14</span><span class="t">Nick Coury's performances</span></a>
+      <div class="d">Every result for the dataset's owner, annotated, anchored on the 2021 Desert
+      Solstice American Record.</div></li>
+</ul>
+</div>
+
+<div class="idxgroup">
+<h2>Race shapes — how a single race unfolds</h2>
+<p class="sub">These need lap-by-lap data, so they cover the ~140 lap-resolved events rather than the
+whole dataset.</p>
+<ul>
+  <li><a href="intent.html"><span class="n">16</span><span class="t">Intentional vs accidental</span></a>
+      <div class="d">The metric the census runs on: <b>seconds of intentionality</b> — the mean gap in
+      s/mi between what an athlete was on pace for and what they finally averaged.</div></li>
+  <li><a href="foresight.html"><span class="n">2</span><span class="t">Projected finish, from your pace so far</span></a>
+      <div class="d">What each point of the race projected to, given the average pace up to it.
+      Overlay, single race, or small multiples.</div></li>
+  <li><a href="hindsight.html"><span class="n">3</span><span class="t">Pace from here to the end</span></a>
+      <div class="d">The mirror image: average pace from each point to the finish. A negative split
+      starts on the line and climbs above it.</div></li>
+  <li><a href="shapes-adv.html"><span class="n">4</span><span class="t">Shape metrics</span></a>
+      <div class="d">First half vs second half, late surge, steadiness, and quarter-by-quarter
+      signature curves across the full rich-lap cohort.</div></li>
+  <li><a href="archetypes.html"><span class="n">12</span><span class="t">Pacing archetypes &amp; race replay</span></a>
+      <div class="d">Two-dimensional archetype quadrants from go-out-hard-and-fade to held-back-kick,
+      plus an animated replay of one race against its even-pace ghost.</div></li>
+</ul>
+</div>
+
+<div class="idxgroup">
+<h2>The field — cohorts, tiers and eras</h2>
+<p class="sub">Cuts across the full dataset rather than into one race.</p>
+<ul>
+  <li><a href="aggregate.html"><span class="n">5</span><span class="t">Distributions and finishing bands</span></a>
+      <div class="d">The split distribution, and the core question: mean split by finishing-place band,
+      by sex, by tier, and over time.</div></li>
+  <li><a href="cohorts.html"><span class="n">7</span><span class="t">Rarity by tier, decade, country and age</span></a>
+      <div class="d">Where even and negative splits are more and less common, and whether field quality
+      tracks field evenness.</div></li>
+  <li><a href="facets.html"><span class="n">10</span><span class="t">Split vs distance, faceted</span></a>
+      <div class="d">The core scatter broken into small multiples by championship tier and by decade,
+      plus split by venue type.</div></li>
+  <li><a href="fielddyn.html"><span class="n">11</span><span class="t">Fade point, survival and places gained</span></a>
+      <div class="d">When each runner's fade begins, how much of a field is still on even pace as the
+      race goes on, and what pacing buys in placings.</div></li>
+  <li><a href="relative.html"><span class="n">6</span><span class="t">Gap to the winner, and within-field percentile</span></a>
+      <div class="d">Split against relative rather than absolute performance, plus a per-athlete
+      "was even your best?" view.</div></li>
+  <li><a href="records.html"><span class="n">13</span><span class="t">Record-caliber efforts</span></a>
+      <div class="d">Caliber as a percentage of the dataset's best, against split — do the near-record
+      runs pace more evenly?</div></li>
 </ul>
 </div>
 
