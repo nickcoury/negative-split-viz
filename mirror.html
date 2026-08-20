@@ -17,7 +17,11 @@
 The premise of this project is a contrast: <b>in the marathon, the negative split is coached as the ideal;
 in 24-hour racing it is nearly extinct in practice.</b> This page pins down the marathon half of that
 sentence with external, verifiable numbers — world-record splits and the published literature — so the
-contrast the rest of the site measures isn't resting on folklore.</p>
+contrast the rest of the site measures isn't resting on folklore.
+<b>As of Aug 2026 it no longer has to rest on five hand-typed records either:</b> elite marathon fields
+are now in the research database on the same terms as everything else — same halves method, same
+asymmetric band, every finisher under 2:12 (men) / 2:25 (women), not just the famous ones. Chart 19.3
+is that measurement.</p>
 
 <div class="card">
   <h3>Chart 19.1 — Every current-era marathon world record was run within ~1% of even</h3>
@@ -41,6 +45,18 @@ contrast the rest of the site measures isn't resting on folklore.</p>
   24-hour fields fade harder than the recreational marathon public</b> — the group the pacing literature
   scolds for going out too fast.</div>
   <div id="ladder" class="chart" style="height:380px"></div>
+</div>
+
+<div class="card">
+  <h3>Chart 19.3 — The marathon, measured: every qualifying finisher, not just the records</h3>
+  <div class="note">Elite marathon halves now in the database, one point per performance.
+  <b>The halfway point here is not estimated</b> — an elite marathon times a HALF mat at 21.0975 km, so
+  unlike every 24-hour value on this site (interpolated at best, snapped to the last complete lap at
+  worst) these are the timing system's own numbers. Hover for the athlete. The dashed lines are the
+  even band; the axis is the same ±2% as chart 19.1 above, and still nothing needs the ±40% a 24-hour
+  chart does.</div>
+  <div id="marathon" class="chart" style="height:420px"></div>
+  <div id="msum" class="srcs"></div>
 </div>
 
 <h2>What the running literature actually says</h2>
@@ -130,5 +146,64 @@ loadData().then(({results, meta})=>{
     xaxis:{title:'median split %', zeroline:true, zerolinecolor:'#8fa3b8'},
     yaxis:{autorange:'reversed'}}), CFG);
 });
+
+// 19.3 — the marathon halves actually in the DB.
+// Loaded from its OWN export, not results.json: the short-course disciplines
+// are fenced out of the main one on purpose (see build_viz.main's WHERE
+// clause), because every ultra page reads a non-24h row as a 100-mile effort.
+fetch('data/shortcourse.json').then(r=>r.json()).then(sc=>{
+  const rows = (sc.rows||[]).filter(r=>r.disc==='marathon');
+  const box = document.getElementById('marathon');
+  if(!rows.length){
+    box.innerHTML = '<div class="note">No marathon rows in this build yet — '
+      + 'run <code>make targets</code> and work the top of '
+      + '<code>data/marathon_races.csv</code>.</div>';
+    return;
+  }
+  // Jitter the y-axis by sex so overlapping performances stay readable; the
+  // x value is the real one and is what the hover reports.
+  const bySex = {M:'#5aa9e6', F:'#e08b4c'};
+  const traces = ['M','F'].map(sx=>{
+    const sub = rows.filter(r=>r.sex===sx);
+    return {
+      x: sub.map(r=>r.split),
+      y: sub.map(()=> sx==='M' ? 1 : 0),
+      type:'scatter', mode:'markers', name: sx==='M'?'men':'women',
+      marker:{color:bySex[sx], size:9, opacity:0.72,
+              line:{color:'#0f1419', width:1}},
+      customdata: sub.map(r=>[r.name, r.series, r.year,
+                              fmtTime(r.final_s), r.exact?'measured':'INTERPOLATED']),
+      hovertemplate:'%{customdata[0]}<br>%{customdata[1]} %{customdata[2]}'
+                   +'<br>%{customdata[3]} · split %{x:+.2f}%'
+                   +'<br><i>halfway %{customdata[4]}</i><extra></extra>',
+    };
+  });
+  Plotly.newPlot('marathon', traces, layout({
+    margin:{l:70, r:30, t:10, b:55},
+    xaxis:{title:'split %  (negative = faster second half)', range:[-2.6,2.6],
+           zeroline:true, zerolinecolor:'#8fa3b8'},
+    yaxis:{showticklabels:false, range:[-0.6,1.6], zeroline:false, showgrid:false},
+    shapes:[{type:'line', x0:0, x1:0, y0:-0.6, y1:1.6,
+             line:{color:'#8fa3b8', width:1}},
+            {type:'line', x0:1, x1:1, y0:-0.6, y1:1.6,
+             line:{color:'#8fa3b8', width:1, dash:'dash'}}],
+  }), CFG);
+
+  const m = sc.meta.by.marathon;
+  const pct = n => n.toFixed(1) + '%';
+  document.getElementById('msum').innerHTML =
+    `<b>${m.n}</b> qualifying performances across ${sc.meta.n_events} editions · `
+  + `<b>${m.neg}</b> negative (${pct(m.pct_neg)}), <b>${m.even}</b> even · `
+  + `negative-or-even <b>${pct(m.pct_ne)}</b> · median <b>${m.median>0?'+':''}${m.median}%</b> · `
+  + `halfway measured rather than interpolated on <b>${sc.meta.n_exact} of ${sc.meta.n}</b>. `
+  + 'Compare the 24-hour figures on <a href="census.html">Exploration 17</a> — and read '
+  + 'the caveat below before reading the gap as physiology.';
+});
+
+function fmtTime(s){
+  if(s==null) return '';
+  const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=Math.round(s%60);
+  return `${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`;
+}
 </script>
 </main></body></html>
