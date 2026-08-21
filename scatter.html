@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 <script src="lib/plotly.min.js"></script>
 </head><body>
-<script src="js/common.js?v=a44d0348"></script>
+<script src="js/common.js?v=9aef9b3c"></script>
 <main>
 <h1>Exploration 1 · Split vs Performance</h1>
 <p class="sub">Y = split % (negative = faster second half); the even band is shaded. <b>Click any point</b>
@@ -43,12 +43,12 @@ for the full performance. Box-zoom to explore; double-click to reset.</p>
 nav('scatter.html');
 const clsColor = r => CLS_COLOR[r.cls];
 const sexColor = r => r.sex === 'F' ? '#e07be0' : (r.sex === 'M' ? '#5aa9e6' : '#888');
-const DISC_LABEL = {'24_hour':'24-hour','100_mile':'100-mile (dedicated)',
-                    'marathon':'marathon','100_km':'100 km',
-                    'half_marathon':'half marathon'};
 // SHORTEST FIRST — the ordering is the argument. Everything on this page is
-// about how pacing changes with duration, so the selector should read that way.
-const DISC_ORDER = ['half_marathon','marathon','100_km','100_mile','24_hour'];
+// about how pacing changes with duration, so the selector should read that
+// way. Both the labels and the order come from meta.json (`discList`), not
+// from a literal here: this page had one, and a new rung of the ladder then
+// needed a hand edit in five files before it could be seen at all.
+let DISC_LABEL = {}, DISC_ORDER = [];
 // Which value is the OUTCOME. 24-hour is the only fixed-TIME discipline: you
 // are measured on distance covered and more is better. The other three are
 // fixed-DISTANCE: you are measured on time taken and less is better. Getting
@@ -87,6 +87,8 @@ const evenBand = () => [{type:'rect',xref:'paper',x0:0,x1:1,y0:0,y1:EVEN_BAND,
 loadData().then(({results, meta}) => {
   initCohorts(meta);
   EVEN_BAND = meta.even_pct ?? 1.0;
+  DISC_ORDER = discList(false).map(([k]) => k);
+  discList(false).forEach(([k, l]) => { DISC_LABEL[k] = l; });
   const halves = results.filter(r => r.method==='halves');
   const pool = d => halves.filter(r => r.disc===d &&
     (isFixedTime(d) ? r.final_km!=null : r.final_h!=null));

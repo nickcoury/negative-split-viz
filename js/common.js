@@ -50,6 +50,35 @@ function initCohorts(meta) { COHORT_META = meta; }
 function cohort_kind(c) { return (COHORT_META.cohort_kind || {})[c] || '100mi'; }
 function cohort_label(c) { return (COHORT_META.cohort_label || {})[c] || c; }
 
+// THE DISCIPLINE TABLE COMES FROM meta.json TOO, for exactly the reason the
+// cohorts do. Five pages carried their own `DISC_LABEL` / `DISC_ORDER`
+// literals, so every new rung of the ladder was five hand edits — and a rung
+// that reached the DB but not a page's selector looks precisely like a rung
+// with no data. `meta.disciplines` is the ladder SHORTEST FIRST (the ordering
+// is the argument on every page that draws it) and `disciplines_present` is
+// the subset with rows, which is what a selector should offer: a discipline
+// that is scaffolded but not ingested must not appear as an empty bar, since
+// a zero would read as "measured, and the answer is none".
+function discLabel(d) {
+  const t = ((COHORT_META || {}).disciplines || []).find(x => x.key === d);
+  return t ? t.label : d;
+}
+/** [[key, label], ...] shortest first — every discipline, or only those with
+ *  rows when `presentOnly`. */
+function discList(presentOnly = true) {
+  const meta = COHORT_META || {};
+  const keys = presentOnly ? (meta.disciplines_present || [])
+                           : (meta.disciplines || []).map(x => x.key);
+  return keys.map(k => [k, discLabel(k)]);
+}
+/** Fill a <select> with the disciplines that have rows. */
+function fillDiscSelect(el, preferred) {
+  const list = discList(true);
+  el.innerHTML = list.map(([k, l]) => `<option value="${k}">${l}</option>`).join('');
+  el.value = list.some(([k]) => k === preferred) ? preferred : (list[0] || [''])[0];
+  return el.value;
+}
+
 /** Fill a <select> with the cohorts that actually have shapes, newest counts
  *  inline. Empty cohorts are shown disabled rather than hidden, so a gap in
  *  the data (e.g. no lap-resolved standalone 100s) stays visible instead of

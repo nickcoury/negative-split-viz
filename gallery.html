@@ -2,19 +2,13 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Gallery</title><link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 <script src="lib/plotly.min.js"></script></head><body>
-<script src="js/common.js?v=a44d0348"></script>
+<script src="js/common.js?v=9aef9b3c"></script>
 <main>
 <h1>Exploration 9 · Even &amp; negative performances</h1>
-<p class="sub">Every performance classified <b>negative</b> (&lt;&nbsp;&minus;0.5%) or <b>even</b> (&plusmn;1%, the project definition) &mdash; plus the <b>near-even</b> band (up to +3%), and the <b>top-5 all-time performances per sex</b> (&#9733;, any split &mdash; the benchmark comparison set) for context, which is far more populated and shows how thin the truly even tier is. All four disciplines. Click a column header to sort; type to filter. &#9670; = has a Race Shape.</p>
+<p class="sub">Every performance classified <b>negative</b> (&lt;&nbsp;&minus;0.5%) or <b>even</b> (&plusmn;1%, the project definition) &mdash; plus the <b>near-even</b> band (up to +3%), and the <b>top-5 all-time performances per sex</b> (&#9733;, any split &mdash; the benchmark comparison set) for context, which is far more populated and shows how thin the truly even tier is. Every discipline with data. Click a column header to sort; type to filter. &#9670; = has a Race Shape.</p>
 <div class="controls">
   <label>Filter: <input type="text" id="q" size="24" placeholder="name / event / country"></label>
-  <label>Discipline: <select id="d">
-    <option value="">all</option>
-    <option value="24_hour">24-hour</option>
-    <option value="100_mile">100-mile</option>
-    <option value="marathon">marathon</option>
-    <option value="100_km">100 km</option>
-  </select></label>
+  <label>Discipline: <select id="d"><option value="">all</option></select></label>
   <label>Metric: <select id="m"><option value="">all</option><option value="halves">halves</option><option value="100mi_within_24h">in-race 100mi</option></select></label>
   <label>Band: <select id="b">
     <option value="core">negative + even (project definition)</option>
@@ -34,7 +28,9 @@ nav('gallery.html');
 let ROWS=[], SHRIDS=new Set(), sortKey='split', sortAsc=true;
 const cols=[['name','Athlete'],['country','Ctry'],['sex','Sex'],['year','Year'],['series','Event'],
   ['disc','Discipline'],['metric','Metric'],['split','Split %'],['band','Band'],['place','Place']];
-const DISC_LABEL={'24_hour':'24-hour','100_mile':'100-mile',marathon:'marathon','100_km':'100 km','half_marathon':'half marathon'};
+// The label table comes from meta.json (`discLabel`), not from a literal — a
+// new rung of the ladder should not need a hand edit in five pages before it
+// can be named.
 // The metric column says WHICH measurement, not which race — `halves` means
 // the same thing in a marathon and a 24-hour race, which is the whole point of
 // treating them alike. The discipline column beside it says which race.
@@ -55,13 +51,20 @@ function render(){
     cols.map(([k,l])=>`<th data-k="${k}" style="cursor:pointer;padding:6px 10px">${l}${sortKey===k?(sortAsc?' ▲':' ▼'):''}</th>`).join('')+`</tr>`;
   const body=d.map(r=>`<tr style="border-top:1px solid #263140">
     <td style="padding:5px 10px">${SHRIDS.has(r.rid+':'+r.method)?'◆ ':''}${r.bench?`<span title="top-${r.bench} all-time, ${r.bench_group}" style="color:#e8c56a">★</span> `:''}${r.name}</td><td>${r.country||''}</td><td>${r.sex||''}</td>
-    <td>${r.year}</td><td style="max-width:280px">${r.series}</td><td>${DISC_LABEL[r.disc]||r.disc}</td><td>${metricLabel(r.method)}</td>
+    <td>${r.year}</td><td style="max-width:280px">${r.series}</td><td>${discLabel(r.disc)}</td><td>${metricLabel(r.method)}</td>
     <td style="color:${BAND_COLOR[r.band]};font-weight:600">${r.split>0?'+':''}${r.split}</td>
     <td><span class="pill ${r.band==='negative'?'neg':'even'}" style="border-color:${BAND_COLOR[r.band]};color:${BAND_COLOR[r.band]}">${r.band}</span></td><td>${r.place??''}</td></tr>`).join('');
   document.getElementById('tbl').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">${head}${body}</table>`;
   document.querySelectorAll('#tbl th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k===sortKey)sortAsc=!sortAsc;else{sortKey=k;sortAsc=k==='name';}render();});
 }
-loadData().then(({results,shapes})=>{
+loadData().then(({results,shapes,meta})=>{
+  initCohorts(meta);
+  // The discipline filter is filled from meta.json, so a new rung of the
+  // ladder appears here the day it lands instead of the day somebody
+  // remembers this <select>. It was a five-option literal and had been
+  // missing the half marathon since that rung landed.
+  document.getElementById('d').insertAdjacentHTML('beforeend',
+    discList(true).map(([k,l])=>`<option value="${k}">${l}</option>`).join(''));
   shapes.forEach(s=>SHRIDS.add(s.rid+':'+s.method));
   ROWS=results.filter(r=>(r.method==='halves'||r.method==='100mi_within_24h')&&(r.band!=='positive'||r.bench));
   const cnt=b=>ROWS.filter(r=>r.band===b).length;
