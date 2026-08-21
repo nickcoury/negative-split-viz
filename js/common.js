@@ -66,6 +66,34 @@ function fillCohortSelect(el, meta, preferred) {
   return pick;
 }
 
+/** Is this cohort drawn from a COARSE checkpoint series (marathon 5 km mats,
+ *  ~10 points) rather than a lap list (100-400)? */
+function isCoarse(cohort) {
+  return ((COHORT_META || {}).coarse_cohorts || []).includes(cohort);
+}
+
+/** The caveat a coarse cohort must carry, or ''. Written once, here, because
+ *  it is a claim about the DATA and every page that draws these shapes owes
+ *  the reader the same claim.
+ *
+ *  It says what `analysis/cadence_calibration.py` measured, not what feels
+ *  safe: resampling 3,457 lap-complete ultras down to a marathon's ten
+ *  checkpoints leaves the seconds-of-intentionality integral intact (median
+ *  error 0.63 s/mi) and flips its held-back / metronome / overcooked call on
+ *  ZERO of them. So these curves are trustworthy for what this page is for.
+ *  What a 5 km cadence genuinely cannot see is a STOP — 802 of the 804
+ *  verdict flips in that study were `stop_recover` becoming `overcooked`,
+ *  the detector going blind rather than the runner behaving differently —
+ *  so `stop_recover` is never offered here at all. */
+function coarseNote(cohort) {
+  if (!isCoarse(cohort)) return '';
+  return '<span class="todo" style="color:#e08b4c"> · coarse cadence: ' +
+    '~10 checkpoints (5 km mats), not a lap list. The intentionality curve ' +
+    'survives this resolution (0 verdict flips in 3,457 resampled ultras); ' +
+    'a mid-race STOP does not — so no shape here can be called ' +
+    '&ldquo;stopped &amp; recovered&rdquo;.</span>';
+}
+
 function nav(active) {
   // Minimal: just a link back to the index (use the browser Back button to navigate).
   if (active === 'index.html') return;

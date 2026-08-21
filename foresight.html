@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 <script src="lib/plotly.min.js"></script>
 </head><body>
-<script src="js/common.js?v=ebb14d35"></script>
+<script src="js/common.js?v=a44d0348"></script>
 <!-- If a cached older common.js is served against this page, the missing
      function throws and every chart silently fails to draw. Say so instead. -->
 <script>if(typeof fillCohortSelect!=='function'){addEventListener('DOMContentLoaded',()=>{
@@ -115,7 +115,7 @@ function drawOverlay(){
     xaxis:{title:cohort_kind(KIND)==='24h'?'elapsed hours':'miles covered'},
     yaxis:{title:devUnit(),zeroline:true,zerolinecolor:'#5a6b7d'},
     shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:0,y1:0,line:{color:'#5a6b7d',dash:'dot',width:1}}]}),CFG);
-  document.getElementById('count').textContent=`${set.length} shapes · ${cohort_label(KIND)} · bold white = group mean · hover a line for the athlete`;
+  document.getElementById('count').innerHTML=`${set.length} shapes · ${cohort_label(KIND)} · bold white = group mean · hover a line for the athlete`+coarseNote(KIND);
 }
 function drawSingle(key){
   // `rid` is not unique: one result can yield both a `halves` shape and a
@@ -131,8 +131,14 @@ function drawSingle(key){
     line:{color:BAND_COLOR[s.band],width:2.5},
     hovertemplate:(is24?'%{x:.1f} h · on pace for <b>%{y:.2f} mi</b>'
                        :'%{x:.0f} mi · on pace for <b>%{y:.3f} h</b>')+'<extra></extra>'}],
-    layout({xaxis:{title:is24?'elapsed hours':'miles covered'},
-      yaxis:{title:is24?'projected 24-hour distance (mi)':'projected 100-mile finish time (h)',
+    // THE AXES COME FROM THE SHAPE, not from a guess about the cohort.
+    // `profile()` already names them per discipline (`x_unit`, `y_label`),
+    // and ignoring that is how a marathon curve ended up labelled
+    // 'projected 100-mile finish time' - correct maths under a caption
+    // about the wrong race. The `is24` fallbacks keep an older shapes.json
+    // readable rather than blanking the axis.
+    layout({xaxis:{title:s.x_unit==='hours'?'elapsed hours':s.x_unit==='miles'?'miles covered':(is24?'elapsed hours':'miles covered')},
+      yaxis:{title:s.y_label||(is24?'projected 24-hour distance (mi)':'projected finish time (h)'),
         autorange:is24?true:'reversed'},
       shapes:[{type:'line',xref:'paper',x0:0,x1:1,y0:avg,y1:avg,
         line:{color:'#f4c430',dash:'dot',width:1.5}}],

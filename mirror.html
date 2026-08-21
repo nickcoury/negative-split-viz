@@ -10,7 +10,7 @@
 .srcs{color:var(--muted);font-size:12.5px;margin-top:8px}
 </style>
 </head><body>
-<script src="js/common.js?v=ebb14d35"></script>
+<script src="js/common.js?v=a44d0348"></script>
 <main>
 <h1>19 · The marathon mirror</h1>
 <p class="sub">
@@ -53,10 +53,22 @@ is that measurement.</p>
   <b>The halfway point here is not estimated</b> — an elite marathon times a HALF mat at 21.0975 km, so
   unlike every 24-hour value on this site (interpolated at best, snapped to the last complete lap at
   worst) these are the timing system's own numbers. Hover for the athlete. The dashed lines are the
-  even band; the axis is the same ±2% as chart 19.1 above, and still nothing needs the ±40% a 24-hour
-  chart does.</div>
+  even band. The axis is set by the data and spans roughly <b>&plusmn;7%</b> &mdash; wider than chart 19.1's
+  &plusmn;2%, because a whole qualifying field has a fade tail that five world records do not, and still
+  nowhere near the &plusmn;40% a 24-hour chart needs.</div>
   <div id="marathon" class="chart" style="height:420px"></div>
   <div id="msum" class="srcs"></div>
+</div>
+
+<div class="card">
+  <h3>19.4 &middot; <i>How</i> the marathon field paced &mdash; the same taxonomy as the 24-hour census</h3>
+  <div class="note">Every shape here is drawn from the 5&nbsp;km mats and scored with the
+  same seconds-of-intentionality integral the ultra pages use. That the integral
+  survives this cadence is measured, not assumed: resampling 3,457 lap-complete
+  ultra results down to a marathon&rsquo;s ten checkpoints flips this call on
+  <b>zero</b> of them (<code>analysis/cadence_calibration.py</code>).</div>
+  <div id="verdicts" class="chart" style="height:240px"></div>
+  <div id="vsum" class="srcs"></div>
 </div>
 
 <h2>What the running literature actually says</h2>
@@ -148,9 +160,12 @@ loadData().then(({results, meta})=>{
 });
 
 // 19.3 — the marathon halves actually in the DB.
-// Loaded from its OWN export, not results.json: the short-course disciplines
-// are fenced out of the main one on purpose (see build_viz.main's WHERE
-// clause), because every ultra page reads a non-24h row as a 100-mile effort.
+// Loaded from its OWN export because this page needs the short-course META
+// (rates, exact-halfway counts, verdicts) as well as the rows. The rows
+// themselves are also in results.json now — every consumer there filters on
+// `disc` explicitly, so they can sit alongside the ultras safely — but the
+// per-discipline summary is computed once, in build_shortcourse, rather than
+// re-derived by each page that wants it.
 fetch('data/shortcourse.json').then(r=>r.json()).then(sc=>{
   const rows = (sc.rows||[]).filter(r=>r.disc==='marathon');
   const box = document.getElementById('marathon');
@@ -163,6 +178,9 @@ fetch('data/shortcourse.json').then(r=>r.json()).then(sc=>{
   // Jitter the y-axis by sex so overlapping performances stay readable; the
   // x value is the real one and is what the hover reports.
   const bySex = {M:'#5aa9e6', F:'#e08b4c'};
+  const xs = rows.map(r=>r.split);
+  const lim = Math.max(1.5, Math.max(Math.abs(Math.min(...xs)), Math.max(...xs))) * 1.06;
+  const xr = [-lim, lim];
   const traces = ['M','F'].map(sx=>{
     const sub = rows.filter(r=>r.sex===sx);
     return {
@@ -180,7 +198,11 @@ fetch('data/shortcourse.json').then(r=>r.json()).then(sc=>{
   });
   Plotly.newPlot('marathon', traces, layout({
     margin:{l:70, r:30, t:10, b:55},
-    xaxis:{title:'split %  (negative = faster second half)', range:[-2.6,2.6],
+    // RANGE FROM THE DATA. This was hardcoded to [-2.6, 2.6], which fit the
+    // first seven editions and silently CLIPPED 146 of 565 once the platform
+    // was swept — a quarter of the field missing from a chart that looked
+    // complete, and the fade tail is exactly the part being clipped.
+    xaxis:{title:'split %  (negative = faster second half)', range:xr,
            zeroline:true, zerolinecolor:'#8fa3b8'},
     yaxis:{showticklabels:false, range:[-0.6,1.6], zeroline:false, showgrid:false},
     shapes:[{type:'line', x0:0, x1:0, y0:-0.6, y1:1.6,
@@ -198,6 +220,41 @@ fetch('data/shortcourse.json').then(r=>r.json()).then(sc=>{
   + `halfway measured rather than interpolated on <b>${sc.meta.n_exact} of ${sc.meta.n}</b>. `
   + 'Compare the 24-hour figures on <a href="census.html">Exploration 17</a> — and read '
   + 'the caveat below before reading the gap as physiology.';
+
+  // --- HOW they paced, not just which way they split ----------------------
+  // The same four-way taxonomy the 24-hour census uses, computed from the same
+  // integral. Only three of the four can appear: a 5 km cadence cannot see a
+  // mid-race stop, so `stop_recover` is withheld rather than guessed
+  // (analysis/cadence_calibration.py). Saying that on the page is the point —
+  // a reader comparing this bar chart with the 24-hour one must know that one
+  // category is unavailable here rather than empty.
+  const V = sc.meta.shape_verdicts || {};
+  const VL = {held_back:'held back (planned)', metronome:'metronome',
+              overcooked:'overcooked', stop_recover:'stopped &amp; recovered'};
+  const VC = {held_back:'#2ec4b6', metronome:'#f4c430',
+              overcooked:'#8a97a8', stop_recover:'#e08b4c'};
+  const order = ['held_back','metronome','overcooked'];
+  const tot = order.reduce((a,k)=>a+(V[k]||0),0);
+  if(tot){
+    Plotly.newPlot('verdicts',[{
+      x: order.map(k=>V[k]||0), y: order.map(k=>VL[k].replace('&amp;','&')),
+      type:'bar', orientation:'h',
+      marker:{color:order.map(k=>VC[k])},
+      text: order.map(k=>`${V[k]||0}  (${(100*(V[k]||0)/tot).toFixed(0)}%)`),
+      textposition:'outside',
+    // The outside label is "317  (56%)" — ~90px. A 60px right margin clipped
+    // it, so the biggest bar was the one you could not read.
+    }], layout({margin:{l:150,r:110,t:10,b:45}, height:240,
+      xaxis:{title:'performances'}, yaxis:{automargin:true}}), CFG);
+    document.getElementById('vsum').innerHTML =
+      `<b>${tot}</b> marathon shapes, from the 5 km mats. `
+    + `<b>${((100*(V.metronome||0)/tot)).toFixed(0)}%</b> are metronomes — they rode within `
+    + 'a few seconds per mile of the pace they ended up averaging — against '
+    + '25% of lap-resolved 24-hour efforts. The fourth category the 24-hour '
+    + 'census uses, <i>stopped &amp; recovered</i>, is <b>not available here</b>: '
+    + 'it is decided by the longest gap between checkpoints, and a 5 km cadence '
+    + 'has no gap to find. That is a blind detector, not an absence of stops.';
+  }
 });
 
 function fmtTime(s){

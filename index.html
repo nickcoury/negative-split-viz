@@ -3,7 +3,7 @@
 <title>Negative-Split Explorer</title>
 <link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 </head><body>
-<script src="js/common.js?v=ebb14d35"></script>
+<script src="js/common.js?v=a44d0348"></script>
 <main>
 <h1>Negative-Split Explorer</h1>
 <p class="sub" id="stats">loading…</p>
@@ -130,10 +130,21 @@ whole dataset.</p>
 <script>
 nav('index.html');
 fetch('data/meta.json').then(r=>r.json()).then(m=>{
-  document.getElementById('stats').textContent =
+  // Two populations, counted separately and said so. `n_events`/`n_results`
+  // are the ULTRA ones — every band count and every chart on this site's core
+  // pages describes exactly that set — and the short-course figures are named
+  // rather than folded in, so a growing marathon set can never quietly inflate
+  // the number the paper's rarity claim rests on.
+  const sc = m.shortcourse || {};
+  document.getElementById('stats').innerHTML =
     `${m.n_events} events · ${m.n_results.toLocaleString()} performances · ${m.n_class.toLocaleString()} split classifications · `+
     `${m.n_shapes} rich-lap shapes (${m.n_shapes_100mi} × 100-mile, ${m.n_shapes_24h} × 24-hour). `+
-    `Bands: ${m.n_negative} negative (< −${m.even_pct}%) · ${m.n_even} even (±${m.even_pct}%) · ${m.n_near_even} near-even (to +${m.near_even_pct}%).`;
+    `Bands: ${m.n_negative} negative (< −${m.even_pct}%) · ${m.n_even} even (±${m.even_pct}%) · ${m.n_near_even} near-even (to +${m.near_even_pct}%).`+
+    (sc.n ? `<br><span style="color:#93a1b0">Plus the short-course comparison set: `+
+      `<b>${sc.n}</b> marathon / 100&nbsp;km performances across ${sc.n_events} editions, `+
+      `${sc.n_shapes} of them with a pace shape, and <b>${sc.n_exact} of ${sc.n}</b> with a `+
+      `halfway point that was measured rather than interpolated — the most precise halves `+
+      `in the dataset. See <a href="mirror.html">the Mirror</a>.</span>` : '');
 });
 </script>
 </main></body></html>

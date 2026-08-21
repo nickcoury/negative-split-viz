@@ -4,14 +4,19 @@
 <link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 <script src="lib/plotly.min.js"></script>
 </head><body>
-<script src="js/common.js?v=ebb14d35"></script>
+<script src="js/common.js?v=a44d0348"></script>
 <main>
 <h1>Exploration 5 · Aggregate views</h1>
-<p class="sub">The whole field, sliced various ways. "24h halves" = the 24-hour split; "in-race 100mi" = the embedded 100-mile effort inside a 24h race (the green-line cohort).</p>
+<p class="sub">The whole field, sliced various ways. "24h halves" = the 24-hour split; "in-race 100mi" = the embedded 100-mile effort inside a 24h race (the green-line cohort). Charts 2&ndash;7 are 24-hour only; charts 0 and 1 are the cross-discipline comparison.</p>
+
+<div class="card"><h3>0 · The rate, by discipline &mdash; how pacing changes with duration</h3>
+  <div class="note">The share of every qualifying performance that ran a <b>negative</b> or an <b>even</b> second half, per discipline and sex. This is the project's premise as a measurement rather than an assertion: the negative split is ordinary in the marathon and close to extinct over 24 hours. One caveat that cuts in the safe direction &mdash; the ultras' halfway points are snapped to the last complete lap and biased <i>negative</i>, while the marathon's are measured on a surveyed mat, so the gap shown here is if anything <i>understated</i>.</div>
+  <div id="rate" class="chart"></div></div>
 
 <div class="card"><h3>1 · Split distribution</h3>
-  <div class="note">How rare are negative/even splits, and how do the two disciplines differ in spread?</div>
-  <div id="hist" class="chart"></div></div>
+  <div class="note">How rare are negative/even splits, and how does the spread change with duration? Note the x-axis: a marathon field lives inside a few percent, a 24-hour field spans tens.</div>
+  <div id="hist" class="chart"></div>
+  <div class="note" id="spread"></div></div>
 
 <div class="card"><h3>2 · Are top performers more even? (mean split by finishing-place band)</h3>
   <div class="note">24-hour halves. Lower = more even. The paper's core question.</div>
@@ -44,14 +49,52 @@ loadData().then(({results})=>{
   const h24 = results.filter(r=>r.method==='halves'&&r.disc==='24_hour');
   const within = results.filter(r=>r.method==='100mi_within_24h');
   const ded100 = results.filter(r=>r.method==='halves'&&r.disc==='100_mile');
+  const mar = results.filter(r=>r.method==='halves'&&r.disc==='marathon');
+  const k100 = results.filter(r=>r.method==='halves'&&r.disc==='100_km');
+
+  // 0 the cross-discipline rate.
+  //
+  // Ordered SHORTEST FIRST, because the claim being made is about duration and
+  // the chart should read left-to-right as the thing it is about. A discipline
+  // with no rows is dropped rather than drawn as an empty bar — 100 km is
+  // scaffolded but not ingested, and a zero-height bar would read as "measured,
+  // and the answer is none".
+  const DISCS=[['marathon','marathon'],['100_km','100 km'],['100_mile','100-mile'],['24_hour','24-hour']];
+  const pool=d=>results.filter(r=>r.method==='halves'&&r.disc===d&&r.sex);
+  const rate=v=>v.length?100*v.filter(r=>r.cls==='negative'||r.cls==='even').length/v.length:null;
+  const present=DISCS.filter(([d])=>pool(d).length);
+  const rateTrace=(sx,color)=>({
+    x:present.map(([,l])=>l),
+    y:present.map(([d])=>rate(pool(d).filter(r=>r.sex===sx))),
+    text:present.map(([d])=>{const v=pool(d).filter(r=>r.sex===sx);
+      return v.length?`${rate(v).toFixed(1)}%  (n=${v.length})`:'';}),
+    textposition:'outside',type:'bar',name:sx==='M'?'Men':'Women',
+    marker:{color}});
+  Plotly.newPlot('rate',[rateTrace('M','#5aa9e6'),rateTrace('F','#e07be0')],
+    // Outside bar labels need headroom or the TALLEST bar loses its label —
+    // which is the one the chart exists to show.
+    layout({barmode:'group',margin:{t:40},
+      yaxis:{title:'% negative or even',ticksuffix:'%',rangemode:'tozero'},
+      xaxis:{title:'discipline (shortest first)'}}),CFG);
 
   // 1 distribution
   Plotly.newPlot('hist',[
     {x:h24.map(r=>r.split),type:'histogram',name:'24h halves',opacity:.6,marker:{color:'#5aa9e6'},xbins:{size:2}},
     {x:within.map(r=>r.split),type:'histogram',name:'in-race 100mi',opacity:.6,marker:{color:'#2ec4b6'},xbins:{size:2}},
     {x:ded100.map(r=>r.split),type:'histogram',name:'dedicated 100mi',opacity:.6,marker:{color:'#f4c430'},xbins:{size:2}},
+    {x:mar.map(r=>r.split),type:'histogram',name:'marathon',opacity:.6,marker:{color:'#e07be0'},xbins:{size:2}},
+    {x:k100.map(r=>r.split),type:'histogram',name:'100 km',opacity:.6,marker:{color:'#e08b4c'},xbins:{size:2}},
   ],layout({barmode:'overlay',xaxis:{title:'split %  (− = negative)',range:[-20,60]},yaxis:{title:'# performances'},
     shapes:[{type:'line',x0:0,x1:0,yref:'paper',y0:0,y1:1,line:{color:'#fff',dash:'dot',width:1}}]}),CFG);
+  // Say the spread out loud. The overlaid histogram makes the marathon look
+  // like a spike at zero, which is true and is easy to misread as "few rows"
+  // rather than "tightly clustered".
+  const iqr=v=>{if(v.length<4)return null;const a=v.slice().sort((x,y)=>x-y);
+    const q=p=>a[Math.min(a.length-1,Math.round(p*(a.length-1)))];return q(.75)-q(.25);};
+  document.getElementById('spread').innerHTML=present.map(([d,l])=>{
+    const v=pool(d).map(r=>r.split), i=iqr(v);
+    return i==null?'':`<b>${l}</b>: middle half spans ${i.toFixed(1)} pp (n=${v.length})`;
+  }).filter(Boolean).join(' &middot; ');
 
   // 2 place band
   const bands=['top 3','top 10','top 25','rest'];

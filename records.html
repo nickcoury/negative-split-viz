@@ -2,7 +2,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Record-attempt pacing</title><link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 <script src="lib/plotly.min.js"></script></head><body>
-<script src="js/common.js?v=ebb14d35"></script>
+<script src="js/common.js?v=a44d0348"></script>
 <main>
 <h1>Exploration 13 · Record-attempt pacing</h1>
 <p class="sub">Do the very best performances — the ones near the ceiling of what's been run — pace unusually evenly? "Caliber" here is each performance as a % of the best mark in the dataset for its discipline and sex (a within-dataset record proxy; we don't hard-code official records).</p>
@@ -11,7 +11,7 @@
   <div class="note">X = caliber (100% = the best mark in the dataset for that sex/discipline). Drag the slider to spotlight the record-chases; the running line is the mean split in a sliding caliber window. 24-hour = farther is better; 100-mile = faster is better.</div>
   <div class="controls">
     <label>Discipline:
-      <select id="disc"><option value="24_hour">24-hour</option><option value="100_mile">100-mile (dedicated)</option></select></label>
+      <select id="disc"><option value="24_hour">24-hour</option><option value="100_mile">100-mile (dedicated)</option><option value="marathon">marathon</option><option value="100_km">100 km</option></select></label>
     <label>Spotlight ≥ <span id="thv">95</span>% caliber:
       <input type="range" id="th" min="80" max="99" value="95" style="vertical-align:middle"></label>
   </div>

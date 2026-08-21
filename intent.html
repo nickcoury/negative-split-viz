@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 <script src="lib/plotly.min.js"></script>
 </head><body>
-<script src="js/common.js?v=ebb14d35"></script>
+<script src="js/common.js?v=a44d0348"></script>
 <!-- If a cached older common.js is served against this page, the missing
      function throws and every chart silently fails to draw. Say so instead. -->
 <script>if(typeof fillCohortSelect!=='function'){addEventListener('DOMContentLoaded',()=>{
@@ -208,7 +208,7 @@ function drawScatter(){
     layout({xaxis:{title:'seconds of intentionality (s/mi)   ← held back · went out ahead →',zeroline:true},
       yaxis:{title:'split %  (below 0 = negative split)',zeroline:true},
       shapes:[{type:'line',x0:0,x1:0,yref:'paper',y0:0,y1:1,line:{color:'#8fa3b8',dash:'dot',width:1}}]}),CFG);
-  document.getElementById('count').textContent=`${visible().length} performances`;
+  document.getElementById('count').innerHTML=`${visible().length} performances`+coarseNote(KIND);
 }
 
 function drawHist(){

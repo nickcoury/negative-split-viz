@@ -2,7 +2,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Athletes</title><link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
 <script src="lib/plotly.min.js"></script></head><body>
-<script src="js/common.js?v=ebb14d35"></script>
+<script src="js/common.js?v=a44d0348"></script>
 <main>
 <h1>Exploration 8 · Athlete-centric views</h1>
 <p class="sub">Who owns even/negative pacing, and how do individuals pace across their careers?</p>
@@ -19,8 +19,19 @@
 <script>
 nav('athletes.html');
 loadData().then(({results})=>{
-  // combine halves + within, tag context
-  const R=results.filter(r=>r.method==='halves'||r.method==='100mi_within_24h');
+  // combine halves + within, tag context.
+  //
+  // ULTRA ONLY, and this filter is deliberate rather than left over. Both
+  // views on this page key on `r.name`: the repeat-splitter bar chart counts
+  // per name, and the history picker groups by it. The marathon set still has
+  // eight FORKED IDENTITIES (docs/target-board.md Tier 1.7) — Tigist Assefa is
+  // filed as two women and both of her runs are negative splits — so including
+  // those rows would under-count exactly the repeat splitters this page exists
+  // to surface, while looking perfectly healthy. They join when the identities
+  // are adjudicated. Pages that merely LIST rows (gallery) are safe today;
+  // pages that AGGREGATE BY PERSON are not.
+  const R=results.filter(r=>(r.method==='halves'||r.method==='100mi_within_24h')
+    && (r.disc==='24_hour'||r.disc==='100_mile'));
   // repeat even/neg
   const en={}; R.filter(r=>r.cls!=='positive').forEach(r=>{en[r.name]=(en[r.name]||0)+1;});
   const top=Object.entries(en).filter(([,n])=>n>=2).sort((a,b)=>a[1]-b[1]);
