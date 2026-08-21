@@ -51,6 +51,7 @@ loadData().then(({results})=>{
   const ded100 = results.filter(r=>r.method==='halves'&&r.disc==='100_mile');
   const mar = results.filter(r=>r.method==='halves'&&r.disc==='marathon');
   const k100 = results.filter(r=>r.method==='halves'&&r.disc==='100_km');
+  const hm = results.filter(r=>r.method==='halves'&&r.disc==='half_marathon');
 
   // 0 the cross-discipline rate.
   //
@@ -59,7 +60,7 @@ loadData().then(({results})=>{
   // with no rows is dropped rather than drawn as an empty bar — 100 km is
   // scaffolded but not ingested, and a zero-height bar would read as "measured,
   // and the answer is none".
-  const DISCS=[['marathon','marathon'],['100_km','100 km'],['100_mile','100-mile'],['24_hour','24-hour']];
+  const DISCS=[['half_marathon','half marathon'],['marathon','marathon'],['100_km','100 km'],['100_mile','100-mile'],['24_hour','24-hour']];
   const pool=d=>results.filter(r=>r.method==='halves'&&r.disc===d&&r.sex);
   const rate=v=>v.length?100*v.filter(r=>r.cls==='negative'||r.cls==='even').length/v.length:null;
   const present=DISCS.filter(([d])=>pool(d).length);
@@ -84,6 +85,7 @@ loadData().then(({results})=>{
     {x:ded100.map(r=>r.split),type:'histogram',name:'dedicated 100mi',opacity:.6,marker:{color:'#f4c430'},xbins:{size:2}},
     {x:mar.map(r=>r.split),type:'histogram',name:'marathon',opacity:.6,marker:{color:'#e07be0'},xbins:{size:2}},
     {x:k100.map(r=>r.split),type:'histogram',name:'100 km',opacity:.6,marker:{color:'#e08b4c'},xbins:{size:2}},
+    {x:hm.map(r=>r.split),type:'histogram',name:'half marathon',opacity:.6,marker:{color:'#9d7be0'},xbins:{size:2}},
   ],layout({barmode:'overlay',xaxis:{title:'split %  (− = negative)',range:[-20,60]},yaxis:{title:'# performances'},
     shapes:[{type:'line',x0:0,x1:0,yref:'paper',y0:0,y1:1,line:{color:'#fff',dash:'dot',width:1}}]}),CFG);
   // Say the spread out loud. The overlaid histogram makes the marathon look

@@ -44,10 +44,11 @@ nav('scatter.html');
 const clsColor = r => CLS_COLOR[r.cls];
 const sexColor = r => r.sex === 'F' ? '#e07be0' : (r.sex === 'M' ? '#5aa9e6' : '#888');
 const DISC_LABEL = {'24_hour':'24-hour','100_mile':'100-mile (dedicated)',
-                    'marathon':'marathon','100_km':'100 km'};
+                    'marathon':'marathon','100_km':'100 km',
+                    'half_marathon':'half marathon'};
 // SHORTEST FIRST — the ordering is the argument. Everything on this page is
 // about how pacing changes with duration, so the selector should read that way.
-const DISC_ORDER = ['marathon','100_km','100_mile','24_hour'];
+const DISC_ORDER = ['half_marathon','marathon','100_km','100_mile','24_hour'];
 // Which value is the OUTCOME. 24-hour is the only fixed-TIME discipline: you
 // are measured on distance covered and more is better. The other three are
 // fixed-DISTANCE: you are measured on time taken and less is better. Getting
