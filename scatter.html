@@ -7,70 +7,167 @@
 <script src="js/common.js?v=a44d0348"></script>
 <main>
 <h1>Exploration 1 · Split vs Performance</h1>
-<p class="sub">Y = split % (negative = faster second half); the even band is ±0.5% (shaded). <b>Click any point</b> for the full performance (distance &amp; time). Box-zoom to explore; double-click to reset.</p>
+<p class="sub">Y = split % (negative = faster second half); the even band is shaded. <b>Click any point</b>
+for the full performance. Box-zoom to explore; double-click to reset.</p>
 
 <div class="card">
-  <h3>Chart 1.1 — 24-hour: final distance vs split</h3>
-  <div class="note">Do the longest 24-hour performances pace more evenly? Rightmost points are the biggest distances.</div>
+  <h3>Chart 1.1 — performance vs split, any discipline</h3>
+  <div class="note" id="axisnote"></div>
   <div class="controls">
-    <label><input type="checkbox" id="c24sex"> color by sex</label>
-    <label>min distance (km): <input type="text" id="c24min" size="4" value="100"></label>
+    <label>Discipline: <select id="disc"></select></label>
+    <label><input type="checkbox" id="bysex"> color by sex</label>
+    <span id="minwrap"><label>min distance (km): <input type="text" id="minkm" size="4" value="100"></label></span>
+    <span id="n" class="todo"></span>
   </div>
-  <div id="chart24" class="chart tall"></div>
-  <div id="det24" class="note" style="min-height:1.4em">click a point…</div>
+  <div id="chart" class="chart tall"></div>
+  <div id="det" class="note" style="min-height:1.4em">click a point…</div>
 </div>
 
 <div class="card">
-  <h3>Chart 1.2 — 100-mile (dedicated races): finish time vs split</h3>
-  <div class="note">Fixed-distance: left = faster finishers. In-race 100s (embedded in 24h races) live on Race Shapes / the green line.</div>
-  <div id="chart100" class="chart tall"></div>
-  <div id="det100" class="note" style="min-height:1.4em">click a point…</div>
+  <h3>Chart 1.2 — all four on one axis: <i>caliber</i> vs split</h3>
+  <div class="note">The disciplines cannot share a raw x-axis — one is measured in kilometres covered and
+  three in hours taken — so this one plots each performance as a <b>percentage of the best mark in this
+  dataset for its own discipline and sex</b>. 100% is that dataset-best; right = closer to the ceiling.
+  It is the only honest way to ask the paper's second question across all four at once: <b>do the very
+  best performances pace more evenly, and does the answer depend on how long the race is?</b>
+  Two things to read carefully: the extreme positive splits at low caliber are largely
+  <a href="cohorts.html">early-stoppers</a> rather than faders, and the marathon field is compressed
+  into the top of the caliber range because its per-sex cutoff (2:12 / 2:25) is narrow relative to the
+  best mark — box-zoom into 88&ndash;100 to compare like with like.</div>
+  <div class="controls"><span id="n2" class="todo"></span></div>
+  <div id="cal" class="chart tall"></div>
+  <div id="det2" class="note" style="min-height:1.4em">click a point…</div>
 </div>
 
 <script>
 nav('scatter.html');
 const clsColor = r => CLS_COLOR[r.cls];
 const sexColor = r => r.sex === 'F' ? '#e07be0' : (r.sex === 'M' ? '#5aa9e6' : '#888');
+const DISC_LABEL = {'24_hour':'24-hour','100_mile':'100-mile (dedicated)',
+                    'marathon':'marathon','100_km':'100 km'};
+// SHORTEST FIRST — the ordering is the argument. Everything on this page is
+// about how pacing changes with duration, so the selector should read that way.
+const DISC_ORDER = ['marathon','100_km','100_mile','24_hour'];
+// Which value is the OUTCOME. 24-hour is the only fixed-TIME discipline: you
+// are measured on distance covered and more is better. The other three are
+// fixed-DISTANCE: you are measured on time taken and less is better. Getting
+// this backwards silently reverses the "are the best more even?" reading, so
+// it is stated once here rather than inferred per chart.
+const isFixedTime = d => d === '24_hour';
+
 const hov = r => `${r.name} (${r.country||'?'})<br>${r.year} ${r.series}` +
   `<br>${r.final_km?r.final_km.toFixed(1)+' km / '+(r.final_km/1.609344).toFixed(1)+' mi':''}` +
-  `${r.final_h?' · '+fmtHMS(r.final_h):''}` +
+  `${r.final_h?(r.final_km?' · ':'')+fmtHMS(r.final_h):''}` +
   `<br>split ${r.split>0?'+':''}${r.split}%  ·  ${r.cls}${r.place?'  ·  place '+r.place:''}`;
 const detail = r => `<b>${r.name}</b> (${r.country||'?'}${r.sex?', '+r.sex:''}) — ${r.year} ${r.series}` +
-  ` — performance: ${r.final_km?r.final_km.toFixed(3)+' km ('+(r.final_km/1.609344).toFixed(2)+' mi)':''}` +
+  ` — ${DISC_LABEL[r.disc]||r.disc} — performance: ` +
+  `${r.final_km?r.final_km.toFixed(3)+' km ('+(r.final_km/1.609344).toFixed(2)+' mi)':''}` +
   `${r.final_h?(r.final_km?' in ':'')+fmtHMS(r.final_h):''}` +
   ` — split ${r.split>0?'+':''}${r.split}% (${r.cls})${r.place?' — place '+r.place:''}`;
 
-loadData().then(({results}) => {
-  let d24=[], d100=[];
-  function draw24() {
-    const minKm = parseFloat(document.getElementById('c24min').value) || 0;
-    const bySex = document.getElementById('c24sex').checked;
-    d24 = results.filter(r => r.method==='halves' && r.disc==='24_hour' && r.final_km && r.final_km>=minKm);
-    Plotly.react('chart24',[{
-      x:d24.map(r=>r.final_km), y:d24.map(r=>r.split), mode:'markers', type:'scattergl',
-      marker:{size:6, color:d24.map(bySex?sexColor:clsColor), opacity:.7},
-      text:d24.map(hov), hoverinfo:'text'
-    }], layout({
-      xaxis:{title:'Final distance (km)'}, yaxis:{title:'Split % (− = negative split)',zeroline:true},
-      shapes:[{type:'rect',xref:'paper',x0:0,x1:1,y0:-0.5,y1:0.5,fillcolor:'#f4c43022',line:{width:0}}]
-    }), CFG);
-    document.getElementById('chart24').on('plotly_click', e=>{
-      document.getElementById('det24').innerHTML = detail(d24[e.points[0].pointNumber]); });
-  }
-  document.getElementById('c24sex').onchange=draw24;
-  document.getElementById('c24min').oninput=draw24;
-  draw24();
+// The shaded band is the project's real, ASYMMETRIC even band read from
+// meta.json — 0 to +even_pct, not ±0.5. This page had it drawn symmetrically
+// at ±0.5 since before the band was changed in July, so it was shading a
+// definition the dataset had stopped using: half of what it highlighted was
+// negative splits, and half the even ones were outside it.
+let EVEN_BAND = 1.0;
+/** An x-axis of finish times, ticked in h:mm:ss over the data's own range. */
+function timeAxis(rows, title){
+  const v = rows.map(r=>r.final_h).filter(x=>x!=null);
+  if(!v.length) return {title};
+  const lo=Math.min(...v), hi=Math.max(...v), N=8;
+  const vals=[...Array(N+1)].map((_,i)=>lo+(hi-lo)*i/N);
+  return {title, tickmode:'array', tickvals:vals, ticktext:vals.map(fmtHMS)};
+}
 
-  d100 = results.filter(r => r.method==='halves' && r.disc==='100_mile' && r.final_h);
-  Plotly.newPlot('chart100',[{
-    x:d100.map(r=>r.final_h), y:d100.map(r=>r.split), mode:'markers', type:'scatter',
-    marker:{size:8, color:d100.map(clsColor), opacity:.8}, text:d100.map(hov), hoverinfo:'text'
-  }], layout({
-    xaxis:{title:'100-mile finish time (hours)'}, yaxis:{title:'Split % (− = negative split)',zeroline:true},
-    shapes:[{type:'rect',xref:'paper',x0:0,x1:1,y0:-0.5,y1:0.5,fillcolor:'#f4c43022',line:{width:0}}]
+const evenBand = () => [{type:'rect',xref:'paper',x0:0,x1:1,y0:0,y1:EVEN_BAND,
+                         fillcolor:'#f4c43022',line:{width:0}}];
+
+loadData().then(({results, meta}) => {
+  initCohorts(meta);
+  EVEN_BAND = meta.even_pct ?? 1.0;
+  const halves = results.filter(r => r.method==='halves');
+  const pool = d => halves.filter(r => r.disc===d &&
+    (isFixedTime(d) ? r.final_km!=null : r.final_h!=null));
+
+  // Build the selector from what is actually present, showing empty
+  // disciplines DISABLED rather than hiding them — 100 km is scaffolded but
+  // not ingested, and a missing option reads as "never considered".
+  const sel = document.getElementById('disc');
+  sel.innerHTML = DISC_ORDER.map(d => {
+    const n = pool(d).length;
+    return `<option value="${d}"${n?'':' disabled'}>${DISC_LABEL[d]} (${n})</option>`;
+  }).join('');
+  sel.value = DISC_ORDER.find(d => pool(d).length) || '24_hour';
+
+  let cur = [];
+  function draw() {
+    const d = sel.value;
+    const ft = isFixedTime(d);
+    const bySex = document.getElementById('bysex').checked;
+    document.getElementById('minwrap').style.display = ft ? '' : 'none';
+    const minKm = parseFloat(document.getElementById('minkm').value) || 0;
+    cur = pool(d).filter(r => !ft || r.final_km >= minKm);
+    document.getElementById('n').textContent = `${cur.length} performances`;
+    document.getElementById('axisnote').innerHTML = ft
+      ? 'Fixed-<b>time</b>: X is the distance covered, so <b>right = better</b>. Do the longest 24-hour performances pace more evenly?'
+      : 'Fixed-<b>distance</b>: X is the finish time, so <b>left = better</b>. Do the fastest performances pace more evenly?';
+    Plotly.react('chart',[{
+      x: cur.map(r => ft ? r.final_km : r.final_h),
+      y: cur.map(r => r.split),
+      mode:'markers', type:'scattergl',
+      marker:{size:6, color:cur.map(bySex?sexColor:clsColor), opacity:.7},
+      text:cur.map(hov), hoverinfo:'text'
+    }], layout({
+      // A finish time reads as h:mm:ss, not as 2.15 hours. Decimal hours are
+      // the right STORAGE and the wrong LABEL — nobody has ever described a
+      // marathon as 2.15 long. Ticks are laid out over the actual range and
+      // formatted through the same helper the hover uses.
+      xaxis: ft ? {title:'Final distance (km)'} : timeAxis(cur, `${DISC_LABEL[d]} finish time`),
+      yaxis:{title:'Split % (− = negative split)', zeroline:true},
+      shapes: evenBand()
+    }), CFG);
+    document.getElementById('chart').on('plotly_click', e=>{
+      document.getElementById('det').innerHTML = detail(cur[e.points[0].pointNumber]); });
+  }
+  sel.onchange = draw;
+  document.getElementById('bysex').onchange = draw;
+  document.getElementById('minkm').oninput = draw;
+  draw();
+
+  // --- 1.2 caliber, the one axis all four can share ----------------------
+  // Caliber is measured WITHIN discipline and sex, against the best mark this
+  // dataset holds. It is a record proxy, not an official record — no official
+  // marks are hardcoded anywhere in this project — so a discipline whose best
+  // row is weak has an inflated-looking field, which is why n is printed.
+  const rows2 = [];
+  DISC_ORDER.forEach(d => {
+    const ft = isFixedTime(d);
+    ['M','F'].forEach(sx => {
+      const g = pool(d).filter(r => r.sex===sx);
+      if (!g.length) return;
+      const best = ft ? Math.max(...g.map(r=>r.final_km)) : Math.min(...g.map(r=>r.final_h));
+      g.forEach(r => rows2.push({...r, cal: ft ? 100*r.final_km/best : 100*best/r.final_h}));
+    });
+  });
+  document.getElementById('n2').textContent =
+    `${rows2.length} performances · ` +
+    DISC_ORDER.filter(d=>pool(d).length).map(d=>`${DISC_LABEL[d]} ${pool(d).length}`).join(' · ');
+  const traces = DISC_ORDER.filter(d=>pool(d).length).map((d,i)=>{
+    const g = rows2.filter(r=>r.disc===d);
+    return {x:g.map(r=>r.cal), y:g.map(r=>r.split), mode:'markers', type:'scattergl',
+      name:DISC_LABEL[d], marker:{size:6, opacity:.6,
+        color:['#e07be0','#e08b4c','#f4c430','#5aa9e6'][i]},
+      text:g.map(hov), hoverinfo:'text', customdata:g};
+  });
+  Plotly.newPlot('cal', traces, layout({
+    xaxis:{title:'caliber (% of this dataset\'s best mark for that discipline × sex)'},
+    yaxis:{title:'Split % (− = negative split)', zeroline:true},
+    shapes: evenBand()
   }), CFG);
-  document.getElementById('chart100').on('plotly_click', e=>{
-    document.getElementById('det100').innerHTML = detail(d100[e.points[0].pointNumber]); });
+  document.getElementById('cal').on('plotly_click', e=>{
+    const p = e.points[0];
+    document.getElementById('det2').innerHTML = detail(p.data.customdata[p.pointNumber]); });
 });
 </script>
 </main></body></html>
