@@ -1,0 +1,221 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Ladder — performance vs split, one panel per discipline</title>
+<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<script src="lib/plotly.min.js"></script></head><body>
+<script src="js/common.js?v=c13d61fd"></script>
+<main>
+<h1>The ladder · how close to the record, and which way the split goes</h1>
+<p class="sub">One panel per discipline, <b>shortest first, stacked</b> — scroll to compare.
+X is the same quantity in every panel: <b>how far off the benchmark this run was</b>
+(1.00 = the benchmark, 1.10 = ten percent slower). Y is the split: <b>below zero is a
+negative split</b>. The panels are deliberately <i>not</i> overlaid — the question is how
+the cloud MOVES as the race gets longer, and 15,000 points on one axis answer it worse
+than ten small multiples do.</p>
+
+<div class="card"><h3>Controls</h3>
+  <div class="note" id="ctlnote"></div>
+  <div style="display:flex;gap:1.4rem;flex-wrap:wrap;align-items:center;margin-top:.5rem">
+    <label>Sex
+      <select id="sex"><option value="">all</option><option value="M">men</option><option value="F">women</option></select></label>
+    <label>X axis
+      <select id="xmode"><option value="same">same on every panel (1.00–1.15)</option>
+                         <option value="fit">fit each panel</option></select></label>
+    <label>Y axis
+      <select id="ymode"><option value="same">same on every panel (full ladder)</option>
+                         <option value="short">same on every panel (short-course scale)</option>
+                         <option value="fit">fit each panel</option></select></label>
+    <label><input type="checkbox" id="med" checked> draw the median</label>
+  </div>
+</div>
+
+<div id="panels"></div>
+
+<div class="card"><h3>Reading this page</h3>
+<div class="note">
+<p><b>The benchmark is not the same KIND of number in every panel, and each panel says
+which it is using.</b> Eight rungs are measured against the ratified <b>world record</b>
+for that sex, and for those the population cutoff — 110% of the record — is literally the
+right-hand edge of the data. The 100-mile and the 24-hour have no ratified record in
+<code>constants.WORLD_RECORDS</code> (their cutoffs are absolute: finish inside a day,
+cover 100 miles), so their benchmark is <b>the best mark in this dataset</b> and is
+labelled <code>dataset best</code>. They are the two panels whose x axis means something
+slightly different from the other eight.</p>
+<p><b>The selection rule differs by rung too</b>, and it is printed in every panel header
+(<code>constants.cutoff_description()</code>). These are not the same kind of bar: below
+the marathon it is 110% of the world record, the marathon and 100 km are hand-set, and
+the two longest are absolute. A rate read across panels is reading across three
+selection rules.</p>
+<p><b>A rate is a knife edge at the short end.</b> The negative-or-even percentage in each
+header is a count on one side of a fixed line at +1.0%, and how far it moves per 1 pp of
+field-wide shift runs from 35 pp at 10 km to 0.5 pp at 24 hours — a factor of seventy
+(<code>analysis/rate_fragility.py</code>). That is why the <b>median</b> is printed beside
+it: the median is monotone across the whole ladder and needs no threshold.</p>
+<p><b>Format is confounded with duration below the 10 km.</b> Every 800 m, 1500 m, mile and
+5 km row here is a <i>championship or invitational TRACK</i> race — sit-and-kick, tactical,
+won on the last lap — while the 10 km, half and marathon rows are paced road time
+trials. So the short end of this ladder is not only shorter, it is a different KIND of
+race, and the panels cannot separate the two.</p>
+</div></div>
+
+<script>
+nav('ladder.html');
+
+const CUT = {  // printed in each header; mirrors constants.cutoff_description()
+  '800_m':'≤ M 1:51.00 / F 2:04.61 (110% of WR)',
+  '1500_m':'≤ M 3:46.60 / F 4:11.55 (110% of WR)',
+  'mile':'≤ M 4:04.93 / F 4:32.40 (110% of WR)',
+  '5_km':'≤ M 13:50 / F 15:17 (110% of WR)',
+  '10_km':'≤ M 28:48 / F 31:38 (110% of WR)',
+  'half_marathon':'≤ M 1:02:21 / F 1:09:11 (110% of WR)',
+  'marathon':'≤ M 2:12:00 / F 2:25:00 (hand-set)',
+  '100_km':'≤ M 7:00:00 / F 8:00:00 (hand-set)',
+  '100_mile':'≤ 24:00:00 (absolute)',
+  '24_hour':'≥ 160.9 km (absolute)',
+};
+
+let DATA = null;
+
+function ratio(r, bench) {
+  if (!bench) return null;
+  if (bench.axis === 'distance') {          // fixed-time: outcome is a distance
+    const m = r.final_km ? r.final_km * 1000 : null;
+    return m ? bench.value / m : null;      // >1 means further off the best
+  }
+  const s = r.final_s != null ? r.final_s : (r.final_h != null ? r.final_h * 3600 : null);
+  return s ? s / bench.value : null;
+}
+
+function pctl(a, p) { if (!a.length) return null;
+  const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; }
+
+function draw() {
+  const { results, meta } = DATA;
+  const sex = document.getElementById('sex').value;
+  const xmode = document.getElementById('xmode').value;
+  const ymode = document.getElementById('ymode').value;
+  const showMed = document.getElementById('med').checked;
+  const B = meta.benchmarks || {};
+
+  // One pass: attach the ratio, keep only rows a benchmark can place.
+  const rows = results.filter(r => r.method === 'halves' && r.split != null
+                                && (!sex || r.sex === sex))
+    .map(r => ({ ...r, _x: ratio(r, B[`${r.disc}|${r.sex}`]) }))
+    .filter(r => r._x != null && isFinite(r._x));
+
+  const byDisc = {};
+  rows.forEach(r => { (byDisc[r.disc] = byDisc[r.disc] || []).push(r); });
+
+  // A SHARED Y RANGE HAS TO BE COMPUTED PER DISCIPLINE AND THEN POOLED, not
+  // pooled and then measured. Two thirds of every row in this dataset is a
+  // 24-hour result, so a p99 taken over all rows together is the 24-hour's
+  // p99 (about +50 pp) and it flattens all nine other panels into a line at
+  // the bottom of the frame — which is exactly what the first draft did.
+  // Taking p5..p95 WITHIN each discipline and spanning those keeps every
+  // panel legible; what falls outside is clipped and counted in the header.
+  //
+  // TWO shared scales, because one cannot serve both ends. The FULL ladder
+  // scale spans every rung and is the honest cross-discipline comparison - it
+  // is also where you see that the eight rungs below the 100-mile all sit
+  // within a few points of zero while the two longest climb away. The
+  // SHORT-COURSE scale drops the two ultra rungs from the range calculation
+  // so the structure at the short end (which is a couple of points wide) is
+  // actually visible; the ultra panels then clip, and say by how much.
+  const ULTRA = new Set(['100_mile', '24_hour']);
+  const span = (keys) => {
+    const lo = [], hi = [];
+    keys.forEach(k => { const v = byDisc[k].map(r => r.split);
+      lo.push(pctl(v, 0.05)); hi.push(pctl(v, 0.95)); });
+    return [Math.max(-15, Math.min(-3, ...lo)), Math.min(30, Math.max(3, ...hi))];
+  };
+  const dkeys = Object.keys(byDisc);
+  const shortKeys = dkeys.filter(k => !ULTRA.has(k));
+  const [yLo, yHi] = span(ymode === 'short' && shortKeys.length ? shortKeys : dkeys);
+
+  const host = document.getElementById('panels');
+  host.innerHTML = '';
+  const order = meta.disciplines.map(d => d.key).filter(k => byDisc[k]);
+
+  document.getElementById('ctlnote').textContent =
+    `${rows.length.toLocaleString()} halves rows across ${order.length} disciplines. `
+    + `Panels are shortest-first; each one is a separate chart on a shared axis.`;
+
+  order.forEach(key => {
+    const list = byDisc[key];
+    const label = (meta.disciplines.find(d => d.key === key) || {}).label || key;
+    // THE BENCHMARK IS PER SEX and each row was divided by its own. Only the
+    // HEADER has to choose one to name, so it names one only when the sex
+    // filter has already chosen; otherwise it describes the kind.
+    const bench = B[`${key}|${sex || list[0].sex}`] || {};
+    const benchWho = sex ? `${bench.who || ''} ${bench.mark ? '(' + bench.mark + ')' : ''}`
+                         : '(per sex)';
+    const y = list.map(r => r.split);
+    const med = pctl(y, 0.5);
+    const ne = list.filter(r => r.cls === 'negative' || r.cls === 'even').length;
+    const off = xmode === 'same' ? list.filter(r => r._x > 1.15).length : 0;
+    const clip = ymode === 'fit' ? 0
+      : list.filter(r => r.split < yLo || r.split > yHi).length;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<h3>${label} — n=${list.length},
+        <span style="color:#2ec4b6">${(100 * ne / list.length).toFixed(1)}% negative or even</span>,
+        median ${med > 0 ? '+' : ''}${med.toFixed(2)}%</h3>
+      <div class="note">benchmark: <b>${bench.kind === 'world_record' ? 'world record' : 'dataset best'}</b>
+        · ${benchWho}
+        · population: ${CUT[key] || '—'}
+        ${off ? `· <b>${off}</b> row(s) beyond x=1.15, off this panel` : ''}
+        ${clip ? `· <b>${clip}</b> row(s) outside the shared y range` : ''}</div>
+      <div id="p_${key}" style="height:250px"></div>`;
+    host.appendChild(card);
+
+    // SVG, NOT WEBGL, UNLESS THE PANEL NEEDS IT. Ten panels x three bands is
+    // thirty `scattergl` traces, and a browser caps live WebGL contexts at
+    // around sixteen — the panels past the cap render as blank white boxes,
+    // silently and only sometimes. Only the two biggest rungs have enough
+    // points to need the GPU.
+    const gl = list.length > 1500;
+    const traces = ['negative', 'even', 'positive'].map(cls => {
+      const sub = list.filter(r => r.cls === cls);
+      return {
+        name: cls, type: gl ? 'scattergl' : 'scatter', mode: 'markers',
+        x: sub.map(r => r._x), y: sub.map(r => r.split),
+        marker: { size: 5, opacity: 0.62, color: CLS_COLOR[cls] },
+        text: sub.map(r => `${r.name} · ${r.series} ${r.year}<br>`
+          + `${(100 * (r._x - 1)).toFixed(1)}% off the benchmark · split ${r.split > 0 ? '+' : ''}${r.split}%`),
+        hoverinfo: 'text',
+      };
+    }).filter(t => t.x.length);
+
+    const shapes = [
+      { type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 0, y1: 0,
+        line: { color: '#5aa9e6', width: 1 } },
+      // The even band is ASYMMETRIC by definition: anything below zero counts
+      // as negative, and 0..+1.0% is "even". Drawn as a band, not a line.
+      { type: 'rect', xref: 'paper', x0: 0, x1: 1, y0: 0, y1: 1.0,
+        fillcolor: 'rgba(244,196,48,0.13)', line: { width: 0 } },
+    ];
+    if (showMed && med != null) shapes.push(
+      { type: 'line', xref: 'paper', x0: 0, x1: 1, y0: med, y1: med,
+        line: { color: '#e6edf3', width: 1, dash: 'dot' } });
+
+    const lay = layout({
+      height: 250, showlegend: false, shapes,
+      margin: { l: 58, r: 16, t: 8, b: 42 },
+      xaxis: { title: 'result ÷ benchmark', zeroline: false,
+               range: xmode === 'same' ? [0.995, 1.15] : undefined },
+      yaxis: { title: 'split %', zeroline: false,
+               range: ymode === 'fit' ? undefined : [yLo, yHi] },
+    });
+    Plotly.newPlot(`p_${key}`, traces, lay, CFG);
+  });
+}
+
+loadData().then(d => {
+  DATA = d;
+  ['sex', 'xmode', 'ymode', 'med'].forEach(id =>
+    document.getElementById(id).addEventListener('change', draw));
+  draw();
+});
+</script>
+</main></body></html>

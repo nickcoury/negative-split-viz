@@ -7,6 +7,7 @@ const BAND_COLOR = { negative: '#2ec4b6', even: '#f4c430', 'near-even': '#e08b4c
 const BAND_LABEL = { negative: 'negative', even: 'even', 'near-even': 'near-even', positive: 'positive' };
 const PAGES = [
   ['index.html', 'Index'],
+  ['ladder.html', 'The Ladder'],
   ['scatter.html', 'Scatter'],
   ['foresight.html', 'Foresight'],
   ['hindsight.html', 'Hindsight'],
