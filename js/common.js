@@ -34,6 +34,7 @@ const PAGES = [
   ['fielddyn.html', 'Field Dynamics'],
   ['archetypes.html', 'Archetypes'],
   ['records.html', 'Records'],
+  ['coverage.html', 'Coverage'],
   ['spotlight.html', 'Nick Spotlight'],
   ['builder.html', 'Build-a-cohort'],
 ];

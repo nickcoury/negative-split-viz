@@ -1,0 +1,285 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coverage status</title><link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+</head><body>
+<script src="js/common.js?v=fd4a5fae"></script>
+<main>
+<h1>Coverage status · what we hold of each rung's all-time top 100</h1>
+<p class="sub">
+<code>make coverage</code> answers <em>how much</em> of each rung's all-time list we hold splits for.
+This page answers <em>which ones</em>, and <em>at what fidelity</em> — one row per performance, so
+"what should we fetch next" is a thing you read rather than derive.
+Matched on the <strong>clock, the sex and the year</strong>, never the name
+(<code>VINCENT LANGAT</code> vs <code>Vincent Kibet LANGAT</code>).
+</p>
+
+<div class="card"><h3>The ratings</h3>
+  <div class="note">
+    <strong>weighted</strong> = share of <code>sum(1/rank)</code> over the top 100 that we hold splits for —
+    rank 1 alone is 19% of it, the top 10 are 59%, ranks 51–100 are 13%. So it is a
+    <em>caliber</em> score, not a count. <strong>en route</strong> = covered by a mark set
+    <em>during a longer race</em> rather than in a race run to that distance; counted in its own
+    column because running <em>through</em> a distance is not racing <em>to</em> it.
+    <strong>n/a</strong> = structurally unsplittable and out of both sides of the fraction.
+  </div>
+  <div class="controls">
+    <label><input type="checkbox" id="pool" checked> pool the sexes</label>
+  </div>
+  <div id="ratings"></div>
+</div>
+
+<div class="card"><h3>The performances</h3>
+  <div class="note">
+    Two fidelity axes, and <strong>they do not rank the same way</strong> — a marathon has the
+    coarsest <em>shape</em> in the dataset and the most precise <em>halfway point</em> in it.
+    <b>halfway</b> is what <code>split_pct</code> depends on: <span class="pill neg">measured</span>
+    means a checkpoint lands on the halfway point, <span class="pill even">interpolated</span> means it
+    was estimated across the marks that bracket it (the bracket width is shown).
+    <b>shape</b> is the checkpoint cadence as a fraction of the race —
+    <code>lap_complete</code> &lt;1%, <code>sampled</code> 1–6%, <code>coarse</code> 6–20%,
+    <code>halves_only</code> ≥20%; only the first three can carry a pace shape at all.
+  </div>
+  <div class="controls">
+    <label>Rung: <select id="rung"></select></label>
+    <label>Sex: <select id="sex"></select></label>
+    <label>Depth: <select id="depth">
+      <option value="10">top 10</option>
+      <option value="100" selected>top 100</option>
+    </select></label>
+    <label>Show: <select id="filter">
+      <option value="all" selected>everything</option>
+      <option value="missing">only what we're missing</option>
+      <option value="splits">only what we hold splits for</option>
+      <option value="nosplits">only finish-time-without-splits</option>
+      <option value="interp">only interpolated halfway points</option>
+    </select></label>
+  </div>
+  <div id="rungnote" class="note"></div>
+  <div id="perf"></div>
+</div>
+
+<div class="card"><h3>Where the missing performances are</h3>
+  <div class="note">The same rows grouped by RACE and ranked by the weight they would deliver —
+    this is <code>data/targets/coverage_gaps.csv</code>, read from the top. A race already in the DB
+    with finishing times and no splits is a <em>splits</em> problem, not a discovery one.</div>
+  <div id="gaps"></div>
+</div>
+
+<style>
+table.cov{width:100%;border-collapse:collapse;font-size:13px}
+table.cov th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;
+  border-bottom:1px solid var(--line);padding:5px 7px;white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+table.cov td{padding:4px 7px;border-bottom:1px solid #1c242e;vertical-align:top}
+table.cov tr:hover td{background:#1b232e}
+table.cov td.num,table.cov th.num{text-align:right;font-variant-numeric:tabular-nums}
+table.cov td.mark{font-variant-numeric:tabular-nums;white-space:nowrap}
+table.cov td.have,table.cov td.half{white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.dot.splits{background:var(--neg)} .dot.no_splits{background:var(--even)} .dot.absent{background:#3a4655}
+.tiny{font-size:11.5px;color:var(--muted)}
+.bar{position:relative;background:#0d1219;border:1px solid var(--line);border-radius:5px;height:16px;min-width:70px}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#1c6f68,var(--neg));border-radius:4px}
+.bar b{position:relative;font-size:11px;font-weight:600;line-height:16px;padding-left:6px;
+  mix-blend-mode:normal;color:var(--ink);text-shadow:0 0 3px #0009}
+.loading{color:var(--muted);padding:18px 4px;font-size:14px}
+.loading:after{content:'';display:inline-block;width:9px;height:9px;margin-left:8px;border-radius:50%;
+  border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite;vertical-align:-1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{color:#e5766a}
+</style>
+
+<script>
+nav('coverage.html');
+
+// A LOADER, AND IT IS NOT DECORATION. Every other page on this site fetches
+// its JSON and renders an empty frame until it lands, which reads as broken
+// rather than as slow (NEXT_STEPS.md open thread 6). This file is 570 KB and
+// arrives fast, but the pattern below — placeholder, then settle, then a
+// visible error on reject — is the one the shared `loadData()` should grow.
+const PANES = ['ratings', 'perf', 'gaps'];
+PANES.forEach(id => document.getElementById(id).innerHTML =
+  '<div class="loading">loading coverage data</div>');
+
+const F1 = n => (n === null || n === undefined) ? '' : (+n).toFixed(1);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+fetch('data/coverage.json').then(r => {
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}).then(render).catch(e => {
+  PANES.forEach(id => document.getElementById(id).innerHTML =
+    '<div class="loading err">could not load <code>data/coverage.json</code> — ' +
+    esc(e.message) + '. Run <code>make coverage-status</code>.</div>');
+});
+
+function render(doc) {
+  const rungs = doc.rungs;
+  const order = [...new Set(rungs.sort((a,b)=>a.order-b.order).map(r=>r.discipline))];
+  const label = {}; rungs.forEach(r => label[r.discipline] = r.label);
+
+  // ---- ratings -----------------------------------------------------------
+  function ratings() {
+    const pooled = document.getElementById('pool').checked;
+    const rows = [];
+    if (pooled) {
+      order.forEach(d => {
+        const g = rungs.filter(r => r.discipline === d);
+        // The weighted score is pooled by re-summing the WEIGHTS themselves,
+        // not by averaging two percentages and not by weighting on row count:
+        // the two sexes' lists are the same DEPTH but not the same weight (a
+        // rung with unreachable rows on one side has a smaller denominator
+        // there), and rank 1 is worth 25 rank-90s. Weighting on `top100_n`
+        // read the 5 km at 39.6% against `make coverage`'s 41.6%.
+        const got = g.reduce((a,r) => a + (r.weight_got||0), 0);
+        const tot = g.reduce((a,r) => a + (r.weight_total||0), 0);
+        rows.push({
+          key: d, label: label[d], sex: 'M+F',
+          weighted: tot ? 100*got/tot : 0,
+          t10: g.reduce((a,r)=>a+r.top10,0), t10n: g.reduce((a,r)=>a+r.top10_n,0),
+          t100: g.reduce((a,r)=>a+r.top100,0), t100n: g.reduce((a,r)=>a+r.top100_n,0),
+          nosplit: g.reduce((a,r)=>a+r.top100_nosplit,0),
+          enroute: g.reduce((a,r)=>a+r.top100_enroute,0),
+          na: g.reduce((a,r)=>a+r.excluded,0),
+          amb: g.reduce((a,r)=>a+r.ambiguous,0),
+        });
+      });
+    } else {
+      rungs.forEach(r => rows.push({
+        key: r.discipline + r.sex, label: r.label, sex: r.sex,
+        weighted: r.weighted, t10: r.top10, t10n: r.top10_n,
+        t100: r.top100, t100n: r.top100_n, nosplit: r.top100_nosplit,
+        enroute: r.top100_enroute, na: r.excluded, amb: r.ambiguous,
+      }));
+    }
+    let h = '<table class="cov"><thead><tr>' +
+      '<th>rung</th><th>sex</th><th>weighted</th><th class="num">top 10</th>' +
+      '<th class="num">top 100</th><th class="num">no splits</th>' +
+      '<th class="num">en route</th><th class="num">n/a</th><th class="num">ambig.</th>' +
+      '</tr></thead><tbody>';
+    rows.forEach(r => {
+      h += `<tr><td>${esc(r.label)}</td><td class="tiny">${esc(r.sex)}</td>` +
+        `<td><div class="bar"><i style="width:${Math.max(0,Math.min(100,r.weighted))}%"></i>` +
+        `<b>${F1(r.weighted)}%</b></div></td>` +
+        `<td class="num">${r.t10}/${r.t10n}</td>` +
+        `<td class="num">${r.t100}/${r.t100n}</td>` +
+        `<td class="num">${r.nosplit || ''}</td>` +
+        `<td class="num">${r.enroute || ''}</td>` +
+        `<td class="num tiny">${r.na || ''}</td>` +
+        `<td class="num tiny">${r.amb || ''}</td></tr>`;
+    });
+    document.getElementById('ratings').innerHTML = h + '</tbody></table>';
+  }
+  document.getElementById('pool').onchange = ratings;
+
+  // ---- the performance list ---------------------------------------------
+  const rsel = document.getElementById('rung'), ssel = document.getElementById('sex');
+  rsel.innerHTML = order.map(d => `<option value="${d}">${esc(label[d])}</option>`).join('');
+  rsel.value = 'mile';   // where the newest world record is
+
+  function fillSex() {
+    const g = rungs.filter(r => r.discipline === rsel.value);
+    // Men first: the sexes arrive alphabetically ('F' before 'M') and the
+    // page opened on the women's list of whichever rung was selected, which
+    // reads as a filter somebody forgot to clear.
+    g.sort((a,b) => (a.sex === 'M' ? -1 : 1) - (b.sex === 'M' ? -1 : 1));
+    ssel.innerHTML = g.map(r => `<option value="${r.sex}">${r.sex}</option>`).join('');
+  }
+
+  function perf() {
+    const rec = rungs.find(r => r.discipline === rsel.value && r.sex === ssel.value);
+    if (!rec) return;
+    const depth = +document.getElementById('depth').value;
+    const mode = document.getElementById('filter').value;
+    const wr = rec.wr;
+    document.getElementById('rungnote').innerHTML =
+      `<b>${esc(rec.label)} ${esc(rec.sex)}</b> — selection rule: ${esc(rec.cutoff)}.` +
+      (wr ? ` World record <b>${esc(wr.mark)}</b> (${esc(wr.holder)}, ${esc(wr.date)}).` : '') +
+      (rec.halfway_marked
+        ? ' Halfway <b>is</b> a distance timers conventionally mat, so an interpolated row here is the source being coarse.'
+        : ' Halfway is <b>not</b> a distance anyone mats in this discipline, so every row here is interpolated and no source will improve on it.') +
+      (rec.excluded ? ` ${rec.excluded} of the top ${rec.top100_n + rec.excluded} are structurally unsplittable and excluded from both sides.` : '');
+
+    let rows = rec.rows.filter(r => r.rank <= depth);
+    if (mode === 'missing') rows = rows.filter(r => r.status === 'absent');
+    if (mode === 'splits') rows = rows.filter(r => r.status === 'splits');
+    if (mode === 'nosplits') rows = rows.filter(r => r.status === 'no_splits');
+    if (mode === 'interp') rows = rows.filter(r => r.halfway === 'interpolated');
+
+    if (!rows.length) {
+      document.getElementById('perf').innerHTML =
+        '<div class="note">No performance matches that filter — which, for '
+        + '"only what we\'re missing", is the good outcome.</div>';
+      return;
+    }
+    let h = '<table class="cov"><thead><tr><th class="num">#</th><th>mark</th><th>athlete</th>' +
+      '<th>where / when</th><th>have</th><th>halfway</th><th>shape</th><th>our event</th>' +
+      '</tr></thead><tbody>';
+    rows.forEach(r => {
+      const st = r.status === 'splits' ? 'splits'
+        : r.status === 'no_splits' ? 'finish only' : 'missing';
+      const half = r.halfway === 'measured'
+        ? '<span class="pill neg">measured</span>'
+        : r.halfway === 'interpolated'
+          ? `<span class="pill even">interp</span>` +
+            (r.gap ? ` <span class="tiny">${fmtGap(r.gap, rec.fixed_time)}</span>` : '')
+          : '';
+      h += `<tr><td class="num tiny">${r.rank}</td>` +
+        `<td class="mark">${esc(r.mark)}</td>` +
+        `<td>${esc(r.athlete)}${r.country ? ` <span class="tiny">${esc(r.country)}</span>` : ''}</td>` +
+        `<td class="tiny">${esc(r.venue || '')}<br>${esc(r.date || '')}</td>` +
+        `<td class="have"><span class="dot ${r.status}"></span>${st}` +
+          (r.enroute ? '<br><span class="tiny">en route</span>' : '') +
+          (r.ambiguous ? '<br><span class="tiny">ambiguous</span>' : '') +
+          (r.offset !== null && r.offset !== undefined
+            ? `<br><span class="tiny">offset ${(+r.offset).toFixed(2)}</span>` : '') +
+        `</td>` +
+        `<td class="half">${half}</td>` +
+        `<td class="tiny">${esc(r.tier || '')}${r.n_cp ? ` · ${r.n_cp} cp` : ''}</td>` +
+        `<td class="tiny">${esc(r.event || '')}${r.provider ? `<br>${esc(r.provider)}` : ''}</td>` +
+        `</tr>`;
+    });
+    document.getElementById('perf').innerHTML = h + '</tbody></table>';
+  }
+
+  function fmtGap(g, fixedDistance) {
+    // The bracket, in the unit the discipline is measured in. A fixed-TIME
+    // rung's gap is seconds; everything else is metres.
+    if (!fixedDistance) return g >= 1000 ? (g/1000).toFixed(1) + ' km' : Math.round(g) + ' m';
+    return g >= 60 ? (g/60).toFixed(0) + ' min' : Math.round(g) + ' s';
+  }
+
+  // ---- the gap worklist --------------------------------------------------
+  function gaps() {
+    const byRace = new Map();
+    rungs.forEach(rec => rec.rows.forEach(r => {
+      if (r.status !== 'absent') return;
+      const k = rec.discipline + '|' + (r.venue || '?') + '|' + (r.date || '?');
+      if (!byRace.has(k)) byRace.set(k, {
+        disc: rec.label, venue: r.venue, date: r.date, w: 0, n: 0, best: r.rank, marks: [],
+      });
+      const g = byRace.get(k);
+      g.w += 1 / r.rank; g.n += 1; g.best = Math.min(g.best, r.rank);
+      if (g.marks.length < 3) g.marks.push(`#${r.rank} ${rec.sex} ${r.mark} ${r.athlete}`);
+    }));
+    const top = [...byRace.values()].sort((a,b) => b.w - a.w).slice(0, 40);
+    let h = '<table class="cov"><thead><tr><th class="num">weight</th><th class="num">n</th>' +
+      '<th>rung</th><th>race</th><th>the performances</th></tr></thead><tbody>';
+    top.forEach(g => {
+      h += `<tr><td class="num">${g.w.toFixed(3)}</td><td class="num tiny">${g.n}</td>` +
+        `<td class="tiny">${esc(g.disc)}</td>` +
+        `<td>${esc(g.venue || '')}<br><span class="tiny">${esc(g.date || '')}</span></td>` +
+        `<td class="tiny">${g.marks.map(esc).join('<br>')}</td></tr>`;
+    });
+    document.getElementById('gaps').innerHTML = h + '</tbody></table>';
+  }
+
+  fillSex();
+  rsel.onchange = () => { fillSex(); perf(); };
+  ssel.onchange = perf;
+  document.getElementById('depth').onchange = perf;
+  document.getElementById('filter').onchange = perf;
+  ratings(); perf(); gaps();
+}
+</script>
+</main></body></html>
