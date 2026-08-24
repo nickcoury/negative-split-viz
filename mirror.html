@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>19 · The marathon mirror</title>
-<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script>
 <style>
 .finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
@@ -10,7 +10,7 @@
 .srcs{color:var(--muted);font-size:12.5px;margin-top:8px}
 </style>
 </head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>19 · The marathon mirror</h1>
 <p class="sub">
@@ -166,7 +166,7 @@ loadData().then(({results, meta})=>{
 // `disc` explicitly, so they can sit alongside the ultras safely — but the
 // per-discipline summary is computed once, in build_shortcourse, rather than
 // re-derived by each page that wants it.
-fetch('data/shortcourse.json').then(r=>r.json()).then(sc=>{
+loadJSON('data/shortcourse.json').then(sc=>{
   const rows = (sc.rows||[]).filter(r=>r.disc==='marathon');
   const box = document.getElementById('marathon');
   if(!rows.length){

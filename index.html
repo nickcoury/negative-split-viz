@@ -1,9 +1,9 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Negative-Split Explorer</title>
-<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 </head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>Negative-Split Explorer</h1>
 <p class="sub" id="stats">loading…</p>
@@ -137,7 +137,7 @@ whole dataset.</p>
 
 <script>
 nav('index.html');
-fetch('data/meta.json').then(r=>r.json()).then(m=>{
+loadJSON('data/meta.json').then(m=>{
   // Two populations, counted separately and said so. `n_events`/`n_results`
   // are the ULTRA ones — every band count and every chart on this site's core
   // pages describes exactly that set — and the short-course figures are named

@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>24 · The engine room — even pace, even effort?</title>
-<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script>
 <style>
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:14px 0}
@@ -13,7 +13,7 @@
 .caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
 </style>
 </head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>24 · The engine room — even pace, even effort?</h1>
 <p class="sub">
@@ -75,7 +75,7 @@ universal. Whether it is reproducible is the <a href="agenda.html">research ques
 
 <script>
 nav('engine.html');
-fetch('data/n1.json').then(r=>r.json()).then(n1=>{
+loadJSON('data/n1.json').then(n1=>{
   const HR = n1.hr;
   const fmtPace = s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`;
   document.getElementById('tiles').innerHTML = [

@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>21 · Three lenses, and two of them lie</title>
-<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script>
 <style>
 .finding{border-left:3px solid var(--accent);padding:2px 0 2px 14px;margin:16px 0}
@@ -10,7 +10,7 @@
 .lens{display:inline-block;padding:1px 10px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.4px}
 </style>
 </head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>21 · Three lenses, and two of them lie</h1>
 <p class="sub">
@@ -78,7 +78,7 @@ is coarser but unbiased.</div>
 
 <script>
 nav('lenses.html');
-Promise.all([fetch('data/deep.json').then(r=>r.json()), loadData()])
+Promise.all([loadJSON('data/deep.json'), loadData()])
 .then(([deep, {results}])=>{
   // LENS A — split band vs mean final distance
   const h24 = results.filter(r=>r.method==='halves' && r.disc==='24_hour' && r.final_km);

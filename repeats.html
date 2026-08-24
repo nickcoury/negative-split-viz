@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>28 · Twice — the repeat negative splitters</title>
-<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script>
 <style>
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0}
@@ -40,7 +40,7 @@ table.sub td.race{color:var(--ink)}
 .sm{color:var(--muted);font-size:12px}
 </style>
 </head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>28 · Twice — the repeat negative splitters</h1>
 <p class="sub">
@@ -286,8 +286,8 @@ const pc = x => (x===null||x===undefined) ? '—' : (x>0?'+':'') + x.toFixed(2) 
 const XCAP = 45;   // beyond this a race is a blow-up; drawn at the edge as an arrow
 
 Promise.all([
-  fetch('data/repeats.json').then(r=>r.json()),
-  fetch('data/meta.json').then(r=>r.json()),
+  loadJSON('data/repeats.json'),
+  loadJSON('data/meta.json'),
 ]).then(([D, META])=>{
   const P = D.people, R = D.rates;
   const negRoster = P.filter(p=>p.n_neg>=2), halvesRoster = P.filter(p=>p.n_neg_halves>=2);

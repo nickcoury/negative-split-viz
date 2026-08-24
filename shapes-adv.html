@@ -1,8 +1,8 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Shape Metrics</title><link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<title>Shape Metrics</title><link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script></head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>Exploration 4 · Shape metrics — full rich-lap cohort</h1>
 <p class="sub">Derived from every 24-hour result with full lap data (n≈705, all split classes). "% faster" = faster than that race's own average pace (up = faster). This is where even/negative shapes contrast with the positive majority.</p>
@@ -29,7 +29,7 @@
 
 <script>
 nav('shapes-adv.html');
-fetch('data/rich_summary.json').then(r=>r.json()).then(rs=>{
+loadJSON('data/rich_summary.json').then(rs=>{
   const col=r=>CLS_COLOR[r.cls];
   const hov=r=>`${r.name} ${r.year}<br>${r.series}<br>split ${r.split>0?'+':''}${r.split}% (${r.cls})`;
   // 1 first vs second half

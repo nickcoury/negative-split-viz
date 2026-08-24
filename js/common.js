@@ -134,13 +134,132 @@ function nav(active) {
   document.body.prepend(h);
 }
 
+// --- THE LOADING STATE -----------------------------------------------------
+// EVERY PAGE HERE FETCHES ITS DATA AFTER LOAD, AND UNTIL 2026-08-23 EXACTLY
+// ONE OF THEM SAID SO. The rest rendered an empty frame for as long as the
+// download took, which reads as broken rather than as slow — and the feed is
+// tens of megabytes, so the wait is real. `loadJSON()` is the one fetch path:
+// it shows a banner while the bytes come in, removes it when they land, and
+// leaves a VISIBLE ERROR (not a blank page) if they do not. Pages call it
+// instead of `fetch(...).then(r => r.json())`; `loadData()` is built on it.
+//
+// It also re-throws after showing the error, so a page that never wrote a
+// `.catch` still tells the reader what happened.
+let _loadN = 0;                 // outstanding loadJSON() calls (refcount)
+let _loadBytes = 0, _loadTotal = 0, _loadTotalKnown = true;
+
+function _loadEl() {
+  let el = document.getElementById('loadbar');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loadbar';
+    el.className = 'loadbar';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+const _mb = b => (b / 1e6).toFixed(1) + ' MB';
+
+function _loadPaint() {
+  // The percentage is only offered when it can be trusted. `Content-Length`
+  // is the ENCODED length, and GitHub Pages serves these files gzipped while
+  // `Response.body` hands back decoded bytes — so the ratio can sail past
+  // 100%. When it does, or when a response omits the header, the bar drops to
+  // a byte counter rather than lying about progress.
+  const el = _loadEl();
+  if (el.classList.contains('err')) return;   // a failure outranks progress
+  const pct = (_loadTotalKnown && _loadTotal && _loadBytes <= _loadTotal)
+    ? Math.max(2, Math.round(100 * _loadBytes / _loadTotal)) : null;
+  el.innerHTML =
+    '<span class="msg">loading data<span class="dots"></span></span>'
+    + '<span class="num">' + _mb(_loadBytes)
+    + (pct === null ? '' : ' · ' + pct + '%') + '</span>'
+    + '<i style="width:' + (pct === null ? 100 : pct) + '%"'
+    + (pct === null ? ' class="indet"' : '') + '></i>';
+}
+
+function _loadFail(url, err) {
+  const el = _loadEl();
+  el.className = 'loadbar err';
+  el.innerHTML = '<span class="msg">could not load <code>' + url
+    + '</code> — ' + String(err && err.message || err)
+    + '. Run <code>make viz-data</code>, or reload.</span>';
+}
+
+/** fetch + parse JSON with a visible loading state and a visible failure.
+ *  Pass one url (resolves to the value) or an array (resolves to an array),
+ *  exactly like the `fetch().then(r => r.json())` it replaces. */
+async function loadJSON(urls) {
+  const many = Array.isArray(urls);
+  const list = many ? urls : [urls];
+  if (_loadN === 0) { _loadBytes = 0; _loadTotal = 0; _loadTotalKnown = true; }
+  _loadN += list.length;
+  _loadPaint();
+  const one = async (url) => {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const len = +r.headers.get('content-length');
+    if (len) _loadTotal += len; else _loadTotalKnown = false;
+    if (!r.body) return r.json();          // no streams: fall back, no progress
+    const reader = r.body.getReader();
+    const chunks = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      _loadBytes += value.length;
+      _loadPaint();
+    }
+    return JSON.parse(new TextDecoder().decode(
+      chunks.length === 1 ? chunks[0] : _concat(chunks)));
+  };
+  try {
+    const out = await Promise.all(list.map(u => one(u).catch(e => {
+      _loadFail(u, e); throw e;
+    })));
+    return many ? out : out[0];
+  } finally {
+    _loadN -= list.length;
+    const el = document.getElementById('loadbar');
+    if (_loadN <= 0 && el && !el.classList.contains('err')) el.remove();
+  }
+}
+
+function _concat(chunks) {
+  const n = chunks.reduce((a, c) => a + c.length, 0);
+  const out = new Uint8Array(n);
+  let at = 0;
+  for (const c of chunks) { out.set(c, at); at += c.length; }
+  return out;
+}
+
+/** `shapes.json` as the flat array every page expects.
+ *
+ *  The file INTERNS its numeric series: the x grids are identical across
+ *  shapes and several y series alias each other, so each list is written once
+ *  into `pool` and the shape holds an index (`analysis/viz/build_viz.py`,
+ *  `pooled_shapes` — 49 MB of array text, 24 MB of distinct arrays). This
+ *  undoes it in one pass. A bare array is the pre-interning format and is
+ *  passed through, so an older export still draws.
+ *
+ *  The expanded series are SHARED between shapes — the same JS array object
+ *  appears in many. Read them; copy before mutating one. */
+function expandShapes(payload) {
+  if (Array.isArray(payload)) return payload;
+  const { pool, pooled, shapes } = payload;
+  for (const s of shapes) {
+    for (const k of pooled) {
+      if (typeof s[k] === 'number') s[k] = pool[s[k]];
+    }
+  }
+  return shapes;
+}
+
 async function loadData() {
-  const [results, shapes, meta] = await Promise.all([
-    fetch('data/results.json').then(r => r.json()),
-    fetch('data/shapes.json').then(r => r.json()),
-    fetch('data/meta.json').then(r => r.json()),
-  ]);
-  return { results, shapes, meta };
+  const [results, shapes, meta] = await loadJSON([
+    'data/results.json', 'data/shapes.json', 'data/meta.json']);
+  return { results, shapes: expandShapes(shapes), meta };
 }
 
 // Plotly base layout (dark theme)

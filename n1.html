@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>23 · N = 1 — the attempt log</title>
-<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script>
 <style>
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
@@ -14,7 +14,7 @@
 .notecell{color:#93a1b0;font-size:12px;max-width:340px}
 </style>
 </head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>23 · N = 1 — the attempt log</h1>
 <p class="sub">
@@ -97,7 +97,7 @@ races in chart 23.4.</div>
 nav('n1.html');
 const CLS_C = { short:'#5aa9e6', mid:'#e08b4c', hundred:'#c98bdb', day:'#2ec4b6', fixed_time:'#2ec4b6' };
 const CLS_L = { short:'≤60k', mid:'50mi–100k', hundred:'100 miles', day:'24 hours', fixed_time:'6 hours' };
-Promise.all([fetch('data/n1.json').then(r=>r.json()), loadData()])
+Promise.all([loadJSON('data/n1.json'), loadData()])
 .then(([n1, {results}])=>{
   const A = n1.attempts, own = n1._meta.owner_summary;
   const day = A.filter(a=>a.class==='day' && a.kind==='attempt');

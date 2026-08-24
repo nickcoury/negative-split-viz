@@ -1,8 +1,8 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Field Dynamics</title><link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<title>Field Dynamics</title><link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script></head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>Exploration 11 · Field dynamics</h1>
 <p class="sub">What happens <i>during</i> the race. Where runners fade, how long the field stays on even pace, and whether even/negative splitters carve through the field late. Rich-lap 24-hour cohort only (n≈705 across ~22 events) — small, so read these as suggestive.</p>
@@ -24,7 +24,7 @@
 nav('fielddyn.html');
 const TIER=[['world','World','#5aa9e6'],['continental','Continental','#2ec4b6'],
   ['national','National','#f4c430'],['open','Open','#8a97a8']];
-fetch('data/rich_summary.json').then(r=>r.json()).then(rs=>{
+loadJSON('data/rich_summary.json').then(rs=>{
   // ---- 11.1 fade point (from instantaneous per-segment pace sy; up = faster
   // than the race average). The fade is where current pace drops below average
   // and never recovers — the cumulative-vs-even curve can't see this because a

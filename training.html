@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>27 · The training — where the habit was built</title>
-<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script>
 <style>
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0}
@@ -30,7 +30,7 @@ table.log tr:hover td{background:#1b222c}
 .flag.solo{background:#1a2c33;color:#5aa9e6;border-color:#22485a}
 </style>
 </head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>27 · The training — where the habit was built</h1>
 <p class="sub">
@@ -130,8 +130,8 @@ const climbPerKm = r => r.dist_km ? r.gain_m / r.dist_km : 0;
 const miles = r => r.dist_km / 1.609344;
 
 Promise.all([
-  fetch('data/n1_training.json').then(r => r.json()),
-  fetch('data/n1_profiles.json').then(r => r.json()),
+  loadJSON('data/n1_training.json'),
+  loadJSON('data/n1_profiles.json'),
 ]).then(([tr, prof]) => {
   T = tr.runs; PROF = prof;
 

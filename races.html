@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>26 · Every race — the full career</title>
-<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script>
 <style>
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 0}
@@ -28,7 +28,7 @@ table.log tr:hover td{background:#1b222c}
 .notecell{color:#93a1b0;font-size:11.5px;max-width:250px}
 </style>
 </head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>26 · Every race — the full career</h1>
 <p class="sub">
@@ -140,8 +140,8 @@ const sgn = p => (p > 0 ? '+' : '') + p.toFixed(2);
 const climbPerKm = r => r.strava && r.strava.dist_km ? r.strava.gain_m / r.strava.dist_km : 0;
 
 Promise.all([
-  fetch('data/n1_races.json').then(r => r.json()),
-  fetch('data/n1_profiles.json').then(r => r.json()),
+  loadJSON('data/n1_races.json'),
+  loadJSON('data/n1_profiles.json'),
 ]).then(([races, prof]) => {
   D = races; PROF = prof;
   const R = D.races, withTrack = R.filter(r => r.strava);

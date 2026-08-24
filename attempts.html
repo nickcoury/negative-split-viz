@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>20 · Nobody is shooting threes</title>
-<link rel="stylesheet" href="css/style.css?v=e5fc6f7b">
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
 <script src="lib/plotly.min.js"></script>
 <style>
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
@@ -13,7 +13,7 @@
 .caveat{border-left:3px solid #8a97a8;padding:2px 0 2px 14px;margin:16px 0;color:var(--muted);font-size:13.5px}
 </style>
 </head><body>
-<script src="js/common.js?v=fd4a5fae"></script>
+<script src="js/common.js?v=87f7caa9"></script>
 <main>
 <h1>20 · Nobody is shooting threes</h1>
 <p class="sub">
@@ -66,7 +66,7 @@ site.</div>
 
 <script>
 nav('attempts.html');
-fetch('data/deep.json').then(r=>r.json()).then(({attempts})=>{
+loadJSON('data/deep.json').then(({attempts})=>{
   const A = attempts;
   const achieved = A.list.filter(a=>a.band==='negative'||a.band==='even').length;
   document.getElementById('tiles').innerHTML = [
