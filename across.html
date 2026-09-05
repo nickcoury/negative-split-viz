@@ -1,0 +1,480 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>31 · Intentionality across the ladder</title>
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
+<script src="lib/plotly.min.js"></script>
+</head><body>
+<script src="js/common.js?v=da88055b"></script>
+<script>if(typeof rungList!=='function'){addEventListener('DOMContentLoaded',()=>{
+  const d=document.createElement('p');d.style.cssText='background:#7a2226;color:#fff;padding:10px 14px;margin:0;font:14px system-ui';
+  d.textContent='Stale cached script detected — hard-refresh this page (Ctrl/Cmd+Shift+R) to load the current version.';
+  document.body.prepend(d);});}</script>
+<main>
+<h1>Exploration 31 · Intentionality across the ladder</h1>
+<p class="sub">
+The companion to <a href="deepdive.html">Exploration&nbsp;30</a>, which zooms into one rung. Here every
+chart collapses each race distance to <b>one number or one line</b>, so the rungs can be laid side by side
+and the question becomes <i>how does pacing intent change as a race gets longer</i>. Metric throughout:
+<b>seconds of intentionality</b> — the mean gap in s/mi between what an athlete was on pace for at each
+point and what they finally averaged.
+<b style="color:#2ec4b6">Negative = held back early</b>; <b style="color:#c96a6a">positive = went out
+ahead</b> of a pace they could not hold. Colour is the rung, cool for short and warm for long, and the
+ordering is always the ladder's.
+</p>
+<p class="sub" style="border-left:3px solid #e08b4c;padding-left:12px">
+<b>Three things this page cannot separate, and every reading has to carry them.</b>
+<b>(1) Format is confounded with duration below the 10&nbsp;km</b> — every 800&nbsp;m, 1500&nbsp;m, mile
+and 5&nbsp;km row is a championship or invitational TRACK race, sit-and-kick and won on the last lap, while
+the 10&nbsp;km, half and marathon rows are paced road time trials. The size of that is measured, not
+feared: at one distance, a championship round paces about <b>2.8&nbsp;pp</b> more negative than a paced
+Diamond League race (<code>docs/AGENT_ONBOARDING.md</code>).
+<b>(2) The selection rule differs by rung.</b> Eight rungs take everything inside 110% of the world record;
+the marathon and 100&nbsp;km are hand-set (2:12/2:25, 7:00/8:00); the 100-mile and 24-hour are absolute
+(finish inside a day, cover a hundred miles). A number read across the panels is read across three
+selection rules.
+<b>(3) The shape resolution differs by two orders of magnitude</b> — ten mats on a marathon against four
+hundred lap crossings in a 24-hour race. What that costs the intentionality integral is measured and
+small (median 0.63&nbsp;s/mi, verdict flips on 0 of 3,457 resampled ultras); what it costs the
+<i>roughness</i> metric is neither, which is why smoothness gets
+<a href="smooth.html">its own page</a> and its own caveats.
+</p>
+
+<div class="card"><h3>Controls</h3>
+  <div class="controls">
+    <label>Sex <select id="sex"><option value="">all</option><option value="M">men</option><option value="F">women</option></select></label>
+    <label>Caliber <select id="cal">
+      <option value="">every performance over the cutoff</option>
+      <option value="1.02">within 2% of the reference</option>
+      <option value="1.05">within 5%</option>
+      <option value="1.10">within 10%</option>
+    </select></label>
+    <label>Rungs <select id="scope">
+      <option value="">all rungs with shapes</option>
+      <option value="road">exclude the four track rungs (format confound)</option>
+      <option value="track">the four track rungs only</option>
+    </select></label>
+    <label><input type="checkbox" id="embed" checked> include the 100 miles run inside 24-hour races</label>
+    <label>Scale <select id="zoom">
+      <option value="">full range — the long rungs dominate</option>
+      <option value="1">zoom to the short rungs (the ultra tail clips)</option>
+    </select></label>
+  </div>
+  <div class="note" id="hdr"></div>
+</div>
+
+<div class="card">
+  <h3>31.1 — The intentionality ladder</h3>
+  <div class="note">Median seconds of intentionality per rung, shortest first, with a bootstrap 95%
+  interval. <b>The interval resamples EDITIONS, not performances</b> — sixty runners in one race are not
+  sixty independent observations, and treating them as such makes an interval roughly half as wide as it
+  should be (<code>analysis/rate_fragility.py</code> measured an intra-class correlation of 0.117 and a
+  design effect of 4.16 on the 10&nbsp;km rung). The box behind each point is the interquartile range of
+  the performances themselves, which is far wider and is the honest picture of the spread.</div>
+  <div id="ladder" class="chart tall"></div>
+  <div class="note" id="laddernote"></div>
+</div>
+
+<div class="card">
+  <h3>31.2 — How often anyone holds back at all</h3>
+  <div class="note">The share of each rung's performances that open conservatively enough to be called
+  deliberate — <b>intent_s ≤ −1&nbsp;s/mi</b>, the census threshold. A rate is a count on one side of a
+  fixed line, so it moves much faster than a median does under a field-wide shift; the median in 31.1 is
+  the number to trust and this is the one that is easy to picture.</div>
+  <div id="rate" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>31.3 — World-class against the rest, on every rung</h3>
+  <div class="note">The question this page exists for. Each rung's performances are split at a caliber
+  line — the <b>closest decile to the reference mark</b> against everyone else — and the two medians are
+  drawn as a dumbbell. <b>A line pointing left means the better performances opened more conservatively.</b>
+  The reference is the world record on eight rungs and this dataset's best on the two longest, so the
+  100-mile and 24-hour dumbbells measure a slightly different thing from the other seven.</div>
+  <div id="dumb" class="chart tall"></div>
+  <div class="note" id="dumbnote"></div>
+</div>
+
+<div class="card">
+  <h3>31.4 — Every rung's pace signature on one grid</h3>
+  <div class="note">The median instantaneous pace over ten race deciles, one line per rung, as a
+  percentage of each athlete's own average — <b>up is faster</b>. This is the ladder's shape catalogue: a
+  tactical track race sags in the middle and kicks; a road race drifts down; a 24-hour race opens far too
+  fast, craters, and rallies. Ten deciles at every distance, so the comparison is not a comparison of how
+  densely the courses are matted.</div>
+  <div id="sigs" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>31.5 — The verdict mix, rung by rung</h3>
+  <div class="note">The census taxonomy stacked per rung. <b>stop &amp; recover</b> is only ever offered to
+  a rung whose feed is dense enough to see a stop: at a 5&nbsp;km cadence there is no gap long enough to
+  trip the detector, and 802 of 804 verdict flips in the resampling study were the detector going blind
+  rather than the runner behaving differently — so those rungs are drawn as a three-way mix and the bar is
+  marked.</div>
+  <div id="verd" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>31.6 — Two metrics, ten rungs</h3>
+  <div class="note">Each rung as one point: <b>x = median split %</b> (the halves comparison the paper's
+  headline rests on), <b>y = median seconds of intentionality</b> (the whole-race integral). If the two
+  said the same thing the rungs would fall on a line. Where a rung sits off it, the two halves of the race
+  agree about something the rest of the race does not.</div>
+  <div id="two" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>31.7 — Against duration itself</h3>
+  <div class="note">The continuous version of 31.1: <b>x = the rung's median race duration</b> on a log
+  scale, from under two minutes to a full day, <b>y = median intentionality</b>. Duration rather than
+  distance because that is the axis the physiology runs on. Point size is the number of performances.</div>
+  <div id="dur" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>31.8 — Does the split tell you what the pacing was?</h3>
+  <div class="note">Per rung, the rank correlation between a performance's split % and its seconds of
+  intentionality. Near <b>−1</b> the two metrics are one metric and the cheap one (two checkpoints) carries
+  the expensive one's information. Away from it, <b>a split is not a pacing plan</b> — and the gap is where
+  the lap data earns its keep.</div>
+  <div id="corr" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>31.9 — The full distribution, not just the middle</h3>
+  <div class="note">A violin per rung. The medians in 31.1 hide how differently shaped these populations
+  are: some rungs are a tight band and some are a long tail of blow-ups with a hard floor at the
+  conservative end.</div>
+  <div id="viol" class="chart tall"></div>
+</div>
+
+<div class="card">
+  <h3>31.10 — The caliber gradient, rung by rung</h3>
+  <div class="note">31.3 in more resolution: each rung's median intentionality in five caliber quintiles,
+  best on the left. A rung whose line falls to the left is one where the great performances are the
+  patient ones. Lines are offset vertically by rung so they do not overplot; read the SHAPE of each, not
+  its height.</div>
+  <div id="grad" class="chart tall"></div>
+</div>
+
+<script>
+nav('across.html');
+let SH = [], META = null, SEX = '', CAL = '', SCOPE = '', EMBED = true, ZOOM = '';
+
+// THE 24-HOUR RUNG IS TWENTY TIMES THE SHORT RUNGS AND FLATTENS THEM. A median
+// of +16 s/mi beside a median of −1 means one honest shared axis makes eight of
+// the ten panels a line at the bottom of the frame — the same failure
+// ladder.html hit when it pooled percentiles across disciplines. The default
+// stays honest (everything on one scale, because the RANGE is the finding) and
+// this is the opt-in second look: a range set from the SHORT rungs, with what
+// falls outside counted rather than deleted.
+function zoomRange(L, valuesOf) {
+  if (!ZOOM) return undefined;
+  const short = L.filter(r => !['100_mile', '24_hour', '100_km'].includes(r.rung));
+  const pool = (short.length ? short : L).flatMap(valuesOf).filter(v => v != null);
+  if (!pool.length) return undefined;
+  const lo = pctl(pool, 0.02), hi = pctl(pool, 0.98), pad = (hi - lo) * 0.15 || 1;
+  return [lo - pad, hi + pad];
+}
+const TRACK = new Set(['800_m', '1500_m', 'mile', '5_km']);
+const VERDICTS = ['held_back', 'metronome', 'stop_recover', 'overcooked'];
+const VLABEL = { held_back: 'held back', metronome: 'metronome',
+                 stop_recover: 'stop & recover', overcooked: 'overcooked' };
+const VCOLOR = { held_back: '#2ec4b6', metronome: '#f4c430',
+                 stop_recover: '#5aa9e6', overcooked: '#c96a6a' };
+const secStr = v => v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(1);
+const MIN_N = 20;            // a rung under this is drawn nowhere: too thin to read
+
+/** [{rung, label, color, set}] — the ladder, filtered, shortest first. */
+function ladder() {
+  const keep = s => {
+    if (SEX && s.sex !== SEX) return false;
+    if (CAL && !(s.wr_ratio != null && s.wr_ratio <= +CAL)) return false;
+    if (!EMBED && s.embedded) return false;
+    if (SCOPE === 'road' && TRACK.has(s.rung)) return false;
+    if (SCOPE === 'track' && !TRACK.has(s.rung)) return false;
+    return true;
+  };
+  const by = new Map();
+  SH.filter(keep).forEach(s => {
+    if (!by.has(s.rung)) by.set(s.rung, []);
+    by.get(s.rung).push(s);
+  });
+  return rungList(META).filter(([k]) => (by.get(k) || []).length >= MIN_N)
+    .map(([k, label]) => ({ rung: k, label, color: rungColor(k), set: by.get(k) }));
+}
+
+const editionsOf = set => set.map(s => `${s.series}|${s.year}`);
+
+function header(L) {
+  const n = L.reduce((a, r) => a + r.set.length, 0);
+  const eds = new Set(L.flatMap(r => editionsOf(r.set))).size;
+  document.getElementById('hdr').innerHTML =
+    `<b>${n.toLocaleString()}</b> pace shapes over <b>${L.length}</b> rungs and `
+    + `<b>${eds.toLocaleString()}</b> race editions`
+    + (SEX ? `, ${SEX === 'M' ? 'men' : 'women'} only` : '')
+    + (CAL ? `, within ${((+CAL - 1) * 100).toFixed(0)}% of each rung's reference mark` : '')
+    + (EMBED ? '' : ', excluding the hundreds embedded in 24-hour races')
+    + `. A rung needs ${MIN_N} performances under the current filter to be drawn at all.`;
+}
+
+// --- 31.1 the ladder -------------------------------------------------------
+function drawLadder(L) {
+  const x = L.map(r => r.label);
+  const med = L.map(r => median(r.set.map(s => s.intent_s)));
+  const ci = L.map(r => bootMedianCI(r.set.map(s => s.intent_s), editionsOf(r.set)));
+  const q1 = L.map(r => pctl(r.set.map(s => s.intent_s), 0.25));
+  const q3 = L.map(r => pctl(r.set.map(s => s.intent_s), 0.75));
+  Plotly.react('ladder', [
+    { x, y: q3.map((v, i) => v - q1[i]), base: q1, type: 'bar', name: 'interquartile range',
+      marker: { color: L.map(r => r.color), opacity: 0.28 },
+      hovertemplate: '%{x}: IQR %{base:+.1f} to %{y:+.1f}<extra></extra>' },
+    { x, y: med, type: 'scatter', mode: 'markers', name: 'median (95% CI, clustered by edition)',
+      marker: { size: 13, color: L.map(r => r.color), line: { color: '#0f1419', width: 1.5 } },
+      error_y: { type: 'data', symmetric: false,
+        array: ci.map((c, i) => c[1] == null ? 0 : c[1] - med[i]),
+        arrayminus: ci.map((c, i) => c[0] == null ? 0 : med[i] - c[0]),
+        color: '#e6edf3', thickness: 1.4, width: 6 },
+      customdata: L.map((r, i) => [r.set.length, ci[i][0], ci[i][1]]),
+      hovertemplate: '%{x}: median %{y:+.2f} s/mi<br>%{customdata[0]} performances<br>'
+        + '95% CI %{customdata[1]:+.2f} to %{customdata[2]:+.2f}<extra></extra>' },
+  ], layout({ showlegend: true, legend: { orientation: 'h', y: 1.06 },
+    xaxis: { title: 'race distance, shortest first' },
+    yaxis: { title: 'seconds of intentionality (s/mi)', zeroline: true,
+             zerolinecolor: '#8fa3b8',
+             range: zoomRange(L, r => [pctl(r.set.map(s => s.intent_s), 0.15),
+                                       pctl(r.set.map(s => s.intent_s), 0.85)]) },
+    shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: -1, y1: -1,
+               line: { color: '#2ec4b6', dash: 'dot', width: 1.2 } }] }), CFG);
+  if (L.length < 2) { document.getElementById('laddernote').textContent = ''; return; }
+  // Name the extremes rather than asserting a shape: the ladder is NOT
+  // monotone (the 800 m inverts, exactly as it does on the split ladder), and
+  // a sentence claiming a clean gradient would be wrong at one end.
+  let lo = 0, hi = 0;
+  med.forEach((v, i) => { if (v < med[lo]) lo = i; if (v > med[hi]) hi = i; });
+  document.getElementById('laddernote').innerHTML =
+    `Most conservative rung: <b>${L[lo].label}</b> at <b>${secStr(med[lo])}</b> s/mi. `
+    + `Most aggressive: <b>${L[hi].label}</b> at <b>${secStr(med[hi])}</b>. `
+    + `Whether the rungs between them are ORDERED is what the intervals are for — where two `
+    + `overlap, this dataset has not separated them, and more data has made some of those overlaps `
+    + `firmer rather than smaller.`;
+}
+
+// --- 31.2 held-back rate ---------------------------------------------------
+function drawRate(L) {
+  const pct = L.map(r => 100 * r.set.filter(s => s.intent_s != null && s.intent_s <= -1).length
+                       / r.set.length);
+  Plotly.react('rate', [{ x: L.map(r => r.label), y: pct, type: 'bar',
+    marker: { color: L.map(r => r.color) },
+    text: pct.map(v => v.toFixed(1) + '%'), textposition: 'outside',
+    customdata: L.map(r => r.set.length),
+    hovertemplate: '%{x}: %{y:.1f}% held back, of %{customdata} performances<extra></extra>' }],
+    layout({ showlegend: false, xaxis: { title: 'race distance, shortest first' },
+      yaxis: { title: '% opening ≤ −1 s/mi below their own final average' },
+      margin: { l: 60, r: 20, t: 34, b: 50 } }), CFG);
+}
+
+// --- 31.3 world-class vs the rest -----------------------------------------
+function drawDumb(L) {
+  const rows = L.map(r => {
+    const cal = r.set.filter(s => s.wr_ratio != null && s.intent_s != null)
+      .sort((a, b) => a.wr_ratio - b.wr_ratio);
+    if (cal.length < MIN_N) return null;
+    const k = Math.max(3, Math.round(cal.length / 10));
+    const best = cal.slice(0, k), rest = cal.slice(k);
+    if (rest.length < 3) return null;
+    return { label: r.label, color: r.color,
+             best: median(best.map(s => s.intent_s)), nb: best.length,
+             rest: median(rest.map(s => s.intent_s)), nr: rest.length,
+             cut: cal[k - 1].wr_ratio };
+  }).filter(Boolean);
+  if (!rows.length) { Plotly.purge('dumb'); document.getElementById('dumbnote').textContent = ''; return; }
+  const traces = [];
+  rows.forEach(r => traces.push({ x: [r.rest, r.best], y: [r.label, r.label],
+    type: 'scatter', mode: 'lines', line: { color: r.color, width: 3 },
+    hoverinfo: 'skip', showlegend: false }));
+  traces.push({ x: rows.map(r => r.rest), y: rows.map(r => r.label), type: 'scatter',
+    mode: 'markers', name: 'the rest of the rung',
+    marker: { size: 11, color: '#8a97a8', line: { color: '#0f1419', width: 1 } },
+    customdata: rows.map(r => r.nr),
+    hovertemplate: '%{y} — rest: %{x:+.2f} s/mi (%{customdata} runs)<extra></extra>' });
+  traces.push({ x: rows.map(r => r.best), y: rows.map(r => r.label), type: 'scatter',
+    mode: 'markers', name: 'closest decile to the reference',
+    marker: { size: 13, color: '#e6edf3', symbol: 'diamond',
+              line: { color: '#0f1419', width: 1 } },
+    customdata: rows.map(r => [r.nb, r.cut]),
+    hovertemplate: '%{y} — best decile: %{x:+.2f} s/mi<br>%{customdata[0]} runs, '
+      + 'all within %{customdata[1]:.3f}× of the reference<extra></extra>' });
+  Plotly.react('dumb', traces, layout({ showlegend: true, legend: { orientation: 'h', y: 1.05 },
+    height: Math.max(320, 40 * rows.length + 110),
+    margin: { l: 130, r: 30, t: 46, b: 50 },
+    xaxis: { title: 'median seconds of intentionality (s/mi)', zeroline: true,
+             zerolinecolor: '#8fa3b8',
+             range: ZOOM ? zoomRange(L.filter(r => rows.some(q => q.label === r.label)),
+                                     r => rows.filter(q => q.label === r.label)
+                                              .flatMap(q => [q.best, q.rest])) : undefined },
+    yaxis: { automargin: true, autorange: 'reversed' } }), CFG);
+  const better = rows.filter(r => r.best < r.rest).length;
+  const widest = rows.reduce((a, r) => (r.best - r.rest) < (a.best - a.rest) ? r : a, rows[0]);
+  document.getElementById('dumbnote').innerHTML =
+    `On <b>${better} of ${rows.length}</b> rungs the closest decile to the reference opens more `
+    + `conservatively than the rest of the rung. The biggest gap that way is `
+    + `<b>${widest.label}</b>, ${(widest.best - widest.rest).toFixed(1)} s/mi. `
+    + `This is a comparison BETWEEN athletes, so it cannot separate pacing from ability — a rung's `
+    + `best performances are run by its best runners. The within-athlete version of the same question, `
+    + `which removes that confound, is <a href="careers.html">Exploration&nbsp;18</a>.`;
+}
+
+// --- 31.4 signatures -------------------------------------------------------
+function drawSigs(L) {
+  const x = [...Array(10).keys()].map(i => i + 1);
+  Plotly.react('sigs', L.map(r => {
+    const sub = r.set.filter(s => s.smooth);
+    return { x, y: x.map((_, i) => median(sub.map(s => s.smooth.dec[i]))),
+      type: 'scatter', mode: 'lines+markers', name: `${r.label} (${sub.length})`,
+      line: { color: r.color, width: 2.4 }, marker: { size: 5, color: r.color },
+      hovertemplate: `${r.label}: %{y:+.2f} pp in decile %{x}<extra></extra>` };
+  }).filter(t => t.y.some(v => v != null)),
+    layout({ showlegend: true, legend: { orientation: 'h', y: 1.06 },
+      xaxis: { title: 'tenth of the race', dtick: 1, range: [0.5, 10.5] },
+      yaxis: { title: 'median % faster than own average pace  (up = faster)',
+               zeroline: true, zerolinecolor: '#8fa3b8' } }), CFG);
+}
+
+// --- 31.5 verdict mix ------------------------------------------------------
+function drawVerd(L) {
+  const canStop = r => r.set.some(s => s.verdict_scope !== 'intent_only');
+  const labels = L.map(r => r.label + (canStop(r) ? '' : ' *'));
+  Plotly.react('verd', VERDICTS.map(v => ({
+    x: labels,
+    y: L.map(r => 100 * r.set.filter(s => s.verdict === v).length / r.set.length),
+    name: VLABEL[v], type: 'bar', marker: { color: VCOLOR[v] },
+    hovertemplate: `${VLABEL[v]}: %{y:.1f}% of %{x}<extra></extra>` })),
+    layout({ barmode: 'stack', showlegend: true, legend: { orientation: 'h', y: 1.06 },
+      xaxis: { title: 'race distance, shortest first  (* = feed too coarse to detect a stop)' },
+      yaxis: { title: '% of the rung', range: [0, 100] } }), CFG);
+}
+
+// --- 31.6 two metrics ------------------------------------------------------
+function drawTwo(L) {
+  Plotly.react('two', [{
+    x: L.map(r => median(r.set.map(s => s.split))),
+    y: L.map(r => median(r.set.map(s => s.intent_s))),
+    text: L.map(r => r.label), type: 'scatter', mode: 'markers+text',
+    textposition: 'top center', textfont: { size: 11, color: '#93a1b0' },
+    marker: { size: L.map(r => 9 + 14 * Math.sqrt(r.set.length / Math.max(1, ...L.map(q => q.set.length)))),
+              color: L.map(r => r.color), line: { color: '#0f1419', width: 1.4 } },
+    customdata: L.map(r => r.set.length),
+    hovertemplate: '%{text}: split %{x:+.2f}%, intent %{y:+.2f} s/mi (%{customdata} runs)<extra></extra>',
+  }], layout({ showlegend: false,
+    xaxis: { title: 'median split %  (below 0 = the field runs negative splits)', zeroline: true,
+             zerolinecolor: '#8fa3b8' },
+    yaxis: { title: 'median seconds of intentionality (s/mi)', zeroline: true,
+             zerolinecolor: '#8fa3b8' } }), CFG);
+}
+
+// --- 31.7 duration axis ----------------------------------------------------
+function drawDur(L) {
+  const rows = L.map(r => ({ ...r, dur: median(r.set.map(s => s.dur_h).filter(v => v)) }))
+    .filter(r => r.dur);
+  Plotly.react('dur', [{
+    x: rows.map(r => r.dur * 60), y: rows.map(r => median(r.set.map(s => s.intent_s))),
+    text: rows.map(r => r.label), type: 'scatter', mode: 'markers+lines+text',
+    textposition: 'top center', textfont: { size: 11, color: '#93a1b0' },
+    line: { color: '#3a4655', width: 1, dash: 'dot' },
+    marker: { size: rows.map(r => 9 + 14 * Math.sqrt(r.set.length / Math.max(1, ...rows.map(q => q.set.length)))),
+              color: rows.map(r => r.color), line: { color: '#0f1419', width: 1.4 } },
+    customdata: rows.map(r => r.set.length),
+    hovertemplate: '%{text}: %{x:.1f} min typical, intent %{y:+.2f} s/mi (%{customdata} runs)<extra></extra>',
+  }], layout({ showlegend: false,
+    xaxis: { title: 'typical race duration (minutes, log scale)', type: 'log' },
+    yaxis: { title: 'median seconds of intentionality (s/mi)', zeroline: true,
+             zerolinecolor: '#8fa3b8' } }), CFG);
+}
+
+// --- 31.8 does the split carry the pacing? --------------------------------
+function drawCorr(L) {
+  const rho = L.map(r => {
+    const sub = r.set.filter(s => s.intent_s != null && s.split != null);
+    return sub.length >= MIN_N ? spearman(sub.map(s => s.split), sub.map(s => s.intent_s)) : null;
+  });
+  Plotly.react('corr', [{ x: L.map(r => r.label), y: rho, type: 'bar',
+    marker: { color: L.map(r => r.color) },
+    text: rho.map(v => v == null ? '' : v.toFixed(2)), textposition: 'outside',
+    hovertemplate: '%{x}: Spearman ρ %{y:.3f}<extra></extra>' }],
+    layout({ showlegend: false,
+      xaxis: { title: 'race distance, shortest first' },
+      yaxis: { title: 'ρ between split % and seconds of intentionality', range: [-1.05, 0.2],
+               zeroline: true } }), CFG);
+}
+
+// --- 31.9 violins ----------------------------------------------------------
+function drawViol(L) {
+  Plotly.react('viol', L.map(r => ({
+    y: r.set.map(s => s.intent_s).filter(v => v != null), name: r.label, type: 'violin',
+    box: { visible: true }, meanline: { visible: false }, points: false,
+    spanmode: 'hard', line: { color: r.color }, fillcolor: r.color, opacity: 0.42,
+    hoverinfo: 'y' })),
+    layout({ showlegend: false,
+      xaxis: { title: 'race distance, shortest first' },
+      yaxis: { title: 'seconds of intentionality (s/mi)', zeroline: true,
+               zerolinecolor: '#8fa3b8',
+               range: zoomRange(L, r => [pctl(r.set.map(s => s.intent_s), 0.05),
+                                         pctl(r.set.map(s => s.intent_s), 0.95)]) } }), CFG);
+}
+
+// --- 31.10 caliber gradient small multiples --------------------------------
+function drawGrad(L) {
+  const K = 5;
+  const traces = [];
+  L.forEach(r => {
+    const cal = r.set.filter(s => s.wr_ratio != null && s.intent_s != null)
+      .sort((a, b) => a.wr_ratio - b.wr_ratio);
+    if (cal.length < K * 4) return;
+    const y = [], n = [];
+    for (let i = 0; i < K; i++) {
+      const sub = cal.slice(Math.floor(i * cal.length / K), Math.floor((i + 1) * cal.length / K));
+      y.push(median(sub.map(s => s.intent_s))); n.push(sub.length);
+    }
+    // Centre each rung on its OWN median so the lines can be compared by
+    // shape. Plotted raw they span forty seconds per mile and every short
+    // rung is a flat line at the bottom of the frame.
+    const base = median(y);
+    traces.push({ x: ['best 20%', '2nd', '3rd', '4th', 'slowest 20%'],
+      y: y.map(v => v - base), type: 'scatter', mode: 'lines+markers',
+      name: `${r.label} (median ${secStr(base)})`,
+      line: { color: r.color, width: 2.4 }, marker: { size: 7, color: r.color },
+      customdata: n.map((v, i) => [v, y[i]]),
+      hovertemplate: `${r.label}: %{customdata[1]:+.2f} s/mi in the %{x} `
+        + `(%{customdata[0]} runs)<extra></extra>` });
+  });
+  Plotly.react('grad', traces, layout({ showlegend: true, legend: { orientation: 'h', y: 1.06 },
+    xaxis: { title: 'caliber quintile within the rung' },
+    yaxis: { title: 's/mi relative to the rung’s own median  (down = more conservative)',
+             zeroline: true, zerolinecolor: '#8fa3b8' } }), CFG);
+}
+
+function refresh() {
+  const L = ladder();
+  header(L);
+  const ids = ['ladder', 'rate', 'dumb', 'sigs', 'verd', 'two', 'dur', 'corr', 'viol', 'grad'];
+  if (!L.length) { ids.forEach(id => Plotly.purge(id)); return; }
+  drawLadder(L); drawRate(L); drawDumb(L); drawSigs(L); drawVerd(L);
+  drawTwo(L); drawDur(L); drawCorr(L); drawViol(L); drawGrad(L);
+}
+
+loadData().then(({ shapes, meta }) => {
+  META = meta; initCohorts(meta);
+  SH = shapes.filter(s => s.rung && s.intent_s != null);
+  ['sex', 'cal', 'scope', 'zoom'].forEach(id => document.getElementById(id).onchange = e => {
+    if (id === 'sex') SEX = e.target.value;
+    if (id === 'cal') CAL = e.target.value;
+    if (id === 'scope') SCOPE = e.target.value;
+    if (id === 'zoom') ZOOM = e.target.value;
+    refresh();
+  });
+  document.getElementById('embed').onchange = e => { EMBED = e.target.checked; refresh(); };
+  refresh();
+});
+</script>
+</main></body></html>

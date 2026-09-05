@@ -1,0 +1,530 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>30 · Inside one discipline</title>
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
+<script src="lib/plotly.min.js"></script>
+</head><body>
+<script src="js/common.js?v=da88055b"></script>
+<script>if(typeof fillRungSelect!=='function'){addEventListener('DOMContentLoaded',()=>{
+  const d=document.createElement('p');d.style.cssText='background:#7a2226;color:#fff;padding:10px 14px;margin:0;font:14px system-ui';
+  d.textContent='Stale cached script detected — hard-refresh this page (Ctrl/Cmd+Shift+R) to load the current version.';
+  document.body.prepend(d);});}</script>
+<main>
+<h1>Exploration 30 · Inside one discipline</h1>
+<p class="sub">
+Pick a rung of the distance ladder and this page shows nothing else. Every chart is scoped to that one
+race distance, on the metric the census runs on: <b>seconds of intentionality</b> — the mean gap in
+<b>s/mi</b> between what an athlete was on pace for at each point and what they finally averaged, with x
+normalised so race length drops out. <b style="color:#2ec4b6">Negative = held back early</b> (ran
+conservative of the pace they ended up averaging); <b style="color:#c96a6a">positive = went out ahead</b>
+of it. Definition and derivation: <a href="intent.html">Exploration&nbsp;16</a>.
+</p>
+<p class="sub">
+Two things about the rung selector. It groups by the <b>race distance of the EFFORT</b>, not by the event:
+the 100 miles run inside a 24-hour race sits on the <b>100-mile</b> rung, which is where a reader looking
+for a hundred expects it, and the shapes pages' <i>cohort</i> selector splits that rung three ways instead.
+And the caliber axis is the same one <a href="ladder.html">the Ladder</a> uses — the result divided by the
+reference mark for that rung and sex — so <code>1.00</code> is the record and <code>1.10</code> is ten
+percent off it. On the 100-mile and 24-hour rungs there is no ratified record, so the reference is the best
+mark in this dataset and is labelled as such.
+</p>
+
+<div class="card"><h3>Controls</h3>
+  <div class="controls">
+    <label>Distance <select id="rung"></select></label>
+    <label>Sex <select id="sex"><option value="">all</option><option value="M">men</option><option value="F">women</option></select></label>
+    <label>Caliber <select id="cal">
+      <option value="">every performance over the cutoff</option>
+      <option value="1.02">within 2% of the reference</option>
+      <option value="1.05">within 5%</option>
+      <option value="1.10">within 10%</option>
+    </select></label>
+    <label>Outcome <select id="band">
+      <option value="">all splits</option>
+      <option value="negeven">negative + even only</option>
+      <option value="neg">negative only</option>
+      <option value="pos">positive only</option>
+    </select></label>
+  </div>
+  <div class="note" id="hdr"></div>
+</div>
+
+<div class="grid" id="tiles"></div>
+
+<div class="card">
+  <h3>30.1 — The rung's signature: how the pace actually moved</h3>
+  <div class="note">The <b>instantaneous</b> pace over ten race deciles, as a percentage of this athlete's
+  own average — <b>up is faster</b>. Line is the median, the shaded band the interquartile range, and the
+  three colours are the outcome bands so you can see whether a negative split at this distance is a
+  different SHAPE or the same shape shifted. Ten deciles rather than the raw checkpoints on purpose: a
+  decile is 10% of the race at every distance, so this chart is not a picture of how densely the timers
+  mat the course (<code>analysis/cadence_calibration.py</code>, study D).</div>
+  <div id="sig" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>30.2 — What they were on pace for, all race long</h3>
+  <div class="note">The <b>foresight</b> line: average pace from the gun to each point, in seconds per mile
+  against the pace they finished up averaging. This is the curve <code>intent_s</code> is literally the
+  mean height of. <b style="color:#2ec4b6">Below zero = conservative so far</b>. Median with a 25–75 and a
+  10–90 band. Curves start where each athlete's first checkpoint is, so the left edge thins out on rungs
+  whose first mat is late; the count under each x is in the hover.</div>
+  <div id="fan" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>30.3 — Where this rung sits, and how wide it spreads</h3>
+  <div class="note">The distribution of seconds of intentionality. The dotted line at
+  <b>−1&nbsp;s/mi</b> is the census threshold for <i>held back on purpose</i>: under a second either way is
+  a runner holding their average, not a plan.</div>
+  <div id="hist" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>30.4 — Do the best performances at this distance hold back more?</h3>
+  <div class="note">Every performance on the rung: <b>x = result ÷ reference mark</b> (left is closer to
+  the record), <b>y = seconds of intentionality</b>. The white line is the median within each decile of
+  caliber, which is the part to read — the cloud is wide everywhere. <b>A line sloping down to the left
+  means the closer to the record, the more conservative the opening.</b></div>
+  <div id="calchart" class="chart"></div>
+  <div class="note" id="calnote"></div>
+</div>
+
+<div class="card">
+  <h3>30.5 — The verdict mix, and how it moves with caliber</h3>
+  <div class="note">The four-way census taxonomy (<a href="census.html">Exploration&nbsp;17</a>) applied to
+  this rung, in caliber quintiles. <b>held&nbsp;back</b> ≤ −1&nbsp;s/mi · <b>metronome</b> ≤ +5 with no
+  stop · <b>stop &amp; recover</b> a gap long enough to sink the average · <b>overcooked</b> everything
+  else. A rung whose feed is too coarse to see a stop is never offered that verdict at all, and says so.</div>
+  <div id="verd" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>30.6 — Intentionality against the split it produced</h3>
+  <div class="note">The two metrics side by side. They are not the same thing: <code>split_pct</code> is a
+  comparison of two halves and <code>intent_s</code> is an integral over the whole race, so a race can be
+  negative by a hair and wildly overcooked, or positive and entirely deliberate. The correlation is
+  printed — where it is near −1 the two are saying one thing, and where it is not the split is hiding
+  something.</div>
+  <div id="vs" class="chart"></div>
+  <div class="note" id="vsnote"></div>
+</div>
+
+<div class="card">
+  <h3>30.7 — Which tenth of the race was fastest, and which was slowest</h3>
+  <div class="note">Counting, over every performance on the rung, the decile that held the quickest pace
+  and the decile that held the slowest. A rung that opens hard and fades puts <b>fastest</b> at 1 and
+  <b>slowest</b> at 10; a tactical track race puts fastest at 10 and slowest in the middle; a race with a
+  bad patch puts slowest wherever the patch was.</div>
+  <div id="peak" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>30.8 — Has pacing at this distance changed?</h3>
+  <div class="note">Median seconds of intentionality by year, with the number of performances behind each
+  point. Thin years move a long way on very little, so the marker size is the sample and the shaded band is
+  the interquartile range. This is a coverage curve as much as a history: what we hold for a year is what
+  someone published.</div>
+  <div id="era" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>30.9 — The same rung cut four ways</h3>
+  <div class="note">Median intentionality by sex, by championship tier, by venue type, and by the outcome
+  band. Bars show the count; a cut with a handful of rows is drawn but should not be read.</div>
+  <div id="cuts" class="chart"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>Table — the twenty most deliberate performances on this rung</h3>
+  <div class="note">Ranked by seconds of intentionality, most conservative opening first.</div>
+  <div id="tbl"></div>
+</div>
+
+<script>
+nav('deepdive.html');
+let SH = [], RES = new Map(), META = null;
+let RUNG = '', SEX = '', CAL = '', BAND = '';
+const VERDICTS = ['held_back', 'metronome', 'stop_recover', 'overcooked'];
+const VLABEL = { held_back: 'held back', metronome: 'metronome',
+                 stop_recover: 'stop &amp; recover', overcooked: 'overcooked' };
+const VCOLOR = { held_back: '#2ec4b6', metronome: '#f4c430',
+                 stop_recover: '#5aa9e6', overcooked: '#c96a6a' };
+const secStr = v => v == null ? '—' : (v > 0 ? '+' : '') + v.toFixed(1);
+
+function visible() {
+  return SH.filter(s => {
+    if (s.rung !== RUNG) return false;
+    if (SEX && s.sex !== SEX) return false;
+    if (CAL && !(s.wr_ratio != null && s.wr_ratio <= +CAL)) return false;
+    if (BAND === 'negeven') return s.band === 'negative' || s.band === 'even';
+    if (BAND === 'neg') return s.split < 0;
+    if (BAND === 'pos') return s.split > 0;
+    return true;
+  });
+}
+
+// The header does double duty: it says what the population IS, and it says
+// what the rung's DATA is, because a shape drawn from ten mats and a shape
+// drawn from four hundred lap crossings answer different questions and the
+// reader cannot tell them apart by looking at the curve.
+function header(set) {
+  const b = (META.benchmarks || {})[`${RUNG}|${SEX || 'M'}`] || {};
+  const cad = {};
+  set.forEach(s => { cad[s.cadence || 'unknown'] = (cad[s.cadence || 'unknown'] || 0) + 1; });
+  const cadStr = Object.entries(cad).sort((a, c) => c[1] - a[1])
+    .map(([k, n]) => `${k.replace('_', '-')} ${Math.round(100 * n / set.length)}%`).join(' · ');
+  const ncp = median(set.map(s => s.ncp).filter(x => x != null));
+  document.getElementById('hdr').innerHTML =
+    `<b>${set.length.toLocaleString()}</b> pace shapes on the ${discLabel(RUNG)} rung`
+    + (SEX ? ` (${SEX === 'M' ? 'men' : 'women'})` : '')
+    + (CAL ? `, within ${((+CAL - 1) * 100).toFixed(0)}% of the reference` : '')
+    + `. Reference mark: <b>${b.kind === 'world_record' ? 'world record' : 'best in this dataset'}</b>`
+    + (b.who ? ` — ${b.who}${b.mark ? ' ' + b.mark : ''}` : '')
+    + `. Checkpoints per race: median <b>${ncp == null ? '—' : Math.round(ncp)}</b> (${cadStr}).`
+    + smoothNote(META, RUNG);
+
+  const I = set.map(s => s.intent_s).filter(x => x != null);
+  const held = set.filter(s => s.verdict === 'held_back').length;
+  const neg = set.filter(s => s.split < 0).length;
+  const ne = set.filter(s => s.band === 'negative' || s.band === 'even').length;
+  const [lo, hi] = bootMedianCI(I, set.map(s => `${s.series}|${s.year}`));
+  const tile = (v, cap, col) => `<div class="mini"><div class="cap">${cap}</div>`
+    + `<div style="font-size:22px;font-weight:700;color:${col || '#e6edf3'};padding:0 4px 6px">${v}</div></div>`;
+  document.getElementById('tiles').innerHTML =
+    tile(secStr(median(I)) + ' <span style="font-size:13px;font-weight:400">s/mi</span>',
+         `median intentionality${lo == null ? '' : ` · 95% CI ${secStr(lo)} to ${secStr(hi)}`}`,
+         median(I) < -1 ? '#2ec4b6' : median(I) > 1 ? '#c96a6a' : '#f4c430')
+    + tile((100 * held / (set.length || 1)).toFixed(1) + '%', 'held back on purpose (≤ −1 s/mi)', '#2ec4b6')
+    + tile((100 * ne / (set.length || 1)).toFixed(1) + '%', 'negative or even split', '#f4c430')
+    + tile((median(set.map(s => s.split)) >= 0 ? '+' : '') + median(set.map(s => s.split)).toFixed(2) + '%',
+           'median split');
+  return { neg };
+}
+
+// --- 30.1 the decile signature ---------------------------------------------
+function drawSig(set) {
+  const groups = [['negative', 'negative split'], ['even', 'even split'],
+                  ['near-even', 'near-even'], ['positive', 'positive split']];
+  const x = [...Array(10).keys()].map(i => i + 1);
+  const traces = [];
+  groups.forEach(([g, lbl]) => {
+    const sub = set.filter(s => s.band === g && s.smooth);
+    if (sub.length < 5) return;
+    const cols = x.map((_, i) => sub.map(s => s.smooth.dec[i]));
+    const med = cols.map(c => median(c)), lo = cols.map(c => pctl(c, 0.25)),
+          hi = cols.map(c => pctl(c, 0.75));
+    const col = BAND_COLOR[g];
+    traces.push({ x: x.concat([...x].reverse()), y: hi.concat([...lo].reverse()),
+      fill: 'toself', fillcolor: hexA(col, 0.13), type: 'scatter',
+      mode: 'lines', line: { width: 0 }, hoverinfo: 'skip', showlegend: false });
+    traces.push({ x, y: med, type: 'scatter', mode: 'lines+markers',
+      name: `${lbl} (${sub.length})`, line: { color: col, width: 2.6 },
+      marker: { size: 6, color: col },
+      hovertemplate: `${lbl}: %{y:+.2f} pp in decile %{x}<extra></extra>` });
+  });
+  Plotly.react('sig', traces, layout({ showlegend: true, legend: { orientation: 'h', y: 1.1 },
+    xaxis: { title: 'tenth of the race', dtick: 1, range: [0.5, 10.5] },
+    yaxis: { title: '% faster than this athlete’s own average pace  (up = faster)', zeroline: true,
+             zerolinecolor: '#8fa3b8' } }), CFG);
+}
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
+}
+
+// --- 30.2 the foresight fan ------------------------------------------------
+const GRID = [...Array(51).keys()].map(i => i * 2);
+function drawFan(set) {
+  const series = set.filter(s => s.sec_x && s.sec_x.length)
+    .map(s => onGrid(s.sec_x, s.sec_y, GRID));
+  if (!series.length) { Plotly.purge('fan'); return; }
+  const n = GRID.map((_, i) => series.filter(s => s[i] != null).length);
+  const q = p => GRID.map((_, i) => pctl(series.map(s => s[i]), p));
+  const band = (lo, hi, a) => ({ x: GRID.concat([...GRID].reverse()),
+    y: hi.concat([...lo].reverse()), fill: 'toself', type: 'scatter', mode: 'lines',
+    line: { width: 0 }, fillcolor: `rgba(46,196,182,${a})`, hoverinfo: 'skip',
+    showlegend: false });
+  const med = q(0.5);
+  // THE OPENING SPIKE IS REAL, ENORMOUS, AND WOULD OWN THE WHOLE FRAME. At 2%
+  // of a 24-hour race everybody is on pace for a distance nobody will cover,
+  // so the p90 band opens in the hundreds of seconds per mile and flattens the
+  // other 98% of every curve into a line. The default range is set from the
+  // race past its first tenth and the spike is left to run off the top, with
+  // the axis saying so — the alternative is either an unreadable chart or
+  // silently deleting the part of the curve the metric counts most heavily.
+  const q25 = q(0.25), q75 = q(0.75);
+  const tail = [];
+  GRID.forEach((g, i) => { if (g >= 15) [q25[i], q75[i], med[i]].forEach(v => {
+    if (v != null) tail.push(v); }); });
+  const lo = Math.min(-2, (Math.min(...tail) || -10) * 1.4);
+  const hi = Math.max(2, (Math.max(...tail) || 10) * 1.4);
+  const off = GRID.filter((g, i) => med[i] != null && med[i] > hi).length;
+  Plotly.react('fan', [
+    band(q(0.10), q(0.90), 0.08), band(q(0.25), q(0.75), 0.16),
+    { x: GRID, y: med, type: 'scatter', mode: 'lines', name: 'median',
+      line: { color: '#2ec4b6', width: 2.8 },
+      customdata: n,
+      hovertemplate: 'median %{y:+.1f} s/mi at %{x:.0f}% of the race<br>'
+        + '%{customdata} performances reach here<extra></extra>' },
+    { x: GRID, y: GRID.map(() => 0), type: 'scatter', mode: 'lines',
+      line: { color: '#8fa3b8', dash: 'dot', width: 1.4 }, hoverinfo: 'skip',
+      showlegend: false },
+  ], layout({ showlegend: false,
+    xaxis: { title: '% of race completed', range: [0, 100] },
+    yaxis: { title: 'seconds per mile vs own final average  (− = conservative)'
+               + (off ? '   · the opening runs off the top' : ''),
+             range: [lo, hi], zeroline: true, zerolinecolor: '#8fa3b8' } }), CFG);
+}
+
+// --- 30.3 distribution -----------------------------------------------------
+function drawHist(set) {
+  const bySex = ['M', 'F'].map(sx => ({
+    x: set.filter(s => s.sex === sx).map(s => s.intent_s).filter(v => v != null),
+    name: sx === 'M' ? 'men' : 'women',
+    marker: { color: sx === 'M' ? '#5aa9e6' : '#e08b4c' } }))
+    .filter(t => t.x.length);
+  const traces = bySex.map(t => Object.assign(t, { type: 'histogram', opacity: 0.62,
+    nbinsx: 50, hovertemplate: `${t.name}: %{y} near %{x:+.0f} s/mi<extra></extra>` }));
+  const m = median(set.map(s => s.intent_s));
+  Plotly.react('hist', traces.length ? traces : [{
+    x: set.map(s => s.intent_s).filter(v => v != null), type: 'histogram',
+    nbinsx: 50, marker: { color: '#2ec4b6' } }],
+    layout({ barmode: 'overlay', showlegend: traces.length > 1,
+      legend: { orientation: 'h', y: 1.08 },
+      xaxis: { title: 'seconds of intentionality (s/mi)   ← held back · went out ahead →' },
+      yaxis: { title: 'performances' },
+      shapes: [
+        { type: 'line', x0: -1, x1: -1, yref: 'paper', y0: 0, y1: 1,
+          line: { color: '#2ec4b6', dash: 'dot', width: 1.5 } },
+        { type: 'line', x0: m, x1: m, yref: 'paper', y0: 0, y1: 1,
+          line: { color: '#e6edf3', width: 1.5 } }],
+      annotations: [
+        { x: -1, y: 1, yref: 'paper', text: 'held back', showarrow: false,
+          font: { size: 10, color: '#2ec4b6' }, xanchor: 'right', yanchor: 'bottom' },
+        { x: m, y: 1, yref: 'paper', text: 'median', showarrow: false,
+          font: { size: 10, color: '#e6edf3' }, xanchor: 'left', yanchor: 'bottom' }] }), CFG);
+}
+
+// --- 30.4 caliber ----------------------------------------------------------
+/** Split `set` into `k` equal-count bins of `key`, returning the bin centre
+ *  (median of the key) and the median of `val`. Equal COUNT rather than equal
+ *  width because caliber is heaped against the cutoff on every rung — equal
+ *  width puts nine tenths of a rung in one bar. */
+function binMedians(set, key, val, k = 10) {
+  const rows = set.filter(s => key(s) != null && val(s) != null)
+    .sort((a, b) => key(a) - key(b));
+  if (rows.length < k * 3) return [];
+  const out = [];
+  for (let i = 0; i < k; i++) {
+    const sub = rows.slice(Math.floor(i * rows.length / k),
+                           Math.floor((i + 1) * rows.length / k));
+    if (sub.length < 3) continue;
+    out.push({ x: median(sub.map(key)), y: median(sub.map(val)), n: sub.length,
+               lo: pctl(sub.map(val), 0.25), hi: pctl(sub.map(val), 0.75) });
+  }
+  return out;
+}
+function drawCal(set) {
+  const pts = set.filter(s => s.wr_ratio != null && s.intent_s != null);
+  const bins = binMedians(pts, s => s.wr_ratio, s => s.intent_s);
+  const gl = pts.length > 1500;
+  Plotly.react('calchart', [
+    { x: pts.map(s => s.wr_ratio), y: pts.map(s => s.intent_s),
+      type: gl ? 'scattergl' : 'scatter', mode: 'markers', name: 'performances',
+      marker: { size: 5, opacity: 0.45, color: pts.map(s => BAND_COLOR[s.band]) },
+      text: pts.map(s => `${s.name} · ${s.series} ${s.year}<br>`
+        + `${(100 * (s.wr_ratio - 1)).toFixed(1)}% off the reference · `
+        + `${secStr(s.intent_s)} s/mi · split ${s.split > 0 ? '+' : ''}${s.split}%`),
+      hoverinfo: 'text' },
+    { x: bins.map(b => b.x), y: bins.map(b => b.y), type: 'scatter',
+      mode: 'lines+markers', name: 'median by caliber decile',
+      line: { color: '#e6edf3', width: 2.4 }, marker: { size: 7, color: '#e6edf3' },
+      customdata: bins.map(b => b.n),
+      hovertemplate: 'median %{y:+.1f} s/mi at %{x:.3f}× (%{customdata} runs)<extra></extra>' },
+  ], layout({ showlegend: false,
+    xaxis: { title: 'result ÷ reference mark   ← closer to the record' },
+    yaxis: { title: 'seconds of intentionality (s/mi)', zeroline: true } }), CFG);
+  const r = spearman(pts.map(s => s.wr_ratio), pts.map(s => s.intent_s));
+  document.getElementById('calnote').innerHTML = bins.length
+    ? `Best decile <b>${secStr(bins[0].y)}</b> s/mi against <b>${secStr(bins[bins.length - 1].y)}</b> `
+      + `in the slowest — a gap of <b>${Math.abs(bins[0].y - bins[bins.length - 1].y).toFixed(1)}</b> s/mi. `
+      + `Spearman ρ between caliber and intentionality: <b>${r == null ? '—' : r.toFixed(3)}</b> `
+      + `(positive means the slower runs opened more aggressively relative to what they could hold).`
+    : 'Too few performances with a caliber ratio on this cut to bin.';
+}
+
+// --- 30.5 verdict mix ------------------------------------------------------
+function drawVerd(set) {
+  const scoped = set.filter(s => s.wr_ratio != null)
+    .sort((a, b) => a.wr_ratio - b.wr_ratio);
+  const K = 5, labels = [], cols = [];
+  for (let i = 0; i < K; i++) {
+    const sub = scoped.slice(Math.floor(i * scoped.length / K),
+                             Math.floor((i + 1) * scoped.length / K));
+    if (!sub.length) continue;
+    labels.push(`${median(sub.map(s => s.wr_ratio)).toFixed(3)}×<br>${sub.length}`);
+    cols.push(sub);
+  }
+  // A rung whose feed cannot see a stop must not be OFFERED the stop verdict,
+  // or its absence reads as "nobody stopped" rather than "nobody could tell".
+  const canStop = set.some(s => s.verdict_scope !== 'intent_only');
+  const vs = VERDICTS.filter(v => v !== 'stop_recover' || canStop);
+  Plotly.react('verd', vs.map(v => ({
+    x: labels, y: cols.map(c => 100 * c.filter(s => s.verdict === v).length / c.length),
+    name: VLABEL[v].replace('&amp;', '&'), type: 'bar', marker: { color: VCOLOR[v] },
+    hovertemplate: `${VLABEL[v].replace('&amp;', '&')}: %{y:.1f}%<extra></extra>` })),
+    layout({ barmode: 'stack', showlegend: true, legend: { orientation: 'h', y: 1.08 },
+      xaxis: { title: 'caliber quintile (median ratio to the reference, and n)' },
+      yaxis: { title: '% of the quintile', range: [0, 100] } }), CFG);
+}
+
+// --- 30.6 intent vs split --------------------------------------------------
+function drawVs(set) {
+  const pts = set.filter(s => s.intent_s != null && s.split != null);
+  const gl = pts.length > 1500;
+  Plotly.react('vs', [{
+    x: pts.map(s => s.intent_s), y: pts.map(s => s.split),
+    type: gl ? 'scattergl' : 'scatter', mode: 'markers',
+    marker: { size: 5, opacity: 0.5, color: pts.map(s => VCOLOR[s.verdict] || '#8a97a8') },
+    text: pts.map(s => `${s.name} · ${s.series} ${s.year}<br>${secStr(s.intent_s)} s/mi · `
+      + `split ${s.split > 0 ? '+' : ''}${s.split}% · ${VLABEL[s.verdict].replace('&amp;', '&')}`),
+    hoverinfo: 'text' }],
+    layout({ showlegend: false,
+      xaxis: { title: 'seconds of intentionality (s/mi)', zeroline: true },
+      yaxis: { title: 'split %  (below 0 = negative split)', zeroline: true },
+      shapes: [{ type: 'rect', xref: 'paper', x0: 0, x1: 1, y0: 0, y1: 1.0,
+                 fillcolor: 'rgba(244,196,48,0.12)', line: { width: 0 } }] }), CFG);
+  const r = spearman(pts.map(s => s.intent_s), pts.map(s => s.split));
+  const disagree = pts.filter(s => s.split < 0 && s.intent_s > 1).length;
+  document.getElementById('vsnote').innerHTML =
+    `Spearman ρ = <b>${r == null ? '—' : r.toFixed(3)}</b> over ${pts.length.toLocaleString()} `
+    + `performances. <b>${disagree}</b> of them (${(100 * disagree / (pts.length || 1)).toFixed(1)}%) `
+    + `ran a negative split while opening more than a second per mile ahead of their own final average — `
+    + `a faster second half that the pacing plan did not ask for.`;
+}
+
+// --- 30.7 fastest / slowest decile ----------------------------------------
+function drawPeak(set) {
+  const x = [...Array(10).keys()].map(i => i + 1);
+  const cnt = (k) => x.map(d => set.filter(s => s.smooth && s.smooth[k] === d).length);
+  const n = set.filter(s => s.smooth).length || 1;
+  Plotly.react('peak', [
+    { x, y: cnt('fast').map(v => 100 * v / n), name: 'fastest tenth', type: 'bar',
+      marker: { color: '#2ec4b6' }, hovertemplate: 'fastest in decile %{x}: %{y:.1f}%<extra></extra>' },
+    { x, y: cnt('slow').map(v => 100 * v / n), name: 'slowest tenth', type: 'bar',
+      marker: { color: '#c96a6a' }, hovertemplate: 'slowest in decile %{x}: %{y:.1f}%<extra></extra>' },
+  ], layout({ barmode: 'group', showlegend: true, legend: { orientation: 'h', y: 1.08 },
+    xaxis: { title: 'tenth of the race', dtick: 1 },
+    yaxis: { title: '% of performances' } }), CFG);
+}
+
+// --- 30.8 by year ----------------------------------------------------------
+function drawEra(set) {
+  const by = new Map();
+  set.forEach(s => { if (s.year != null && s.intent_s != null) {
+    if (!by.has(s.year)) by.set(s.year, []); by.get(s.year).push(s.intent_s); } });
+  const yrs = [...by.keys()].sort((a, b) => a - b);
+  const med = yrs.map(y => median(by.get(y))), n = yrs.map(y => by.get(y).length);
+  const lo = yrs.map(y => pctl(by.get(y), 0.25)), hi = yrs.map(y => pctl(by.get(y), 0.75));
+  const smax = Math.max(1, ...n);
+  Plotly.react('era', [
+    { x: yrs.concat([...yrs].reverse()), y: hi.concat([...lo].reverse()), fill: 'toself',
+      type: 'scatter', mode: 'lines', line: { width: 0 },
+      fillcolor: 'rgba(90,169,230,0.13)', hoverinfo: 'skip', showlegend: false },
+    { x: yrs, y: med, type: 'scatter', mode: 'lines+markers',
+      line: { color: '#5aa9e6', width: 2 },
+      marker: { size: n.map(v => 6 + 16 * Math.sqrt(v / smax)), color: '#5aa9e6',
+                line: { color: '#0f1419', width: 1 } },
+      customdata: n,
+      hovertemplate: '%{x}: median %{y:+.1f} s/mi over %{customdata} performances<extra></extra>' },
+  ], layout({ showlegend: false, xaxis: { title: 'edition year' },
+    yaxis: { title: 'median seconds of intentionality', zeroline: true } }), CFG);
+}
+
+// --- 30.9 four cuts --------------------------------------------------------
+function drawCuts(set) {
+  const cut = (name, keyf) => {
+    const by = new Map();
+    set.forEach(s => { const k = keyf(s); if (k == null || s.intent_s == null) return;
+      if (!by.has(k)) by.set(k, []); by.get(k).push(s.intent_s); });
+    return [...by.entries()].filter(([, v]) => v.length >= 3)
+      .sort((a, b) => b[1].length - a[1].length)
+      .map(([k, v]) => ({ group: name, label: `${k} (${v.length})`, y: median(v) }));
+  };
+  const meta = s => RES.get(`${s.rid}|${s.method}`) || {};
+  const rows = [].concat(
+    cut('sex', s => s.sex === 'M' ? 'men' : s.sex === 'F' ? 'women' : null),
+    cut('tier', s => meta(s).tier),
+    cut('venue', s => (meta(s).venue || '').replace('_', ' ') || null),
+    cut('band', s => s.band));
+  const GC = { sex: '#5aa9e6', tier: '#2ec4b6', venue: '#f4c430', band: '#e08b4c' };
+  const groups = ['sex', 'tier', 'venue', 'band'];
+  Plotly.react('cuts', groups.map(g => {
+    const sub = rows.filter(r => r.group === g);
+    return { x: sub.map(r => r.y), y: sub.map(r => r.label), name: g, type: 'bar',
+      orientation: 'h', marker: { color: GC[g] },
+      hovertemplate: `${g}: %{y} → median %{x:+.2f} s/mi<extra></extra>` };
+  }).filter(t => t.x.length),
+    layout({ showlegend: true, legend: { orientation: 'h', y: 1.06 },
+      height: Math.max(280, 30 * rows.length + 90),
+      margin: { l: 190, r: 20, t: 40, b: 46 },
+      xaxis: { title: 'median seconds of intentionality (s/mi)', zeroline: true },
+      yaxis: { automargin: true } }), CFG);
+}
+
+// --- table -----------------------------------------------------------------
+function drawTable(set) {
+  const rows = set.filter(s => s.intent_s != null)
+    .sort((a, b) => a.intent_s - b.intent_s).slice(0, 20);
+  const meta = s => RES.get(`${s.rid}|${s.method}`) || {};
+  document.getElementById('tbl').innerHTML =
+    '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    + '<tr style="color:#93a1b0;text-align:left"><th style="padding:5px 10px">Athlete</th>'
+    + '<th>Year</th><th>Race</th><th>Result</th><th>÷ ref</th><th>Split %</th>'
+    + '<th title="mean s/mi vs their own final average; negative = held back">s/mi</th>'
+    + '<th>Verdict</th><th title="RMS wobble off their own smooth trend, in pp">rough</th></tr>'
+    + rows.map(s => {
+      const m = meta(s);
+      const res = s.final_km != null ? `${s.final_km.toFixed(2)} km`
+        : s.final_h != null ? fmtHMS(s.final_h) : '—';
+      return `<tr style="border-top:1px solid #263140">
+        <td style="padding:4px 10px">${s.name}</td><td>${s.year}</td>
+        <td style="max-width:240px">${s.series}</td>
+        <td>${res}</td><td>${s.wr_ratio == null ? '—' : s.wr_ratio.toFixed(3)}</td>
+        <td style="color:${BAND_COLOR[s.band]}">${s.split > 0 ? '+' : ''}${s.split}</td>
+        <td style="color:#2ec4b6"><b>${secStr(s.intent_s)}</b></td>
+        <td style="color:${VCOLOR[s.verdict]}">${VLABEL[s.verdict]}</td>
+        <td>${s.smooth ? s.smooth.rough.toFixed(2) : '—'}</td></tr>`;
+    }).join('') + '</table>';
+}
+
+function refresh() {
+  const set = visible();
+  header(set);
+  if (!set.length) {
+    ['sig', 'fan', 'hist', 'calchart', 'verd', 'vs', 'peak', 'era', 'cuts']
+      .forEach(id => Plotly.purge(id));
+    document.getElementById('tbl').innerHTML = '<p class="todo">No performances match this filter.</p>';
+    return;
+  }
+  drawSig(set); drawFan(set); drawHist(set); drawCal(set); drawVerd(set);
+  drawVs(set); drawPeak(set); drawEra(set); drawCuts(set); drawTable(set);
+}
+
+loadData().then(({ results, shapes, meta }) => {
+  META = meta; initCohorts(meta);
+  SH = shapes.filter(s => s.rung);
+  // JOIN ON rid + method, NEVER ON rid. One result yields both a `halves` and a
+  // `100mi_within_24h` row, and taking the first match hands a 100-mile effort
+  // the 24-hour race's tier and venue (see validate.py:shape_identity_is_unique).
+  results.forEach(r => RES.set(`${r.rid}|${r.method}`, r));
+  RUNG = fillRungSelect(document.getElementById('rung'), meta, '24_hour');
+  document.getElementById('rung').onchange = e => { RUNG = e.target.value; refresh(); };
+  document.getElementById('sex').onchange = e => { SEX = e.target.value; refresh(); };
+  document.getElementById('cal').onchange = e => { CAL = e.target.value; refresh(); };
+  document.getElementById('band').onchange = e => { BAND = e.target.value; refresh(); };
+  refresh();
+});
+</script>
+</main></body></html>

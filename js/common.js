@@ -18,6 +18,9 @@ const PAGES = [
   ['athletes.html', 'Athletes'],
   ['gallery.html', 'Gallery'],
   ['intent.html', 'Intent'],
+  ['deepdive.html', 'One discipline'],
+  ['across.html', 'Across the ladder'],
+  ['smooth.html', 'Smoothness'],
   ['census.html', 'Census'],
   ['repeats.html', 'Repeats'],
   ['careers.html', 'Careers'],
@@ -95,6 +98,89 @@ function fillCohortSelect(el, meta, preferred) {
   const pick = (counts[preferred] ? preferred : order.find(c => counts[c])) || order[0];
   el.value = pick;
   return pick;
+}
+
+// --- THE LADDER RUNG: a shape's race DISTANCE, not its pacing cohort -------
+// `cohort` splits the 100-mile rung three ways (stopped there, ran through it,
+// a standalone race), which is the right unit for a pacing question and the
+// wrong one for a selector whose label is a distance. `rung` is stamped on
+// every shape by `build_viz.rung_of` and puts the embedded hundreds where a
+// reader looking for "100 miles" expects them. Ordering is always the
+// ladder's — SHORTEST FIRST — because on these pages the ordering IS the
+// argument.
+
+/** [[key, label, nShapes], ...] shortest first: the rungs shapes.json holds. */
+function rungList(meta) {
+  const order = (meta.disciplines || []).map(d => d.key);
+  const have = meta.rungs_present_shapes || [];
+  const n = meta.n_shapes_rung || {};
+  return order.filter(k => have.includes(k)).map(k => [k, discLabel(k), n[k] || 0]);
+}
+
+/** Fill a <select> with those rungs, counts inline. Returns the chosen value. */
+function fillRungSelect(el, meta, preferred) {
+  const list = rungList(meta);
+  el.innerHTML = list.map(([k, l, n]) => `<option value="${k}">${l} (${n})</option>`).join('');
+  el.value = list.some(([k]) => k === preferred) ? preferred : (list[0] || [''])[0];
+  return el.value;
+}
+
+// ONE COLOUR PER RUNG, SHARED BY EVERY PAGE THAT DRAWS THE LADDER. A
+// sequential ramp rather than a categorical palette, because the rungs are
+// ORDERED and a categorical scheme would throw that away — the whole point of
+// these pages is that a quantity moves monotonically along the ladder, and the
+// eye should get that for free. Cool = short, warm = long; the two ends are
+// the site's existing accent and fade hues so the ramp does not read as a
+// different design system from the band colours it sits beside.
+const RUNG_RAMP = ['#5aa9e6', '#4fb8d8', '#2ec4b6', '#5cc48a', '#93c460',
+                   '#c9be4a', '#e0a24c', '#d9834f', '#c96a6a', '#b05673'];
+function rungColor(rung) {
+  const order = ((COHORT_META || {}).disciplines || []).map(d => d.key);
+  const i = order.indexOf(rung);
+  return i < 0 ? '#8a97a8' : RUNG_RAMP[Math.round(i * (RUNG_RAMP.length - 1)
+                                                  / Math.max(1, order.length - 1))];
+}
+
+// --- WHAT A SMOOTHNESS NUMBER MAY BE COMPARED WITH -------------------------
+// `analysis/cadence_calibration.py` STUDY D resampled 4,004 lap-complete
+// ultras to each rung's real publishing cadence and recomputed the decile
+// metrics against the row's own full-resolution answer. Two results decide how
+// these pages may be read, and both are measured rather than argued:
+//
+//   * `prog` and `quad_r2` survive. Median absolute error 0.024 and 0.057 at
+//     EIGHT checkpoints, and 0.024 / 0.039 at a marathon's real mats. They are
+//     the cross-rung statistics.
+//   * `rough` and `curv` do NOT. A decile grid is exact when the feed's marks
+//     land on the decile boundaries (an even 10 or 50 give error 0.000 to
+//     three decimals) and blurs across them when they do not — a marathon's
+//     5 km mats on a 42.195 km course line up with nothing and under-report
+//     `rough` by 1.81 pp. That is larger than the gap between most rungs, so a
+//     `rough` league table across the ladder would be ranking the timing mats.
+//
+// Written once, here, because it is a claim about the DATA and every page that
+// draws these numbers owes the reader the same claim.
+const SMOOTH_ALIGNED = { '10_km': true, '100_km': true, '100_mile': true, '24_hour': true };
+function smoothNote(meta, rung) {
+  const cc = ((meta.smooth || {}).cadence_cost || {}).by_cadence || {};
+  const mm = cc['marathon_mats'] || {};
+  const bias = mm.rough_bias != null ? mm.rough_bias.toFixed(2) : '1.81';
+  const base = '<span class="todo"> · <b>rough</b> and <b>curv</b> are only '
+    + 'comparable between series of the same cadence: an uneven mat layout '
+    + 'blurs across the decile boundaries and under-reports roughness (a '
+    + 'marathon’s mats by ' + bias + '&nbsp;pp, measured). '
+    + '<b>prog</b> and <b>quad_r2</b> survive that (median error 0.024 / 0.057 '
+    + 'at eight checkpoints) and are the cross-rung statistics.</span>';
+  if (!rung) return base;
+  const n = (((meta.smooth || {}).n_rung_resolved) || {})[rung];
+  const tot = (meta.n_shapes_rung || {})[rung];
+  if (n === 0) return '<span class="todo" style="color:#e08b4c"> · this rung is '
+    + 'timed at fewer marks than the decile grid has bins, so its deciles are '
+    + 'interpolated and its roughness is biased toward zero. Read '
+    + '<b>prog</b> and <b>curv</b> here and not <b>rough</b>.</span>' + base;
+  if (n != null && tot && n < tot) return '<span class="todo"> · ' + n
+    + ' of ' + tot + ' shapes on this rung carry at least as many checkpoints '
+    + 'as the decile grid has bins.</span>' + base;
+  return base;
 }
 
 /** Is this cohort drawn from a COARSE checkpoint series (marathon 5 km mats,
@@ -392,4 +478,112 @@ window.addEventListener('resize', () => {
   }, 200);
 });
 function mean(a) { return a.reduce((s, x) => s + x, 0) / a.length; }
+
+// --- small statistics, shared by the three intentionality pages ------------
+// Written here rather than three times, because a median that is computed one
+// way in a chart and another way in the sentence above it is how a page ends
+// up disagreeing with itself.
+
+/** Linear-interpolated percentile, p in [0,1]. Null on an empty array. */
+function pctl(a, p) {
+  const s = a.filter(x => x != null && isFinite(x)).sort((x, y) => x - y);
+  if (!s.length) return null;
+  const i = (s.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
+  return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (i - lo);
+}
+const median = a => pctl(a, 0.5);
+
+/** Spearman rank correlation, ties averaged. Null under 3 pairs. */
+function spearman(a, b) {
+  const n = a.length;
+  if (n < 3 || b.length !== n) return null;
+  const rank = v => {
+    const o = [...v.keys()].sort((i, j) => v[i] - v[j]);
+    const r = new Array(n);
+    for (let i = 0; i < n;) {
+      let j = i;
+      while (j + 1 < n && v[o[j + 1]] === v[o[i]]) j++;
+      for (let k = i; k <= j; k++) r[o[k]] = (i + j) / 2;
+      i = j + 1;
+    }
+    return r;
+  };
+  const ra = rank(a), rb = rank(b);
+  const ma = mean(ra), mb = mean(rb);
+  let num = 0, da = 0, db = 0;
+  for (let i = 0; i < n; i++) {
+    num += (ra[i] - ma) * (rb[i] - mb);
+    da += (ra[i] - ma) ** 2; db += (rb[i] - mb) ** 2;
+  }
+  return da && db ? num / Math.sqrt(da * db) : null;
+}
+
+/** Bootstrap CI for the median, with a FIXED seed so the same data always
+ *  draws the same whiskers. A page that jitters its own error bars on every
+ *  reload teaches the reader to distrust them.
+ *
+ *  IT RESAMPLES ATHLETES, NOT PERFORMANCES, WHEN GIVEN A CLUSTER KEY. The
+ *  independent unit on these pages is not the row: `analysis/rate_fragility.py`
+ *  measured an intra-class correlation of 0.117 by EDITION on the 10 km rung,
+ *  a design effect of 4.16, so a naive interval is about half as wide as it
+ *  should be. Pass `keys` (edition, athlete — whatever the clustering is) and
+ *  whole clusters are drawn together. */
+function bootMedianCI(vals, keys, iters = 400, seed = 7) {
+  const v = vals.filter(x => x != null && isFinite(x));
+  if (v.length < 8) return [null, null];
+  let s = seed >>> 0;
+  const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  let groups;
+  if (keys && keys.length === vals.length) {
+    const m = new Map();
+    vals.forEach((x, i) => {
+      if (x == null || !isFinite(x)) return;
+      const k = keys[i];
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(x);
+    });
+    groups = [...m.values()];
+  } else groups = v.map(x => [x]);
+  const out = [];
+  for (let b = 0; b < iters; b++) {
+    const draw = [];
+    for (let i = 0; i < groups.length; i++) {
+      const g = groups[Math.floor(rnd() * groups.length)];
+      for (const x of g) draw.push(x);
+    }
+    const m = median(draw);
+    if (m != null) out.push(m);
+  }
+  out.sort((x, y) => x - y);
+  return out.length ? [pctl(out, 0.025), pctl(out, 0.975)] : [null, null];
+}
+
+/** Resample a (x, y) series onto a shared 0..100 grid by linear interpolation.
+ *
+ *  The foresight/seconds curves do NOT share an x grid: `profile` starts each
+ *  one at that athlete's first real checkpoint (`shapes_start_at_a_real_
+ *  checkpoint` — the alternative is drawing pure model in the same ink as the
+ *  data), so a marathon's opens at 11.9% and a lap ultra's at 0.1%. Averaging
+ *  them index-by-index would average the 11.9% mark of one race against the
+ *  0.1% mark of another. Outside a curve's own range this returns null, so a
+ *  cohort mean is taken only over the curves that actually reach that x. */
+function onGrid(xs, ys, grid) {
+  const out = new Array(grid.length).fill(null);
+  if (!xs || xs.length < 2) return out;
+  let j = 1;
+  for (let i = 0; i < grid.length; i++) {
+    const g = grid[i];
+    if (g < xs[0] || g > xs[xs.length - 1]) continue;
+    while (j < xs.length - 1 && xs[j] < g) j++;
+    const x0 = xs[j - 1], x1 = xs[j];
+    out[i] = x1 === x0 ? ys[j] : ys[j - 1] + (ys[j] - ys[j - 1]) * (g - x0) / (x1 - x0);
+  }
+  return out;
+}
+
+/** Column-wise percentile of many equal-length series, nulls skipped. */
+function bandOf(series, p) {
+  if (!series.length) return [];
+  return series[0].map((_, i) => pctl(series.map(s => s[i]), p));
+}
 function fmtHMS(h){const s=Math.round(h*3600);return `${Math.floor(s/3600)}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
