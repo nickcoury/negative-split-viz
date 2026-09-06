@@ -21,6 +21,7 @@ const PAGES = [
   ['deepdive.html', 'One discipline'],
   ['across.html', 'Across the ladder'],
   ['smooth.html', 'Smoothness'],
+  ['steady.html', 'Steadiness'],
   ['census.html', 'Census'],
   ['repeats.html', 'Repeats'],
   ['careers.html', 'Careers'],

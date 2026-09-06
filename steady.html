@@ -1,0 +1,685 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>33 · Seconds off a straight line</title>
+<link rel="stylesheet" href="css/style.css?v=96fd8bb9">
+<script src="lib/plotly.min.js"></script>
+</head><body>
+<script src="js/common.js?v=b381ba49"></script>
+<script>if(typeof rungList!=='function'){addEventListener('DOMContentLoaded',()=>{
+  const d=document.createElement('p');d.style.cssText='background:#7a2226;color:#fff;padding:10px 14px;margin:0;font:14px system-ui';
+  d.textContent='Stale cached script detected — hard-refresh this page (Ctrl/Cmd+Shift+R) to load the current version.';
+  document.body.prepend(d);});}</script>
+<main>
+<h1>Exploration 33 · Seconds off a straight line</h1>
+<p class="sub">
+A second, independent definition of smoothness, and a different bet from
+<a href="smooth.html">Exploration&nbsp;32</a>'s. <b>Draw a trend line through the performance. Measure
+the area between the actual pace and that line, counting what is above and what is below equally. Put
+it in seconds.</b>
+</p>
+<p class="sub" style="border-left:3px solid #2ec4b6;padding-left:12px">
+<code>wobble = ∫₀¹ | pace(u) − trend(u) | du</code> &nbsp;·&nbsp; <b>seconds per mile</b>
+<br>
+The series is <b>seconds per mile ahead of your own average pace</b>, so up is faster — the same
+convention <code>intent_s</code> uses, and the trend's <b>slope is positive for a race that sped up</b>.
+The number that comes out is a mean as well as an integral, because [0,&nbsp;1] has width one: <i>on
+average, this many seconds per mile away from your own straight line.</i>
+</p>
+<p class="sub">
+<b>Three deliberate differences from Exploration 32's <code>rough</code>.</b>
+<b>(1) A straight line, not a line plus a bend.</b> That is the substantive claim: a race that curves is
+not smooth, it is merely curved, and only a steady drift in one direction should count as steady. The
+quadratic and cubic fits are computed too, so the claim can be tested rather than assumed — chart 33.4.
+<b>(2) An L1 area, not an RMS.</b> Squaring lets one walked lap dominate a whole 24-hour race; the
+absolute value does not.
+<b>(3) Seconds, not percent.</b> Magnitude counts, exactly as it does for intentionality — which also
+means the two are in the same unit and can be put on one scatter (33.3).
+</p>
+<p class="sub" style="border-left:3px solid #e08b4c;padding-left:12px">
+<b>The hypothesis this page exists to test, and the answer.</b> The argument for this form was that it
+should be resistant to sampling: more checkpoints buy a more accurate estimate of the same integral
+rather than a bigger number, and fewer give a worse estimate of the same quantity.
+<b>That is exactly true of a smooth signal</b> — an L1 integral converges as the mesh refines, and
+<code>validate.py:steadiness_units</code> pins that arithmetic on constructed curves, identical at 20
+points and at 400. <b>It is false of real running.</b> Resample 4,004 lap-complete ultras down to a
+marathon's mats and the native-resolution number reads
+<b><span id="natratio">0.52</span>×</b> what the same runner scored at full resolution — statistically
+indistinguishable from the naive standard deviation this whole family was designed to avoid. Pace has
+genuine structure at every scale a lap list can see, and integrating over the athlete's own checkpoints
+inherits it.
+<br><b>The fix is not the norm, it is the mesh.</b> Evaluate the same integral on a fixed grid of
+equal-distance blocks and it holds: <b><span id="g20ratio">0.88</span>×</b> at ten checkpoints and
+<b><span id="g50ratio">0.99</span>×</b> at fifty. So the metric ships at four resolutions, the controls
+below switch between them, and <b>chart 33.2 is the measurement</b>. Use <b>native</b> to compare
+performances timed the same way; use a <b>fixed grid</b> to compare across rungs.
+</p>
+
+<div class="card"><h3>Controls</h3>
+  <div class="controls">
+    <label>Distance <select id="rung"><option value="">every rung</option></select></label>
+    <label>Sex <select id="sex"><option value="">all</option><option value="M">men</option><option value="F">women</option></select></label>
+    <label>Resolution <select id="res">
+      <option value="20">20 fixed blocks — comparable across rungs</option>
+      <option value="10">10 fixed blocks — the coarsest rung's own grid</option>
+      <option value="40">40 fixed blocks</option>
+      <option value="native">native — every checkpoint the timer published</option>
+    </select></label>
+    <label>Unit <select id="unit">
+      <option value="s">seconds per mile</option>
+      <option value="p">% of the athlete’s own pace</option>
+    </select></label>
+    <label>Trend <select id="fit">
+      <option value="lin">a straight line</option>
+      <option value="quad">a line plus one bend</option>
+      <option value="cub">a cubic</option>
+    </select></label>
+  </div>
+  <div class="note" id="hdr"></div>
+</div>
+
+<div class="card">
+  <h3>33.1 — One race, and the area being measured</h3>
+  <div class="note">The pace series against its own fitted trend, with the deviation shaded — that
+  shaded area, divided by the length of the race, is the number.
+  <b style="color:#2ec4b6">Below the trend</b> and <b style="color:#c96a6a">above it</b> are shaded
+  differently but <b>count identically</b>; that is the definition. The chart is drawn at the block
+  resolution chosen above (native series are not shipped to the browser, so <i>native</i> draws at 40 and
+  the readout gives the native number).</div>
+  <div class="controls"><label>Race <select id="pick"></select></label>
+    <label>Sort <select id="sort">
+      <option value="w">steadiest first</option>
+      <option value="-w">least steady first</option>
+      <option value="-slope">biggest slow-down first</option>
+      <option value="slope">biggest speed-up first</option>
+    </select></label></div>
+  <div class="note"><b>A ranking across rungs is partly a ranking of their timing.</b> Even on a fixed
+  grid, a rung with fewer native marks than the grid has blocks is interpolated into it and reads low —
+  so the steadiest performances in the whole file will be the coarsely-timed ones. Pick a single
+  distance above before reading this order as an order of runners.</div>
+  <div id="one" class="chart"></div>
+  <div class="note" id="onenote"></div>
+</div>
+
+<div class="card">
+  <h3>33.2 — Does the number survive a coarser feed?</h3>
+  <div class="note"><b>The hypothesis, measured twice.</b> On the left, every performance on every rung
+  recomputed at each resolution and divided by its own native value — a line that stays flat means the
+  metric did not care how densely that rung is timed. On the right, the resampling study: 4,004
+  lap-complete ultras cut down to the cadences the other rungs are really published at, comparing the
+  <b>native</b> form against the <b>20-block</b> form of the same integral
+  (<code>analysis/cadence_calibration.py</code>, study E). <b>A ratio of 1.00 is a metric measuring the
+  running; well below it is a metric measuring the timing installation.</b></div>
+  <div id="dens" class="chart tall"></div>
+  <div class="note" id="densnote"></div>
+</div>
+
+<div class="card">
+  <h3>33.3 — Is it just intentionality again?</h3>
+  <div class="note">The chart that decides whether this is a second axis or a restatement of the first.
+  Both are in <b>seconds per mile</b>, so they sit on one scatter honestly. <b>x = seconds of
+  intentionality</b> (left = held back, right = went out ahead), <b>y = seconds off the straight line</b>.
+  Per-rung rank correlations are printed below, and they change sign along the ladder.</div>
+  <div id="indep" class="chart"></div>
+  <div class="note" id="indepnote"></div>
+</div>
+
+<div class="card">
+  <h3>33.4 — Is the straight line the right trend?</h3>
+  <div class="note">The substantive claim, tested. Each rung's wobble against a line, against a line plus
+  one bend, and against a cubic — drawn as a fraction of the straight-line value. <b>A rung whose bars
+  barely fall is one where the deviation from a line is genuine unsteadiness</b>; a rung where they
+  collapse is one where much of what the straight line charges for is a single smooth curve, and the
+  choice of trend is doing the work rather than the running.</div>
+  <div id="fam" class="chart"></div>
+  <div class="note" id="famnote"></div>
+</div>
+
+<div class="card">
+  <h3>33.5 — Across the ladder</h3>
+  <div class="note">Median wobble per rung, shortest first, at the chosen resolution and unit. In
+  <b>seconds per mile</b> this carries the base-pace confound — a 4:00/mi miler and an 8:30/mi 24-hour
+  runner are not on one scale — so switch the unit control to <b>% of own pace</b> for the
+  scale-free version and read both.</div>
+  <div id="ladder" class="chart"></div>
+</div>
+
+<div class="card">
+  <h3>33.6 — Two definitions of smoothness, side by side</h3>
+  <div class="note">This metric against Exploration 32's <code>rough</code> — independently designed, one
+  an L1 area in seconds off a line, the other an RMS in percentage points off a quadratic on ten deciles.
+  <b>Where they agree, smoothness is a real property of the performance rather than an artefact of one
+  definition.</b> Per-rung correlations below.</div>
+  <div id="agree" class="chart"></div>
+  <div class="note" id="agreenote"></div>
+</div>
+
+<div class="card">
+  <h3>33.7 — Do the best performances run straighter?</h3>
+  <div class="note">Wobble against caliber within each rung, as a multiple of the rung's own median so the
+  slopes can be compared and the heights cannot be mistaken for a league table. <b>x = result ÷ that
+  rung's reference mark</b>, left is closer to the record.</div>
+  <div id="pays" class="chart"></div>
+  <div class="note" id="paysnote"></div>
+</div>
+
+<div class="card">
+  <h3>33.8 — The distribution</h3>
+  <div class="note">Where the current filter actually sits. Long right tails are the norm: a race that
+  falls apart leaves the trend line a long way behind.</div>
+  <div id="hist" class="chart"></div>
+</div>
+
+<div class="card" style="overflow:auto">
+  <h3>Table — sorted by the picker's sort</h3>
+  <div id="tbl"></div>
+</div>
+
+<div class="card"><h3>Where this definition is still soft</h3><div class="note">
+<p><b>A coarse feed has a floor this metric cannot go below, and it runs the OPPOSITE way to the
+smoothing loss.</b> A piecewise-constant measurement of a perfectly steady drift is not <i>on</i> the
+line — inside a block the line moves while the measurement does not — so a genuinely perfect race scores
+<code>rise / 4n</code> rather than zero. On a lap list that is nothing (a 24-hour race with 180 laps and a
+200&nbsp;s/mi drift floors at 0.28 against a typical 26). On a marathon's ten mats with a 30&nbsp;s/mi
+drift it is <b>0.75&nbsp;s/mi against a typical 3.4</b> — a fifth of the number. So a coarse feed loses
+real wobble <i>and</i> gains arithmetic, which is why the measured ratios in 33.2 are the thing to quote
+and not either effect on its own. Pinned by <code>validate.py:steadiness_units</code>.</p>
+<p><b>Seconds are not scale-free, and that was the point.</b> A 24-hour runner averaging 604&nbsp;s/mi has
+more seconds available to lose than a miler averaging 241, so part of the ladder in 33.5 is base pace
+rather than steadiness. The <b>% of own pace</b> unit removes that and is the fairer cross-rung axis; the
+seconds axis is the one a runner can act on. Neither is the right answer alone.</p>
+<p><b>The trend is fitted to the race it is judging.</b> Every performance is measured against its own
+best-fit line, so this asks "was the drift steady", never "was the drift right". A runner who fades
+enormously but perfectly linearly scores as steady — correctly, under this definition, and that is worth
+knowing when reading 33.7.</p>
+<p><b>And a stop is a spike, not a stop.</b> An L1 norm deliberately refuses to let one catastrophic block
+dominate, which is the right call for measuring steadiness and the wrong one for finding stops. The
+census's <code>stop_recover</code> verdict reads the raw gaps between crossings and is the tool for
+that.</p>
+</div></div>
+
+<script>
+nav('steady.html');
+let SH = [], META = null, RUNG = '', SEX = '', RES = '20', UNIT = 's', FIT = 'lin', SORT = 'w';
+const MIN_N = 20;
+const SUBQ = 8;   // must match build_viz.SUBQ, or the chart and the readout disagree
+
+/** The stored wobble for a shape at the current resolution + fit + unit.
+ *  The fixed grids are only stored for the LINEAR fit — the density question
+ *  is about the mesh, not about the trend family — so a non-linear fit falls
+ *  back to its native value and the header says so. */
+function wOf(s, res = RES, fit = FIT) {
+  const st = s.steady;
+  if (!st) return null;
+  let v;
+  if (fit !== 'lin') v = (st[fit] || {}).w;
+  else v = res === 'native' ? st.lin.w : st.grid[res];
+  if (v == null) return null;
+  return UNIT === 'p' ? 100 * v / st.pace_mi : v;
+}
+const unitLabel = () => UNIT === 'p' ? '% of own pace' : 's/mi';
+const fmtW = v => v == null ? '—' : v.toFixed(UNIT === 'p' ? 2 : 2);
+
+function visible() {
+  return SH.filter(s => {
+    if (RUNG && s.rung !== RUNG) return false;
+    if (SEX && s.sex !== SEX) return false;
+    return wOf(s) != null;
+  });
+}
+function byRung(set) {
+  const m = new Map();
+  set.forEach(s => { if (!m.has(s.rung)) m.set(s.rung, []); m.get(s.rung).push(s); });
+  return rungList(META).filter(([k]) => (m.get(k) || []).length >= MIN_N)
+    .map(([k, label]) => ({ rung: k, label, color: rungColor(k), set: m.get(k) }));
+}
+
+// --- the drawn series ------------------------------------------------------
+// `seg_y` is 40 equal-distance segments in "% faster than own average", and
+// the s/mi series is exactly proportional to it (pace enters both linearly),
+// so `pace_mi * seg_y / 100` IS the seconds-ahead series with no second
+// interpolation. Re-binning to 20 or 10 is an average of equal-width blocks,
+// which is exact for the same reason.
+function seriesOf(s, blocks) {
+  const st = s.steady;
+  if (!st || !s.seg_y || !s.seg_y.length) return [];
+  const raw = s.seg_y.map(v => st.pace_mi * v / 100);
+  const n = raw.length;
+  const per = Math.max(1, Math.round(n / blocks));
+  const out = [];
+  for (let i = 0; i < n; i += per) {
+    const chunk = raw.slice(i, i + per);
+    if (!chunk.length) continue;
+    out.push([i / n, Math.min(1, (i + chunk.length) / n), mean(chunk)]);
+  }
+  return out;
+}
+/** Weighted Legendre least squares — the browser twin of build_viz._wls, so
+ *  the drawn line is the same line the stored number was measured against. */
+function fitLine(segs, deg) {
+  const B = [u => 1, u => 2 * u - 1, u => 6 * u * u - 6 * u + 1,
+             u => 20 * u ** 3 - 30 * u * u + 12 * u - 1].slice(0, deg + 1);
+  const m = B.length;
+  if (segs.length <= m) return null;
+  const us = segs.map(([a, b]) => (a + b) / 2), ws = segs.map(([a, b]) => b - a),
+        ys = segs.map(q => q[2]);
+  const A = [];
+  for (let r = 0; r < m; r++) {
+    const row = [];
+    for (let c = 0; c < m; c++) row.push(us.reduce((t, u, i) => t + ws[i] * B[r](u) * B[c](u), 0));
+    row.push(us.reduce((t, u, i) => t + ws[i] * B[r](u) * ys[i], 0));
+    A.push(row);
+  }
+  for (let i = 0; i < m; i++) {
+    let p = i;
+    for (let r = i; r < m; r++) if (Math.abs(A[r][i]) > Math.abs(A[p][i])) p = r;
+    if (Math.abs(A[p][i]) < 1e-12) return null;
+    [A[i], A[p]] = [A[p], A[i]];
+    const pv = A[i][i];
+    A[i] = A[i].map(v => v / pv);
+    for (let r = 0; r < m; r++) if (r !== i && A[r][i]) {
+      const f = A[r][i];
+      A[r] = A[r].map((v, k) => v - f * A[i][k]);
+    }
+  }
+  const coef = A.map(r => r[m]);
+  return u => coef.reduce((t, c, i) => t + c * B[i](u), 0);
+}
+/** The same sub-sampled |.| integral build_viz._wobble computes. */
+function areaOf(segs, L) {
+  let area = 0, span = 0;
+  for (const [a, b, v] of segs) {
+    if (b <= a) continue;
+    const step = (b - a) / SUBQ;
+    for (let j = 0; j < SUBQ; j++) area += Math.abs(v - L(a + step * (j + 0.5))) * step;
+    span += b - a;
+  }
+  return span ? area / span : null;
+}
+
+function header(set) {
+  const cc = ((META.steady || {}).cadence_cost || {}).by_cadence || {};
+  document.getElementById('hdr').innerHTML =
+    `<b>${set.length.toLocaleString()}</b> performances`
+    + (RUNG ? ` on the ${discLabel(RUNG)} rung` : ' across every rung with shapes')
+    + `, measured against <b>${FIT === 'lin' ? 'a straight line'
+        : FIT === 'quad' ? 'a line plus one bend' : 'a cubic'}</b>`
+    + (FIT === 'lin'
+        ? ` on <b>${RES === 'native' ? 'the athlete’s own checkpoints' : RES + ' fixed blocks'}</b>.`
+        : `, at <b>native resolution</b> — the fixed grids are stored for the straight-line fit only, `
+          + `since the mesh question and the trend question are separate.`)
+    + (RES === 'native' && FIT === 'lin'
+        ? ' <span style="color:#e08b4c">Native resolution is not comparable between rungs — see 33.2.</span>'
+        : '');
+}
+
+// --- 33.1 ------------------------------------------------------------------
+function drawOne(key) {
+  const s = SH.find(x => String(x.key) === String(key));
+  if (!s) { Plotly.purge('one'); return; }
+  const blocks = RES === 'native' ? 40 : +RES;
+  const segs = seriesOf(s, blocks);
+  const deg = { lin: 1, quad: 2, cub: 3 }[FIT];
+  const L = fitLine(segs, deg);
+  if (!segs.length || !L) { Plotly.purge('one'); return; }
+  const xs = [], ys = [], ls = [];
+  segs.forEach(([a, b, v]) => {
+    xs.push(100 * a, 100 * b); ys.push(v, v);
+    ls.push(L((a + b) / 2), L((a + b) / 2));
+  });
+  const fine = [...Array(101).keys()].map(i => i / 100);
+  const k = UNIT === 'p' ? 100 / s.steady.pace_mi : 1;
+  const above = ys.map((v, i) => v > ls[i] ? v : ls[i]);
+  const below = ys.map((v, i) => v < ls[i] ? v : ls[i]);
+  Plotly.react('one', [
+    { x: xs, y: ls.map(v => v * k), type: 'scatter', mode: 'lines',
+      line: { width: 0 }, hoverinfo: 'skip', showlegend: false },
+    { x: xs, y: above.map(v => v * k), type: 'scatter', mode: 'lines', fill: 'tonexty',
+      fillcolor: 'rgba(201,106,106,0.30)', line: { width: 0 }, hoverinfo: 'skip',
+      name: 'faster than the trend', showlegend: true },
+    { x: xs, y: ls.map(v => v * k), type: 'scatter', mode: 'lines',
+      line: { width: 0 }, hoverinfo: 'skip', showlegend: false },
+    { x: xs, y: below.map(v => v * k), type: 'scatter', mode: 'lines', fill: 'tonexty',
+      fillcolor: 'rgba(46,196,182,0.30)', line: { width: 0 }, hoverinfo: 'skip',
+      name: 'slower than the trend', showlegend: true },
+    { x: xs, y: ys.map(v => v * k), type: 'scatter', mode: 'lines',
+      line: { color: '#93a1b0', width: 1.6, shape: 'linear' }, name: 'actual pace',
+      hovertemplate: `%{y:+.1f} ${unitLabel()} at %{x:.0f}% of the race<extra></extra>` },
+    { x: fine.map(u => 100 * u), y: fine.map(u => L(u) * k), type: 'scatter',
+      mode: 'lines', line: { color: '#e6edf3', width: 2.6 }, name: 'the trend',
+      hovertemplate: `trend %{y:+.1f} ${unitLabel()} at %{x:.0f}%<extra></extra>` },
+  ], layout({ showlegend: true, legend: { orientation: 'h', y: 1.1 },
+    xaxis: { title: '% of race completed', range: [0, 100] },
+    yaxis: { title: `${unitLabel()} ahead of own average pace  (up = faster)`,
+             zeroline: true, zerolinecolor: '#8fa3b8' } }), CFG);
+
+  const drawn = areaOf(segs, L) * k;
+  const st = s.steady;
+  const row = (lbl, v, col) => `<td style="padding:3px 14px 3px 0;color:${col || '#93a1b0'}">`
+    + `${lbl} <b style="color:#e6edf3">${v}</b></td>`;
+  document.getElementById('onenote').innerHTML =
+    `<b>${s.name}</b> · ${s.year} ${s.series} · ${discLabel(s.rung)}`
+    + (s.embedded ? ' <span class="todo">(the hundred inside a 24-hour race)</span>' : '')
+    + ` · own average pace ${Math.floor(st.pace_mi / 60)}:${String(Math.round(st.pace_mi % 60)).padStart(2, '0')}/mi`
+    + `<table style="margin-top:6px;font-size:13px"><tr>`
+    + row('shaded area (as drawn)', fmtW(drawn) + ' ' + unitLabel(), '#2ec4b6')
+    + row('trend slope', (st[FIT].slope > 0 ? '+' : '') + st[FIT].slope.toFixed(1)
+          + ' s/mi over the race' + (st[FIT].slope > 0 ? ' — sped up' : ' — slowed down'))
+    + row('intentionality', (s.intent_s > 0 ? '+' : '') + s.intent_s.toFixed(1) + ' s/mi')
+    + row('split', (s.split > 0 ? '+' : '') + s.split + '%')
+    + `</tr></table>`
+    + `<div style="margin-top:5px">Same race at each resolution (straight line, s/mi): `
+    + ['native', '40', '20', '10'].map(r => {
+        const v = r === 'native' ? st.lin.w : st.grid[r];
+        return `<b>${r}</b> ${v == null ? '—' : v.toFixed(2)}`;
+      }).join(' · ')
+    + ` — the fall-off from left to right is this one race's version of chart 33.2.</div>`;
+}
+
+// --- 33.2 the density test -------------------------------------------------
+function drawDens(set) {
+  const L = byRung(set);
+  const order = ['native', '40', '20', '10'];
+  const traces = [];
+  L.forEach(r => {
+    const base = median(r.set.map(s => s.steady.lin.w));
+    if (!base) return;
+    traces.push({ x: order.map(o => o === 'native' ? 'native' : o + ' blocks'),
+      y: order.map(o => {
+        const v = median(r.set.map(s => o === 'native' ? s.steady.lin.w : s.steady.grid[o]));
+        return v == null ? null : v / base;
+      }),
+      type: 'scatter', mode: 'lines+markers', name: `${r.label} (${r.set.length})`,
+      line: { color: r.color, width: 2.2 }, marker: { size: 6, color: r.color },
+      xaxis: 'x', yaxis: 'y',
+      customdata: r.set.length ? order.map(() => median(r.set.map(s => s.steady.n))) : [],
+      hovertemplate: `${r.label}: %{y:.2f}× its native value `
+        + `(median %{customdata:.0f} native checkpoints)<extra></extra>` });
+  });
+  const cc = ((META.steady || {}).cadence_cost || {}).by_cadence || {};
+  const CADLABEL = { '8': '8 marks', '10': '10 even', '16': '16', '25': '25', '50': '50',
+    marathon_mats: 'marathon mats', marathon_5k_only: 'marathon, no HALF',
+    hundred_km_10k: '100 km @ 10 km' };
+  const keys = ['8', '10', '16', '25', '50', 'marathon_mats', 'marathon_5k_only',
+                'hundred_km_10k'].filter(k => cc[k]);
+  traces.push({ x: keys.map(k => CADLABEL[k]), y: keys.map(k => cc[k].native_ratio_median),
+    type: 'bar', name: 'native form', marker: { color: '#c96a6a' },
+    xaxis: 'x2', yaxis: 'y2',
+    hovertemplate: 'native form reads %{y:.2f}× full resolution at %{x}<extra></extra>' });
+  traces.push({ x: keys.map(k => CADLABEL[k]), y: keys.map(k => cc[k].g20_ratio_median),
+    type: 'bar', name: '20-block form', marker: { color: '#2ec4b6' },
+    xaxis: 'x2', yaxis: 'y2',
+    hovertemplate: '20-block form reads %{y:.2f}× full resolution at %{x}<extra></extra>' });
+  const lay = layout({ showlegend: true, legend: { orientation: 'h', y: 1.06 },
+    grid: { rows: 1, columns: 2, pattern: 'independent' },
+    margin: { l: 60, r: 20, t: 50, b: 96 },
+    xaxis: { domain: [0, 0.46], title: 'resolution the integral was taken at' },
+    yaxis: { title: '× that rung’s own native value', rangemode: 'tozero' },
+    xaxis2: { domain: [0.56, 1], title: 'cadence the race was resampled to',
+              tickangle: -30, tickfont: { size: 9.5 } },
+    yaxis2: { title: '× full resolution', range: [0, 1.1] },
+    shapes: [{ type: 'line', xref: 'x2 domain', x0: 0, x1: 1, yref: 'y2', y0: 1, y1: 1,
+               line: { color: '#8fa3b8', dash: 'dot', width: 1.2 } },
+             { type: 'line', xref: 'x domain', x0: 0, x1: 1, yref: 'y', y0: 1, y1: 1,
+               line: { color: '#8fa3b8', dash: 'dot', width: 1.2 } }] });
+  Plotly.react('dens', traces, lay, CFG);
+  const mm = cc['marathon_mats'] || {}, c50 = cc['50'] || {}, c10 = cc['10'] || {};
+  document.getElementById('densnote').innerHTML =
+    `<b>Left:</b> how far a rung falls depends on how far its native cadence sits ABOVE the grid. The `
+    + `rungs timed at a handful of marks move least; the lap-complete rungs fall away steeply, because `
+    + `130–180 lap crossings see wobble that ten blocks average out. `
+    + `<b>That fall is not an error; it is real pace variation existing below the grid.</b> The problem `
+    + `is only that it makes a native-resolution number incomparable between a rung timed every lap and `
+    + `a rung timed every 5&nbsp;km.<br>`
+    + `<b>Right:</b> the same question asked by resampling, where the truth is known. The native form `
+    + `reads <b>${(mm.native_ratio_median ?? 0).toFixed(2)}×</b> at a marathon's mats and `
+    + `<b>${(c50.native_ratio_median ?? 0).toFixed(2)}×</b> even at fifty checkpoints — it never `
+    + `recovers. The 20-block form reads <b>${(c10.g20_ratio_median ?? 0).toFixed(2)}×</b> at ten `
+    + `checkpoints and <b>${(c50.g20_ratio_median ?? 0).toFixed(2)}×</b> at fifty. `
+    + `<b>The norm was never the problem; the mesh was.</b>`;
+}
+
+// --- 33.3 vs intentionality ------------------------------------------------
+function drawIndep(set) {
+  const L = byRung(set);
+  const gl = set.length > 1500;
+  const ys = set.map(s => wOf(s));
+  Plotly.react('indep', L.map(r => ({
+    x: r.set.map(s => s.intent_s), y: r.set.map(s => wOf(s)),
+    type: gl ? 'scattergl' : 'scatter', mode: 'markers', name: r.label,
+    marker: { size: 5, opacity: 0.5, color: r.color },
+    text: r.set.map(s => `${s.name} · ${s.year} ${s.series}<br>`
+      + `intent ${(s.intent_s > 0 ? '+' : '') + s.intent_s.toFixed(1)} s/mi · `
+      + `wobble ${fmtW(wOf(s))} ${unitLabel()}`),
+    hoverinfo: 'text' })),
+    layout({ showlegend: true, legend: { orientation: 'h', y: 1.06 },
+      xaxis: { title: 'seconds of intentionality (s/mi)   ← held back · went out ahead →',
+               zeroline: true,
+               range: [Math.min(-2, pctl(set.map(s => s.intent_s), 0.005)),
+                       Math.max(2, pctl(set.map(s => s.intent_s), 0.99))] },
+      yaxis: { title: `wobble — ${unitLabel()} off the trend`,
+               range: [0, Math.max(1, pctl(ys, 0.99) * 1.05)] } }), CFG);
+  const rows = L.map(r => ({ label: r.label,
+    rho: spearman(r.set.map(s => s.intent_s), r.set.map(s => wOf(s))),
+    abs: spearman(r.set.map(s => Math.abs(s.intent_s)), r.set.map(s => wOf(s))) }))
+    .filter(r => r.rho != null);
+  const neg = rows.filter(r => r.rho < 0), pos = rows.filter(r => r.rho > 0.3);
+  document.getElementById('indepnote').innerHTML =
+    'ρ with intentionality, per rung: ' + rows.map(r => `<b>${r.label}</b> ${r.rho.toFixed(2)}`).join(' · ')
+    + (neg.length && pos.length
+      ? `.<br><b>The sign flips along the ladder, and that is the finding.</b> On the short rungs `
+        + `(${neg.map(r => r.label).join(', ')}) the correlation is weak or negative — a race can be `
+        + `patient and jagged, or aggressive and perfectly straight. On `
+        + `${pos.map(r => r.label).join(', ')} the two move together: going out ahead of what you can `
+        + `hold and coming apart are one event. So the metric carries information intentionality does `
+        + `not, and carries most of it exactly where this project's population lives.`
+      : '.')
+    + `<br>Against the ABSOLUTE value of intentionality (patient and aggressive both counted as `
+    + `departures from even): ` + rows.map(r => `<b>${r.label}</b> ${r.abs == null ? '—' : r.abs.toFixed(2)}`).join(' · ') + '.';
+}
+
+// --- 33.4 the trend family -------------------------------------------------
+function drawFam(set) {
+  const L = byRung(set);
+  const fits = [['lin', 'a straight line', '#8a97a8'], ['quad', 'line + one bend', '#f4c430'],
+                ['cub', 'a cubic', '#2ec4b6']];
+  Plotly.react('fam', fits.map(([f, lbl, col]) => ({
+    x: L.map(r => r.label),
+    y: L.map(r => {
+      const base = median(r.set.map(s => s.steady.lin.w));
+      const v = median(r.set.map(s => (s.steady[f] || {}).w));
+      return base && v != null ? v / base : null;
+    }),
+    name: lbl, type: 'bar', marker: { color: col },
+    hovertemplate: `${lbl}: %{y:.2f}× the straight-line wobble on %{x}<extra></extra>` })),
+    layout({ barmode: 'group', showlegend: true, legend: { orientation: 'h', y: 1.06 },
+      xaxis: { title: 'race distance, shortest first' },
+      yaxis: { title: 'wobble ÷ the straight-line wobble', range: [0, 1.08] } }), CFG);
+  const rows = L.map(r => {
+    const base = median(r.set.map(s => s.steady.lin.w));
+    const cub = median(r.set.map(s => (s.steady.cub || {}).w));
+    return { label: r.label, drop: base && cub != null ? 1 - cub / base : null };
+  }).filter(r => r.drop != null).sort((a, b) => b.drop - a.drop);
+  if (!rows.length) { document.getElementById('famnote').textContent = ''; return; }
+  document.getElementById('famnote').innerHTML =
+    `How much of the straight-line wobble a cubic absorbs: `
+    + rows.map(r => `<b>${r.label}</b> ${(100 * r.drop).toFixed(0)}%`).join(' · ')
+    + `.<br><b>The straight line earns its place at the long end and is arguable at the short one.</b> `
+    + `On ${rows[rows.length - 1].label} a cubic buys only `
+    + `${(100 * rows[rows.length - 1].drop).toFixed(0)}% — the deviation is genuine unsteadiness and no `
+    + `smooth curve explains it away. On ${rows[0].label} it buys `
+    + `${(100 * rows[0].drop).toFixed(0)}%, which is the tactical sag: fast first lap, slow middle, `
+    + `kick. Charging that as unsteadiness is a defensible choice and it IS a choice — it is the one `
+    + `place this metric and <a href="smooth.html">Exploration 32's</a>, which fits the bend, will `
+    + `disagree most.`;
+}
+
+// --- 33.5 the ladder -------------------------------------------------------
+function drawLadder(set) {
+  const L = byRung(set);
+  const y = L.map(r => median(r.set.map(s => wOf(s))));
+  Plotly.react('ladder', [{ x: L.map(r => r.label), y, type: 'bar',
+    marker: { color: L.map(r => r.color) },
+    text: y.map(v => v == null ? '' : v.toFixed(2)), textposition: 'outside',
+    customdata: L.map(r => [r.set.length, median(r.set.map(s => s.steady.pace_mi))]),
+    hovertemplate: '%{x}: %{y:.2f} ' + unitLabel()
+      + '<br>%{customdata[0]} performances, median pace %{customdata[1]:.0f} s/mi<extra></extra>' }],
+    layout({ showlegend: false, xaxis: { title: 'race distance, shortest first' },
+      yaxis: { title: `median wobble — ${unitLabel()} off the trend` } }), CFG);
+}
+
+// --- 33.6 the two definitions ---------------------------------------------
+function drawAgree(set) {
+  const L = byRung(set).map(r => ({ ...r, set: r.set.filter(s => s.smooth) }))
+    .filter(r => r.set.length >= MIN_N);
+  const gl = set.length > 1500;
+  Plotly.react('agree', L.map(r => ({
+    x: r.set.map(s => s.smooth.rough), y: r.set.map(s => wOf(s)),
+    type: gl ? 'scattergl' : 'scatter', mode: 'markers', name: r.label,
+    marker: { size: 5, opacity: 0.45, color: r.color },
+    text: r.set.map(s => `${s.name} · ${s.year}<br>rough ${s.smooth.rough.toFixed(2)} pp · `
+      + `wobble ${fmtW(wOf(s))} ${unitLabel()}`),
+    hoverinfo: 'text' })),
+    layout({ showlegend: true, legend: { orientation: 'h', y: 1.06 },
+      xaxis: { title: 'Exploration 32 — rough (pp, RMS off a quadratic on ten deciles)',
+               range: [0, Math.max(1, pctl(L.flatMap(r => r.set.map(s => s.smooth.rough)), 0.99) * 1.05)] },
+      yaxis: { title: `Exploration 33 — wobble (${unitLabel()}, L1 off a line)`,
+               range: [0, Math.max(1, pctl(L.flatMap(r => r.set.map(s => wOf(s))), 0.99) * 1.05)] } }), CFG);
+  const rows = L.map(r => ({ label: r.label,
+    rho: spearman(r.set.map(s => s.smooth.rough), r.set.map(s => wOf(s))) }))
+    .filter(r => r.rho != null);
+  document.getElementById('agreenote').innerHTML = rows.length
+    ? 'ρ between the two definitions, per rung: '
+      + rows.map(r => `<b>${r.label}</b> ${r.rho.toFixed(2)}`).join(' · ')
+      + `.<br>They agree substantially without being the same measurement — different norm, different `
+      + `trend, different unit, different mesh. <b>Where two independently built metrics rank the same `
+      + `races the same way, the thing being ranked is more likely to be real than either definition.</b> `
+      + `Where they part company, 33.4 says why: this one charges for curvature and that one does not.`
+    : '';
+}
+
+// --- 33.7 caliber ----------------------------------------------------------
+function drawPays(set) {
+  const L = byRung(set);
+  const traces = [], notes = [];
+  L.forEach(r => {
+    const cal = r.set.filter(s => s.wr_ratio != null).sort((a, b) => a.wr_ratio - b.wr_ratio);
+    if (cal.length < 40) return;
+    const base = median(cal.map(s => wOf(s)));
+    if (!base) return;
+    const K = 6, x = [], y = [], n = [];
+    for (let i = 0; i < K; i++) {
+      const sub = cal.slice(Math.floor(i * cal.length / K), Math.floor((i + 1) * cal.length / K));
+      if (sub.length < 4) continue;
+      x.push(median(sub.map(s => s.wr_ratio)));
+      y.push(median(sub.map(s => wOf(s))) / base);
+      n.push(sub.length);
+    }
+    if (x.length < 3) return;
+    traces.push({ x, y, type: 'scatter', mode: 'lines+markers',
+      name: `${r.label} (median ${fmtW(base)})`,
+      line: { color: r.color, width: 2.4 }, marker: { size: 7, color: r.color },
+      customdata: n,
+      hovertemplate: `${r.label}: %{y:.2f}× the rung median at %{x:.3f}× the reference `
+        + `(%{customdata} runs)<extra></extra>` });
+    const rho = spearman(cal.map(s => s.wr_ratio), cal.map(s => wOf(s)));
+    if (rho != null) notes.push(`<b>${r.label}</b> ${rho.toFixed(2)}`);
+  });
+  Plotly.react('pays', traces, layout({ showlegend: true, legend: { orientation: 'h', y: 1.05 },
+    xaxis: { title: 'result ÷ that rung’s reference mark   ← closer to the record' },
+    yaxis: { title: 'wobble ÷ the rung’s own median' },
+    shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 1, y1: 1,
+               line: { color: '#8fa3b8', dash: 'dot', width: 1.2 } }] }), CFG);
+  document.getElementById('paysnote').innerHTML = notes.length
+    ? 'ρ between caliber ratio and wobble, per rung: ' + notes.join(' · ')
+      + '. <b>Positive means the slower performances are the less steady ones.</b> It is a correlation '
+      + 'between athletes and not a demonstration that running straighter makes you faster — a '
+      + 'record-caliber run is made by a record-caliber runner, and nothing here separates the two.'
+    : 'Not enough performances with a caliber ratio under this filter.';
+}
+
+// --- 33.8 ------------------------------------------------------------------
+function drawHist(set) {
+  const v = set.map(s => wOf(s)).filter(x => x != null);
+  const hi = pctl(v, 0.99);
+  Plotly.react('hist', [{ x: v, type: 'histogram', nbinsx: 60,
+    marker: { color: '#2ec4b6', line: { color: '#0f1419', width: 1 } },
+    hovertemplate: '%{y} performances near %{x:.1f}<extra></extra>' }],
+    layout({ showlegend: false,
+      xaxis: { title: `wobble — ${unitLabel()} off the trend`, range: [0, hi * 1.05] },
+      yaxis: { title: 'performances' },
+      shapes: [{ type: 'line', x0: median(v), x1: median(v), yref: 'paper', y0: 0, y1: 1,
+                 line: { color: '#e6edf3', width: 1.5 } }] }), CFG);
+}
+
+// --- table -----------------------------------------------------------------
+function drawTable(sorted) {
+  document.getElementById('tbl').innerHTML =
+    '<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    + '<tr style="color:#93a1b0;text-align:left"><th style="padding:5px 10px">Athlete</th>'
+    + '<th>Year</th><th>Race</th><th>Rung</th><th>Pace</th>'
+    + `<th style="color:#2ec4b6">wobble<br><span style="font-weight:400">${unitLabel()}</span></th>`
+    + '<th>slope</th><th>intent</th><th>split %</th>'
+    + '<th title="Exploration 32&rsquo;s metric, for comparison">rough</th><th>cp</th></tr>'
+    + sorted.slice(0, 40).map(s => `<tr style="border-top:1px solid #263140">
+        <td style="padding:4px 10px">${s.name}</td><td>${s.year}</td>
+        <td style="max-width:210px">${s.series}</td><td>${discLabel(s.rung)}</td>
+        <td style="color:#93a1b0">${Math.floor(s.steady.pace_mi / 60)}:${String(Math.round(s.steady.pace_mi % 60)).padStart(2, '0')}</td>
+        <td><b>${fmtW(wOf(s))}</b></td>
+        <td>${s.steady[FIT] ? (s.steady[FIT].slope > 0 ? '+' : '') + s.steady[FIT].slope.toFixed(1) : '—'}</td>
+        <td>${(s.intent_s > 0 ? '+' : '') + s.intent_s.toFixed(1)}</td>
+        <td style="color:${BAND_COLOR[s.band]}">${s.split > 0 ? '+' : ''}${s.split}</td>
+        <td>${s.smooth ? s.smooth.rough.toFixed(2) : '—'}</td>
+        <td style="color:#93a1b0">${s.steady.n}</td></tr>`).join('')
+    + '</table>';
+}
+
+const SORTERS = {
+  w: (a, b) => wOf(a) - wOf(b),
+  '-w': (a, b) => wOf(b) - wOf(a),
+  slope: (a, b) => (b.steady[FIT] || {}).slope - (a.steady[FIT] || {}).slope,
+  '-slope': (a, b) => (a.steady[FIT] || {}).slope - (b.steady[FIT] || {}).slope,
+};
+
+function refresh() {
+  const set = visible();
+  header(set);
+  const ids = ['one', 'dens', 'indep', 'fam', 'ladder', 'agree', 'pays', 'hist'];
+  if (!set.length) {
+    ids.forEach(id => Plotly.purge(id));
+    document.getElementById('pick').innerHTML = '';
+    document.getElementById('tbl').innerHTML = '<p class="todo">No performances match this filter.</p>';
+    return;
+  }
+  const sorted = set.slice().sort(SORTERS[SORT]);
+  document.getElementById('pick').innerHTML = sorted.slice(0, 300).map(s =>
+    `<option value="${s.key}">${s.name} — ${s.year} ${discLabel(s.rung)} `
+    + `(${fmtW(wOf(s))} ${unitLabel()})</option>`).join('');
+  drawOne(sorted[0].key);
+  drawDens(set); drawIndep(set); drawFam(set); drawLadder(set);
+  drawAgree(set); drawPays(set); drawHist(set); drawTable(sorted);
+}
+
+loadData().then(({ shapes, meta }) => {
+  META = meta; initCohorts(meta);
+  SH = shapes.filter(s => s.steady && s.rung && s.intent_s != null && s.seg_y);
+  const sel = document.getElementById('rung');
+  rungList(meta).forEach(([k, l, n]) => {
+    const o = document.createElement('option');
+    o.value = k; o.textContent = `${l} (${n})`; sel.appendChild(o);
+  });
+  const cc = ((meta.steady || {}).cadence_cost || {}).by_cadence || {};
+  const put = (id, v) => { if (v != null) document.getElementById(id).textContent = v.toFixed(2); };
+  put('natratio', (cc['marathon_mats'] || {}).native_ratio_median);
+  put('g20ratio', (cc['10'] || {}).g20_ratio_median);
+  put('g50ratio', (cc['50'] || {}).g20_ratio_median);
+  sel.onchange = e => { RUNG = e.target.value; refresh(); };
+  document.getElementById('sex').onchange = e => { SEX = e.target.value; refresh(); };
+  document.getElementById('res').onchange = e => { RES = e.target.value; refresh(); };
+  document.getElementById('unit').onchange = e => { UNIT = e.target.value; refresh(); };
+  document.getElementById('fit').onchange = e => { FIT = e.target.value; refresh(); };
+  document.getElementById('sort').onchange = e => { SORT = e.target.value; refresh(); };
+  document.getElementById('pick').onchange = e => drawOne(e.target.value);
+  refresh();
+});
+</script>
+</main></body></html>
