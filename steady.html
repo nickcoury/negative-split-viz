@@ -29,29 +29,37 @@ average, this many seconds per mile away from your own straight line.</i>
 <b>Three deliberate differences from Exploration 32's <code>rough</code>.</b>
 <b>(1) A straight line, not a line plus a bend.</b> That is the substantive claim: a race that curves is
 not smooth, it is merely curved, and only a steady drift in one direction should count as steady. The
-quadratic and cubic fits are computed too, so the claim can be tested rather than assumed — chart 33.4.
+quadratic and cubic fits are computed too, so the claim can be tested rather than assumed — chart 33.5.
 <b>(2) An L1 area, not an RMS.</b> Squaring lets one walked lap dominate a whole 24-hour race; the
 absolute value does not.
 <b>(3) Seconds, not percent.</b> Magnitude counts, exactly as it does for intentionality — which also
-means the two are in the same unit and can be put on one scatter (33.3).
+means the two are in the same unit and can be put on one scatter (33.4).
 </p>
 <p class="sub" style="border-left:3px solid #e08b4c;padding-left:12px">
-<b>The hypothesis this page exists to test, and the answer.</b> The argument for this form was that it
-should be resistant to sampling: more checkpoints buy a more accurate estimate of the same integral
-rather than a bigger number, and fewer give a worse estimate of the same quantity.
-<b>That is exactly true of a smooth signal</b> — an L1 integral converges as the mesh refines, and
-<code>validate.py:steadiness_units</code> pins that arithmetic on constructed curves, identical at 20
-points and at 400. <b>It is false of real running.</b> Resample 4,004 lap-complete ultras down to a
-marathon's mats and the native-resolution number reads
-<b><span id="natratio">0.52</span>×</b> what the same runner scored at full resolution — statistically
-indistinguishable from the naive standard deviation this whole family was designed to avoid. Pace has
-genuine structure at every scale a lap list can see, and integrating over the athlete's own checkpoints
-inherits it.
-<br><b>The fix is not the norm, it is the mesh.</b> Evaluate the same integral on a fixed grid of
-equal-distance blocks and it holds: <b><span id="g20ratio">0.88</span>×</b> at ten checkpoints and
-<b><span id="g50ratio">0.99</span>×</b> at fifty. So the metric ships at four resolutions, the controls
-below switch between them, and <b>chart 33.2 is the measurement</b>. Use <b>native</b> to compare
-performances timed the same way; use a <b>fixed grid</b> to compare across rungs.
+<b>The hypothesis this page exists to test — and there are two questions inside it.</b>
+<b>First: does the NUMBER survive a coarser feed?</b> It does not.
+<code>validate.py:steadiness_units</code> pins that an L1 integral gives the same area on a smooth
+curve at 20 points and at 400 — but real pace is not smooth, and resampling 4,004 lap-complete ultras
+down to a marathon's mats makes the native-resolution number read
+<b><span id="natratio">0.52</span>×</b> what the same runner scored at full resolution,
+indistinguishable from the naive standard deviation this whole family was meant to avoid. On a fixed
+grid of equal blocks the same integral holds far better —
+<b><span id="g20ratio">0.88</span>×</b> at ten checkpoints, <b><span id="g50ratio">0.99</span>×</b> at
+fifty. <b>The norm was never the problem; the mesh was.</b> Chart 33.2 is that measurement.
+<br>
+<b>Second, and it is the question that decides whether any of that matters: is the shift a WASH, or is
+it systematic?</b> A coarse feed that made some races look smoother and some rougher would cost
+accuracy on a single race and cost a conclusion nothing. Chart 33.3 asks it four ways, and the answer
+splits cleanly: <b>the levels are strongly biased, the findings are not.</b>
+<b><span id="frougher">Essentially every</span></b> race gets smoother when coarsened — it is a
+one-directional filter, not a wash — so a level is never comparable across cadences. But the shift is
+close to a pure rescaling: it barely depends on how rough the race was, it preserves rank correlation
+<b><span id="frho">0.84</span></b> at native resolution and <b><span id="frhog">0.97</span></b> on a
+fixed grid, and the headline relationship this metric exists to state — its correlation with seconds of
+intentionality — reads <b><span id="fintf">0.71</span></b> at full resolution against
+<b><span id="fintc">0.69</span></b> at a marathon's cadence.
+<b>So: use the finest feed you have and let it buy accuracy, compare levels only within one cadence,
+and a rank-based finding carries across them.</b>
 </p>
 
 <div class="card"><h3>Controls</h3>
@@ -114,7 +122,21 @@ performances timed the same way; use a <b>fixed grid</b> to compare across rungs
 </div>
 
 <div class="card">
-  <h3>33.3 — Is it just intentionality again?</h3>
+  <h3>33.3 — Biased, or just noisy?</h3>
+  <div class="note">The question that decides whether a coarse feed can be used at all, asked four ways
+  on the same 4,004 resampled races. <b>Top left — is it a wash?</b> The share of races that came out
+  <i>less</i> smooth when coarsened; a genuine wash sits on the 50% line. <b>Top right — is the shift
+  constant?</b> The per-race ratio, median with its 10th–90th percentile. <b>Bottom left — is the ORDER
+  kept?</b> Rank correlation against full resolution, and the share of random head-to-head comparisons
+  whose winner changes. <b>Bottom right — does the CONCLUSION survive?</b> This metric's correlation with
+  seconds of intentionality, computed entirely within each resolution — both quantities recomputed from
+  the coarse series, which is what an analyst holding only that feed would have.</div>
+  <div id="bias" class="chart tall"></div>
+  <div class="note" id="biasnote"></div>
+</div>
+
+<div class="card">
+  <h3>33.4 — Is it just intentionality again?</h3>
   <div class="note">The chart that decides whether this is a second axis or a restatement of the first.
   Both are in <b>seconds per mile</b>, so they sit on one scatter honestly. <b>x = seconds of
   intentionality</b> (left = held back, right = went out ahead), <b>y = seconds off the straight line</b>.
@@ -124,7 +146,7 @@ performances timed the same way; use a <b>fixed grid</b> to compare across rungs
 </div>
 
 <div class="card">
-  <h3>33.4 — Is the straight line the right trend?</h3>
+  <h3>33.5 — Is the straight line the right trend?</h3>
   <div class="note">The substantive claim, tested. Each rung's wobble against a line, against a line plus
   one bend, and against a cubic — drawn as a fraction of the straight-line value. <b>A rung whose bars
   barely fall is one where the deviation from a line is genuine unsteadiness</b>; a rung where they
@@ -135,7 +157,7 @@ performances timed the same way; use a <b>fixed grid</b> to compare across rungs
 </div>
 
 <div class="card">
-  <h3>33.5 — Across the ladder</h3>
+  <h3>33.6 — Across the ladder</h3>
   <div class="note">Median wobble per rung, shortest first, at the chosen resolution and unit. In
   <b>seconds per mile</b> this carries the base-pace confound — a 4:00/mi miler and an 8:30/mi 24-hour
   runner are not on one scale — so switch the unit control to <b>% of own pace</b> for the
@@ -144,7 +166,7 @@ performances timed the same way; use a <b>fixed grid</b> to compare across rungs
 </div>
 
 <div class="card">
-  <h3>33.6 — Two definitions of smoothness, side by side</h3>
+  <h3>33.7 — Two definitions of smoothness, side by side</h3>
   <div class="note">This metric against Exploration 32's <code>rough</code> — independently designed, one
   an L1 area in seconds off a line, the other an RMS in percentage points off a quadratic on ten deciles.
   <b>Where they agree, smoothness is a real property of the performance rather than an artefact of one
@@ -154,16 +176,35 @@ performances timed the same way; use a <b>fixed grid</b> to compare across rungs
 </div>
 
 <div class="card">
-  <h3>33.7 — Do the best performances run straighter?</h3>
-  <div class="note">Wobble against caliber within each rung, as a multiple of the rung's own median so the
-  slopes can be compared and the heights cannot be mistaken for a league table. <b>x = result ÷ that
-  rung's reference mark</b>, left is closer to the record.</div>
-  <div id="pays" class="chart"></div>
+  <h3>33.8 — Do the best performances run straighter?</h3>
+  <div class="note"><b>One point per race.</b> <b>x = how good the performance was</b>, as the result
+  divided by that rung's reference mark — <b>left is closer to the record</b>, 1.00 is the record itself.
+  <b>y = wobble.</b> Points are coloured by rung and the heavy line is the median within each decile of
+  caliber, which is the part to read: the cloud is wide everywhere and a single point proves nothing.
+  <br><b>Pick a single distance in the controls above before reading the heights.</b> Across rungs the
+  vertical axis mixes cadences and base paces, so the <i>relative</i> view — each race divided by its own
+  rung's median — is the honest cross-rung read and the toggle below switches to it.</div>
+  <div class="controls"><label>X axis <select id="paysx">
+      <option value="pct">caliber percentile within the rung — every rung uses the full width</option>
+      <option value="ratio">ratio to the reference mark — the raw number</option>
+    </select></label>
+    <label>Y axis <select id="payscale">
+      <option value="rel">relative — each race ÷ its rung’s median wobble</option>
+      <option value="abs">absolute — the wobble itself</option>
+    </select></label>
+    <label><input type="checkbox" id="paysbin" checked> draw the median by caliber decile</label></div>
+  <div class="note"><b>Why the x axis defaults to a percentile.</b> The selection rule is not the same on
+  every rung: eight of them take everything inside 110% of the world record, so on the raw ratio their
+  entire population is squeezed into <code>1.00–1.10</code> and overplots into one blob, while the
+  100-mile and 24-hour rungs — selected by an absolute bar instead — spread from 1.1 to 1.6. Ranking
+  each race within its own rung puts them all on one readable axis and asks the same question.
+  Switch to the raw ratio when a single distance is selected above.</div>
+  <div id="pays" class="chart tall"></div>
   <div class="note" id="paysnote"></div>
 </div>
 
 <div class="card">
-  <h3>33.8 — The distribution</h3>
+  <h3>33.9 — The distribution</h3>
   <div class="note">Where the current filter actually sits. Long right tails are the norm: a race that
   falls apart leaves the trend line a long way behind.</div>
   <div id="hist" class="chart"></div>
@@ -184,13 +225,13 @@ drift it is <b>0.75&nbsp;s/mi against a typical 3.4</b> — a fifth of the numbe
 real wobble <i>and</i> gains arithmetic, which is why the measured ratios in 33.2 are the thing to quote
 and not either effect on its own. Pinned by <code>validate.py:steadiness_units</code>.</p>
 <p><b>Seconds are not scale-free, and that was the point.</b> A 24-hour runner averaging 604&nbsp;s/mi has
-more seconds available to lose than a miler averaging 241, so part of the ladder in 33.5 is base pace
+more seconds available to lose than a miler averaging 241, so part of the ladder in 33.6 is base pace
 rather than steadiness. The <b>% of own pace</b> unit removes that and is the fairer cross-rung axis; the
 seconds axis is the one a runner can act on. Neither is the right answer alone.</p>
 <p><b>The trend is fitted to the race it is judging.</b> Every performance is measured against its own
 best-fit line, so this asks "was the drift steady", never "was the drift right". A runner who fades
 enormously but perfectly linearly scores as steady — correctly, under this definition, and that is worth
-knowing when reading 33.7.</p>
+knowing when reading 33.8.</p>
 <p><b>And a stop is a spike, not a stop.</b> An L1 norm deliberately refuses to let one catastrophic block
 dominate, which is the right call for measuring steadiness and the wrong one for finding stops. The
 census's <code>stop_recover</code> verdict reads the raw gaps between crossings and is the tool for
@@ -396,11 +437,7 @@ function drawDens(set) {
         + `(median %{customdata:.0f} native checkpoints)<extra></extra>` });
   });
   const cc = ((META.steady || {}).cadence_cost || {}).by_cadence || {};
-  const CADLABEL = { '8': '8 marks', '10': '10 even', '16': '16', '25': '25', '50': '50',
-    marathon_mats: 'marathon mats', marathon_5k_only: 'marathon, no HALF',
-    hundred_km_10k: '100 km @ 10 km' };
-  const keys = ['8', '10', '16', '25', '50', 'marathon_mats', 'marathon_5k_only',
-                'hundred_km_10k'].filter(k => cc[k]);
+  const keys = CADORDER.filter(k => cc[k]);
   traces.push({ x: keys.map(k => CADLABEL[k]), y: keys.map(k => cc[k].native_ratio_median),
     type: 'bar', name: 'native form', marker: { color: '#c96a6a' },
     xaxis: 'x2', yaxis: 'y2',
@@ -412,9 +449,11 @@ function drawDens(set) {
   const lay = layout({ showlegend: true, legend: { orientation: 'h', y: 1.06 },
     grid: { rows: 1, columns: 2, pattern: 'independent' },
     margin: { l: 60, r: 20, t: 50, b: 96 },
-    xaxis: { domain: [0, 0.46], title: 'resolution the integral was taken at' },
+    xaxis: { domain: [0, 0.46], type: 'category',
+             title: 'resolution the integral was taken at' },
     yaxis: { title: '× that rung’s own native value', rangemode: 'tozero' },
-    xaxis2: { domain: [0.56, 1], title: 'cadence the race was resampled to',
+    xaxis2: { domain: [0.56, 1], type: 'category',
+              title: 'cadence the race was resampled to',
               tickangle: -30, tickfont: { size: 9.5 } },
     yaxis2: { title: '× full resolution', range: [0, 1.1] },
     shapes: [{ type: 'line', xref: 'x2 domain', x0: 0, x1: 1, yref: 'y2', y0: 1, y1: 1,
@@ -438,7 +477,128 @@ function drawDens(set) {
     + `<b>The norm was never the problem; the mesh was.</b>`;
 }
 
-// --- 33.3 vs intentionality ------------------------------------------------
+// --- 33.3 biased or noisy? -------------------------------------------------
+// Four panels, one argument, all off study F. The whole point of separating
+// them is that they can disagree — and they do: the level test fails hard, the
+// ordering and conclusion tests pass. A single "does it survive" verdict would
+// have had to pick one and would have been wrong about the other.
+// EVERY LABEL HERE CARRIES A WORD, and that is load-bearing rather than
+// decorative. These are CATEGORY axes, and Plotly infers axis type from the
+// data: give it ['8 marks', '10 even', '16', '25', '50', 'marathon mats', ...]
+// and the three bare-numeral strings make it guess a LINEAR axis, which plots
+// those three at x=16/25/50 and silently drops the other five. It looked like
+// a chart with three bars rather than like an error. The `type: 'category'`
+// on each axis below is the real fix; the words are the belt to its braces.
+const CADLABEL = { '8': '8 marks', '10': '10 even', '16': '16 marks', '25': '25 marks',
+  '50': '50 marks', marathon_mats: 'marathon mats',
+  marathon_5k_only: 'marathon, no HALF', hundred_km_10k: '100 km @ 10 km' };
+const CADORDER = ['8', '10', '16', '25', '50', 'marathon_mats', 'marathon_5k_only',
+                  'hundred_km_10k'];
+function drawBias() {
+  const bc = ((META.steady || {}).bias || {}).by_cadence || {};
+  const keys = CADORDER.filter(k => bc[k] && bc[k].native && bc[k].g20);
+  if (!keys.length) {
+    Plotly.purge('bias');
+    document.getElementById('biasnote').innerHTML =
+      '<b>Study F has not been run against this build.</b> Run '
+      + '<code>python analysis/cadence_calibration.py</code> and re-export the viz JSON.';
+    return;
+  }
+  const lbl = keys.map(k => CADLABEL[k] || k);
+  const get = (form, field) => keys.map(k => bc[k][form][field]);
+  const FC = { native: '#c96a6a', g20: '#2ec4b6' };
+  const FL = { native: 'native form', g20: '20-block form' };
+  const traces = [];
+  ['native', 'g20'].forEach(form => {
+    // (a) is it a wash?
+    traces.push({ x: lbl, y: get(form, 'pct_rougher'), type: 'bar', name: FL[form],
+      marker: { color: FC[form] }, xaxis: 'x', yaxis: 'y', legendgroup: form,
+      hovertemplate: `${FL[form]}: %{y:.1f}% got rougher at %{x}<extra></extra>` });
+    // (b) is the shift constant? median with a p10-p90 whisker
+    traces.push({ x: lbl, y: get(form, 'ratio_median'), type: 'scatter', mode: 'markers',
+      name: FL[form], marker: { size: 10, color: FC[form] },
+      xaxis: 'x2', yaxis: 'y2', legendgroup: form, showlegend: false,
+      error_y: { type: 'data', symmetric: false,
+        array: get(form, 'ratio_p90').map((v, i) => v - get(form, 'ratio_median')[i]),
+        arrayminus: get(form, 'ratio_median').map((v, i) => v - get(form, 'ratio_p10')[i]),
+        color: FC[form], thickness: 1.4, width: 5 },
+      hovertemplate: `${FL[form]}: median %{y:.2f}× (p10–p90 whisker)<extra></extra>` });
+    // (c) is the order kept?
+    traces.push({ x: lbl, y: get(form, 'rank_rho'), type: 'scatter', mode: 'lines+markers',
+      name: FL[form], line: { color: FC[form], width: 2.2 },
+      marker: { size: 7, color: FC[form] },
+      xaxis: 'x3', yaxis: 'y3', legendgroup: form, showlegend: false,
+      customdata: get(form, 'pct_pair_flips'),
+      hovertemplate: `${FL[form]}: rank ρ %{y:.3f}, %{customdata:.1f}% of head-to-heads flip`
+        + `<extra></extra>` });
+    // (d) does the conclusion survive?
+    traces.push({ x: lbl, y: get(form, 'rho_vs_intent_coarse'), type: 'scatter',
+      mode: 'lines+markers', name: FL[form], line: { color: FC[form], width: 2.2 },
+      marker: { size: 7, color: FC[form] },
+      xaxis: 'x4', yaxis: 'y4', legendgroup: form, showlegend: false,
+      hovertemplate: `${FL[form]}: ρ vs intentionality = %{y:.2f} at this cadence<extra></extra>` });
+  });
+  // The full-resolution truth every panel is judged against.
+  const fineRho = bc[keys[0]].native.rho_vs_intent_fine;
+  const lay = layout({ showlegend: true, legend: { orientation: 'h', y: 1.13 },
+    grid: { rows: 2, columns: 2, pattern: 'independent' },
+    margin: { l: 58, r: 16, t: 74, b: 104 }, annotations: [] });
+  const panels = [
+    ['', '% of races that got ROUGHER', 'a wash would be 50%'],
+    ['2', 'coarse ÷ fine (median, p10–p90)', 'a constant shift is a flat line'],
+    ['3', 'rank ρ against full resolution', '1.00 = nobody was reshuffled'],
+    ['4', 'ρ between wobble and intentionality', `full resolution = ${fineRho.toFixed(2)}`],
+  ];
+  panels.forEach(([n, title, tag], i) => {
+    lay['xaxis' + (i + 1)] = { type: 'category', gridcolor: '#263140',
+                               tickangle: -30, tickfont: { size: 8.5 } };
+    lay['yaxis' + (i + 1)] = { gridcolor: '#263140', zeroline: true,
+      zerolinecolor: '#8fa3b8',
+      title: { text: title, font: { size: 10.5 } },
+      range: i === 0 ? [0, 68] : i === 1 ? [0, 1.22] : i === 2 ? [0.7, 1.04] : [0, 1.05] };
+    lay.annotations.push({ xref: `x${i + 1} domain`, yref: `y${i + 1} domain`,
+      x: 1, y: 1.04, xanchor: 'right', showarrow: false,
+      font: { size: 9.5, color: '#93a1b0' }, text: tag });
+  });
+  // Reference lines: the 50% wash line, the 1.00 no-shift line, and the
+  // full-resolution correlation the bottom-right panel is trying to match.
+  lay.shapes = [
+    { type: 'line', xref: 'x domain', x0: 0, x1: 1, yref: 'y', y0: 50, y1: 50,
+      line: { color: '#f4c430', dash: 'dash', width: 1.4 } },
+    { type: 'line', xref: 'x2 domain', x0: 0, x1: 1, yref: 'y2', y0: 1, y1: 1,
+      line: { color: '#8fa3b8', dash: 'dot', width: 1.2 } },
+    { type: 'line', xref: 'x3 domain', x0: 0, x1: 1, yref: 'y3', y0: 1, y1: 1,
+      line: { color: '#8fa3b8', dash: 'dot', width: 1.2 } },
+    { type: 'line', xref: 'x4 domain', x0: 0, x1: 1, yref: 'y4',
+      y0: fineRho, y1: fineRho, line: { color: '#f4c430', dash: 'dash', width: 1.4 } },
+  ];
+  Plotly.react('bias', traces, lay, CFG);
+
+  const mm = bc['marathon_mats'] || bc['10'];
+  const worstFlip = Math.max(...keys.map(k => bc[k].native.pct_pair_flips || 0));
+  const spread = keys.map(k => Math.abs(bc[k].native.ratio_vs_fine_rho || 0));
+  document.getElementById('biasnote').innerHTML =
+    `<b>The level test fails and the ordering test passes, and that combination is the whole answer.</b> `
+    + `Only <b>${mm.native.pct_rougher.toFixed(1)}%</b> of races get rougher when cut to a marathon's `
+    + `mats — coarsening is a one-directional filter, not a wash, because averaging within a block can `
+    + `only remove variation. So a level is never comparable across cadences and no amount of care with `
+    + `the definition changes that.<br>`
+    + `<b>But the shift is close to a pure rescaling rather than a reshuffle.</b> It barely depends on `
+    + `how rough the race was to begin with (ρ between the shrink factor and the race's own value is `
+    + `at most ${Math.max(...spread).toFixed(2)} in magnitude), it keeps rank correlation `
+    + `<b>${mm.native.rank_rho.toFixed(2)}</b> at native resolution and `
+    + `<b>${mm.g20.rank_rho.toFixed(2)}</b> on a fixed grid, and at worst `
+    + `<b>${worstFlip.toFixed(0)}%</b> of head-to-head comparisons change their winner. `
+    + `Most importantly the relationship the metric exists to state survives intact: `
+    + `<b>${mm.native.rho_vs_intent_fine.toFixed(2)}</b> at full resolution against `
+    + `<b>${mm.native.rho_vs_intent_coarse.toFixed(2)}</b> on a marathon's cadence, with both sides `
+    + `recomputed from the coarse series.<br>`
+    + `<b>The practical rule that falls out:</b> use the finest feed you have — it costs nothing and `
+    + `buys resolution — quote levels only within one cadence, and trust a rank-based or correlational `
+    + `finding across cadences.`;
+}
+
+// --- 33.4 vs intentionality ------------------------------------------------
 function drawIndep(set) {
   const L = byRung(set);
   const gl = set.length > 1500;
@@ -553,47 +713,102 @@ function drawAgree(set) {
       + `.<br>They agree substantially without being the same measurement — different norm, different `
       + `trend, different unit, different mesh. <b>Where two independently built metrics rank the same `
       + `races the same way, the thing being ranked is more likely to be real than either definition.</b> `
-      + `Where they part company, 33.4 says why: this one charges for curvature and that one does not.`
+      + `Where they part company, 33.5 says why: this one charges for curvature and that one does not.`
     : '';
 }
 
 // --- 33.7 caliber ----------------------------------------------------------
+// ONE POINT PER RACE, which is what makes this the chart to argue from rather
+// than the binned-only version it replaced. A median line through six bins can
+// hide a cloud so wide the trend is meaningless, and here it IS wide — so the
+// points are drawn and the line sits on top of them.
 function drawPays(set) {
+  const REL = document.getElementById('payscale').value === 'rel';
+  const PCT = document.getElementById('paysx').value === 'pct';
+  const SHOWBIN = document.getElementById('paysbin').checked;
   const L = byRung(set);
   const traces = [], notes = [];
+  const pts = [];
   L.forEach(r => {
-    const cal = r.set.filter(s => s.wr_ratio != null).sort((a, b) => a.wr_ratio - b.wr_ratio);
-    if (cal.length < 40) return;
+    const cal = r.set.filter(s => s.wr_ratio != null && wOf(s) != null)
+      .sort((a, b) => a.wr_ratio - b.wr_ratio);
+    if (cal.length < 10) return;
+    // The x value: either the raw ratio, or this race's RANK within its own
+    // rung as a percentile. The percentile exists because the rungs are not
+    // selected the same way — eight take everything inside 110% of the record
+    // and two use an absolute bar — so on the raw axis eight populations
+    // occupy a tenth of the width and cannot be read at all.
+    // Precomputed rather than an indexOf per point: `cal` runs to 2,600 rows
+    // on the 1500 m and a lookup inside the map would make this quadratic.
+    const xs = cal.map((_, i) => PCT ? 100 * i / Math.max(1, cal.length - 1)
+                                     : cal[i].wr_ratio);
+    // The per-rung median is the denominator for the relative view, and it is
+    // taken over that rung's OWN population so a rung timed coarsely is
+    // compared with itself rather than with a lap list.
     const base = median(cal.map(s => wOf(s)));
     if (!base) return;
-    const K = 6, x = [], y = [], n = [];
-    for (let i = 0; i < K; i++) {
-      const sub = cal.slice(Math.floor(i * cal.length / K), Math.floor((i + 1) * cal.length / K));
-      if (sub.length < 4) continue;
-      x.push(median(sub.map(s => s.wr_ratio)));
-      y.push(median(sub.map(s => wOf(s))) / base);
-      n.push(sub.length);
+    const yv = s => REL ? wOf(s) / base : wOf(s);
+    traces.push({ x: xs, y: cal.map(yv),
+      type: set.length > 1500 ? 'scattergl' : 'scatter', mode: 'markers',
+      name: `${r.label} (${cal.length})`,
+      marker: { size: 5, opacity: 0.42, color: r.color },
+      text: cal.map(s => `${s.name} · ${s.year} ${s.series}<br>`
+        + `${(100 * (s.wr_ratio - 1)).toFixed(1)}% off the reference · `
+        + `wobble ${fmtW(wOf(s))} ${unitLabel()}`
+        + (REL ? ` (${(wOf(s) / base).toFixed(2)}× the ${r.label} median)` : '')
+        + `<br>intent ${(s.intent_s > 0 ? '+' : '') + s.intent_s.toFixed(1)} s/mi · `
+        + `split ${s.split > 0 ? '+' : ''}${s.split}%`),
+      hoverinfo: 'text' });
+    cal.forEach((s, i) => pts.push({ x: xs[i], y: yv(s) }));
+    if (SHOWBIN && cal.length >= 40) {
+      const K = 6, x = [], y = [], n = [];
+      for (let i = 0; i < K; i++) {
+        const lo = Math.floor(i * cal.length / K), hi = Math.floor((i + 1) * cal.length / K);
+        const sub = cal.slice(lo, hi);
+        if (sub.length < 4) continue;
+        x.push(median(xs.slice(lo, hi)));
+        y.push(median(sub.map(yv)));
+        n.push(sub.length);
+      }
+      // Drawn with a dark halo under it so a median line stays legible on top
+      // of several thousand semi-transparent points.
+      if (x.length >= 3) {
+        traces.push({ x, y, type: 'scatter', mode: 'lines', showlegend: false,
+          line: { color: '#0f1419', width: 6 }, hoverinfo: 'skip' });
+        traces.push({ x, y, type: 'scatter', mode: 'lines+markers',
+          name: `${r.label} median`, showlegend: false,
+          line: { color: r.color, width: 3 },
+          marker: { size: 9, color: r.color, line: { color: '#0f1419', width: 1.5 } },
+          customdata: n,
+          hovertemplate: `${r.label} median: %{y:.2f} at `
+            + (PCT ? '%{x:.0f}th percentile' : '%{x:.3f}×')
+            + ` (%{customdata} runs)<extra></extra>` });
+      }
     }
-    if (x.length < 3) return;
-    traces.push({ x, y, type: 'scatter', mode: 'lines+markers',
-      name: `${r.label} (median ${fmtW(base)})`,
-      line: { color: r.color, width: 2.4 }, marker: { size: 7, color: r.color },
-      customdata: n,
-      hovertemplate: `${r.label}: %{y:.2f}× the rung median at %{x:.3f}× the reference `
-        + `(%{customdata} runs)<extra></extra>` });
     const rho = spearman(cal.map(s => s.wr_ratio), cal.map(s => wOf(s)));
     if (rho != null) notes.push(`<b>${r.label}</b> ${rho.toFixed(2)}`);
   });
+  const ys = pts.map(p => p.y);
   Plotly.react('pays', traces, layout({ showlegend: true, legend: { orientation: 'h', y: 1.05 },
-    xaxis: { title: 'result ÷ that rung’s reference mark   ← closer to the record' },
-    yaxis: { title: 'wobble ÷ the rung’s own median' },
-    shapes: [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 1, y1: 1,
-               line: { color: '#8fa3b8', dash: 'dot', width: 1.2 } }] }), CFG);
+    xaxis: PCT
+      ? { title: 'caliber percentile within the rung   ← the rung’s best performances',
+          range: [-2, 102] }
+      : { title: 'result ÷ that rung’s reference mark   ← closer to the record',
+          range: [0.99, Math.min(2.0, (pctl(pts.map(p => p.x), 0.99) || 1.2) * 1.02)] },
+    yaxis: { title: REL ? 'wobble ÷ the rung’s own median'
+                        : `wobble — ${unitLabel()} off the trend`,
+             range: [0, Math.max(1, (pctl(ys, 0.98) || 1) * 1.05)] },
+    shapes: REL ? [{ type: 'line', xref: 'paper', x0: 0, x1: 1, y0: 1, y1: 1,
+                     line: { color: '#8fa3b8', dash: 'dot', width: 1.2 } }] : [] }), CFG);
   document.getElementById('paysnote').innerHTML = notes.length
     ? 'ρ between caliber ratio and wobble, per rung: ' + notes.join(' · ')
-      + '. <b>Positive means the slower performances are the less steady ones.</b> It is a correlation '
-      + 'between athletes and not a demonstration that running straighter makes you faster — a '
-      + 'record-caliber run is made by a record-caliber runner, and nothing here separates the two.'
+      + '. <b>Positive means the slower performances are the less steady ones.</b> '
+      + 'Read the spread as well as the slope: at every caliber there are races at both extremes, so '
+      + 'this says something about the average and nothing about any individual runner. '
+      + 'It is also a correlation BETWEEN athletes and not a demonstration that running straighter '
+      + 'makes you faster — a record-caliber run is made by a record-caliber runner, and nothing here '
+      + 'separates the two. The within-athlete design that could is '
+      + '<a href="careers.html">Exploration&nbsp;18</a>’s, and it has not been run on this metric.'
     : 'Not enough performances with a caliber ratio under this filter.';
 }
 
@@ -643,7 +858,7 @@ const SORTERS = {
 function refresh() {
   const set = visible();
   header(set);
-  const ids = ['one', 'dens', 'indep', 'fam', 'ladder', 'agree', 'pays', 'hist'];
+  const ids = ['one', 'dens', 'bias', 'indep', 'fam', 'ladder', 'agree', 'pays', 'hist'];
   if (!set.length) {
     ids.forEach(id => Plotly.purge(id));
     document.getElementById('pick').innerHTML = '';
@@ -655,7 +870,7 @@ function refresh() {
     `<option value="${s.key}">${s.name} — ${s.year} ${discLabel(s.rung)} `
     + `(${fmtW(wOf(s))} ${unitLabel()})</option>`).join('');
   drawOne(sorted[0].key);
-  drawDens(set); drawIndep(set); drawFam(set); drawLadder(set);
+  drawDens(set); drawBias(); drawIndep(set); drawFam(set); drawLadder(set);
   drawAgree(set); drawPays(set); drawHist(set); drawTable(sorted);
 }
 
@@ -672,12 +887,31 @@ loadData().then(({ shapes, meta }) => {
   put('natratio', (cc['marathon_mats'] || {}).native_ratio_median);
   put('g20ratio', (cc['10'] || {}).g20_ratio_median);
   put('g50ratio', (cc['50'] || {}).g20_ratio_median);
+  // Study F's headline numbers, into the opening paragraph. A page that
+  // states a measured result in prose has to read it from the artefact, or
+  // it becomes a number nobody re-derives.
+  const bc = ((meta.steady || {}).bias || {}).by_cadence || {};
+  const mm = bc['marathon_mats'] || bc['10'];
+  if (mm) {
+    document.getElementById('frougher').textContent =
+      mm.native.pct_rougher < 1 ? 'Essentially every'
+        : `${(100 - mm.native.pct_rougher).toFixed(0)}% of`;
+    document.getElementById('frho').textContent = mm.native.rank_rho.toFixed(2);
+    document.getElementById('frhog').textContent = mm.g20.rank_rho.toFixed(2);
+    document.getElementById('fintf').textContent = mm.native.rho_vs_intent_fine.toFixed(2);
+    document.getElementById('fintc').textContent = mm.native.rho_vs_intent_coarse.toFixed(2);
+  }
   sel.onchange = e => { RUNG = e.target.value; refresh(); };
   document.getElementById('sex').onchange = e => { SEX = e.target.value; refresh(); };
   document.getElementById('res').onchange = e => { RES = e.target.value; refresh(); };
   document.getElementById('unit').onchange = e => { UNIT = e.target.value; refresh(); };
   document.getElementById('fit').onchange = e => { FIT = e.target.value; refresh(); };
   document.getElementById('sort').onchange = e => { SORT = e.target.value; refresh(); };
+  // 33.8's two controls redraw only that chart — it is the one the reader
+  // is most likely to toggle repeatedly, and a full refresh rebuilds nine.
+  document.getElementById('payscale').onchange = () => drawPays(visible());
+  document.getElementById('paysbin').onchange = () => drawPays(visible());
+  document.getElementById('paysx').onchange = () => drawPays(visible());
   document.getElementById('pick').onchange = e => drawOne(e.target.value);
   refresh();
 });
